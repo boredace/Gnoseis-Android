@@ -1,6 +1,11 @@
 # Gnoseis
 Gnoseis is a high performance Android native CRM application that can be also used as an all-purpose knowledge manager. It stores all data securely on device and in future will allow secure cloud-free synchronization.
 
+## Features
+List of features will go here
+
+## Screenshots
+
 ## Licensing
 
 Gnoseis is dual-licensed:
