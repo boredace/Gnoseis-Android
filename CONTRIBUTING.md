@@ -1,0 +1,1 @@
+By contributing to Gnoseis, you agree that your contributions will be licensed under both the open-source license in the `LICENSE` file and the commercial license described in the `COMMERCIAL_LICENSE` file.
