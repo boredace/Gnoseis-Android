@@ -45,6 +45,13 @@ enum class RecordType(val recordTypeId: Int) {
     }
 }
 
+enum class ContactEditPageMode {
+    NEW,
+    EDIT,
+    NEWLINK
+}
+
+
 enum class NoteEditPageMode {
     NEW,
     EDIT,

@@ -43,7 +43,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLink
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Contacts
+import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,8 +56,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.gnoseis.R
+import org.gnoseis.ui.icons.CategoryIcon
+import org.gnoseis.ui.icons.ItemIcon
 
 
 // Custom fab that allows for displaying extended content
@@ -71,7 +77,13 @@ fun ExpandableActionButton(
     onFab1Click: () -> Unit,
     fab2Icon: ImageVector? = null,
     fab2Text: String? = null,
-    onFab2Click: () -> Unit,
+    onFab2Click: () -> Unit? = {},
+    fab3Icon: ImageVector? = null,
+    fab3Text: String? = null,
+    onFab3Click: () -> Unit? = {},
+    fab4Icon: ImageVector? = null,
+    fab4Text: String? = null,
+    onFab4Click: () -> Unit? = {},
 ) {
 //    var isExpanded by remember { mutableStateOf(false) }
 //    if (!expandable) { // Close the expanded fab if you change to non expandable nav destination
@@ -94,6 +106,15 @@ fun ExpandableActionButton(
         fabCount = 2
         expandedBoxHeight = 140.dp
 
+        if (fab3Icon != null && fab3Text != null) {
+            fabCount = 3
+            expandedBoxHeight = 196.dp
+
+            if (fab4Icon != null && fab4Text != null) {
+                fabCount = 4
+                expandedBoxHeight = 252.dp
+            }
+        }
     }
 
     Column {
@@ -165,7 +186,7 @@ fun ExpandableActionButton(
                 }
 
                 // FAB 2 - OPTIONAL
-                if (fabCount == 2) {
+                if (fabCount > 1) {
                     FloatingActionButton(
                         onClick = {
                             onFab2Click()
@@ -192,6 +213,110 @@ fun ExpandableActionButton(
 
                         Text(
                             text = fab2Text!!,
+                            softWrap = false,
+                            modifier = Modifier
+                                .offset(
+                                    x = animateDpAsState(
+                                        if (isExpanded) 10.dp else 50.dp,
+                                        animationSpec = spring(dampingRatio = 3f)
+                                    ).value
+                                )
+                                .alpha(
+                                    animateFloatAsState(
+                                        targetValue = if (isExpanded) 1f else 0f,
+                                        animationSpec = tween(
+                                            durationMillis = if (isExpanded) 350 else 100,
+                                            delayMillis = if (isExpanded) 100 else 0,
+                                            easing = EaseIn
+                                        )
+                                    ).value
+                                )
+                        )
+
+                    }
+                }
+
+
+                // FAB 3 - OPTIONAL
+                if (fabCount > 2) {
+                    FloatingActionButton(
+                        onClick = {
+                            onFab3Click()
+                        },
+                        modifier = Modifier
+                            .width(expandedFabWidth)
+                            .height(expandedFabHeight),
+                        shape = RoundedCornerShape(18.dp)
+
+                    ) {
+
+                        Icon(
+                            imageVector = fab3Icon!!,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .offset(
+                                    x = animateDpAsState(
+                                        if (isExpanded) -70.dp else 0.dp,
+                                        animationSpec = spring(dampingRatio = 3f)
+                                    ).value
+                                )
+                        )
+
+                        Text(
+                            text = fab3Text!!,
+                            softWrap = false,
+                            modifier = Modifier
+                                .offset(
+                                    x = animateDpAsState(
+                                        if (isExpanded) 10.dp else 50.dp,
+                                        animationSpec = spring(dampingRatio = 3f)
+                                    ).value
+                                )
+                                .alpha(
+                                    animateFloatAsState(
+                                        targetValue = if (isExpanded) 1f else 0f,
+                                        animationSpec = tween(
+                                            durationMillis = if (isExpanded) 350 else 100,
+                                            delayMillis = if (isExpanded) 100 else 0,
+                                            easing = EaseIn
+                                        )
+                                    ).value
+                                )
+                        )
+
+                    }
+                }
+
+
+                // FAB 4 - OPTIONAL
+                if (fabCount > 3) {
+                    FloatingActionButton(
+                        onClick = {
+                            onFab4Click()
+                        },
+                        modifier = Modifier
+                            .width(expandedFabWidth)
+                            .height(expandedFabHeight),
+                        shape = RoundedCornerShape(18.dp)
+
+                    ) {
+
+                        Icon(
+                            imageVector = fab4Icon!!,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .offset(
+                                    x = animateDpAsState(
+                                        if (isExpanded) -70.dp else 0.dp,
+                                        animationSpec = spring(dampingRatio = 3f)
+                                    ).value
+                                )
+                        )
+
+                        Text(
+                            text = fab4Text!!,
                             softWrap = false,
                             modifier = Modifier
                                 .offset(
@@ -261,15 +386,21 @@ fun ExpandableActionButton(
 @Preview
 fun ExpandableActionButtonPreview() {
     ExpandableActionButton(
-        isExpanded =  false,
+        isExpanded =  true,
         fabIcon = Icons.Filled.AddLink,
         onFabClick = {},
         fabText = "Link Records",
-        fab1Icon = Icons.Outlined.TextSnippet,
+        fab1Icon = ImageVector.vectorResource(R.drawable.outline_description_24),
         fab1Text = "New Note",
         onFab1Click = {},
-        fab2Icon = Icons.Outlined.Contacts,
+        fab2Icon = ImageVector.vectorResource(R.drawable.outline_people_24),
         fab2Text = "New Contact",
-        onFab2Click = {}
+        onFab2Click = {},
+        fab3Icon = ImageVector.vectorResource(R.drawable.outline_label_24),
+        fab3Text = "New Category",
+        onFab3Click = {},
+        fab4Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
+        fab4Text = "New Item",
+        onFab4Click = {},
     )
 }

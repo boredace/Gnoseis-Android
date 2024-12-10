@@ -126,6 +126,7 @@ fun OrganizationDetailsPage(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 ) {
@@ -146,6 +147,7 @@ fun OrganizationDetailsPage(
         navigateToNoteDetailsPage = navigateToNoteDetailsPage,
         navigateToLinkRecordsPage = navigateToLinkRecordsPage,
         navigateToLinkNewNotePage = navigateToLinkNewNotePage,
+        navigateToLinkNewContactPage = navigateToLinkNewContactPage,
         navigateToOrganizationEditPage = navigateToOrganizationEditPage,
     )
 }
@@ -165,6 +167,7 @@ fun OrganizationDetailsScaffold(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 
@@ -233,7 +236,7 @@ fun OrganizationDetailsScaffold(
                     onFab1Click = { navigateToLinkNewNotePage(organization.id) },
                     fab2Icon = Icons.Outlined.Contacts,
                     fab2Text = "New Contact",
-                    onFab2Click = {}
+                    onFab2Click = { navigateToLinkNewContactPage(organization.id) }
                 )
                 /*ExtendedFloatingActionButton(
                     onClick = { navigateToLinkRecordsPage(organization.id) }
@@ -529,6 +532,7 @@ fun OrganizationDetailsPagePreview() {
                 navigateToNoteDetailsPage = {},
                 navigateToLinkRecordsPage = {},
                 navigateToLinkNewNotePage = {},
+                navigateToLinkNewContactPage = {},
                 navigateToOrganizationEditPage = {},
                 linkedRecordTabs = listOf(
                     LinkedRecordTypeCount(

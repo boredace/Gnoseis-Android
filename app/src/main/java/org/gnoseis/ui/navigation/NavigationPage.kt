@@ -41,6 +41,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
+import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.TestPage
@@ -53,8 +54,8 @@ import org.gnoseis.ui.category.CategoryListPage
 import org.gnoseis.ui.category.CategoryListPageDestination
 import org.gnoseis.ui.contact.ContactDetailsPage
 import org.gnoseis.ui.contact.ContactDetailsPageDestination
-import org.gnoseis.ui.contact.ContactEditDestination
 import org.gnoseis.ui.contact.ContactEditPage
+import org.gnoseis.ui.contact.ContactEditRoute
 import org.gnoseis.ui.contact.ContactListPage
 import org.gnoseis.ui.contact.ContactListPageDestination
 import org.gnoseis.ui.item.ItemDetailsPage
@@ -179,7 +180,7 @@ fun NavigationPage(
                 ) {
                     ContactListPage(
                         navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
-                        navigateToContactEditPage = { navController.navigate("${ContactEditDestination.route}/new") },
+                        navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.NEW))},
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -203,32 +204,21 @@ fun NavigationPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/2") },
-                        navigateToContactEditPage = {navController.navigate("${ContactEditDestination.route}/${it}") },
+                        navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.EDIT))},
                     )
                 }
 
-                //
-                // ********** CONTACT EDIT PAGE **********
-                //
-                composable(
-                    route = ContactEditDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(ContactEditDestination.contactIdArg) {
-                            type = NavType.StringType
-                        }
-                    )
-                ){
-                    val contactId = it.arguments?.getString("contactId") ?: "new"  // -9 means add new note
+                composable<ContactEditRoute> {
+                    val args = it.toRoute<ContactEditRoute>()
                     ContactEditPage(
-                        navMenuClick = { navController.popBackStack()},
+                        pageMode = args.pageMode,
+                        navMenuClick = { navController.popBackStack() },
                         navigateToContactDetailsPage = {
                             navController.popBackStack()
                             navController.navigate("${ContactDetailsPageDestination.route}/$it")
-                        },
+                        }
                     )
                 }
-
-
 
                 // #############################################################
                 // #####################    ITEM    ############################
@@ -385,6 +375,7 @@ fun NavigationPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/3") },
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Organization, it) )},
+                        navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Organization, it) )},
                         navigateToOrganizationEditPage = {navController.navigate("${OrganizationEditDestination.route}/$it") },
                     )
                 }

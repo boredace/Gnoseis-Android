@@ -65,8 +65,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
+import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.NoteEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
@@ -76,8 +80,19 @@ object ContactEditDestination : NavigationDestination {
     const val contactIdArg = "contactId"
     val routeWithArgs = "${route}/{$contactIdArg}"
 }
+
+
+@Serializable
+data class ContactEditRoute(
+    val contactId: String?,
+    val pageMode: ContactEditPageMode,
+    val linkFromType: RecordType? = null,
+    val linkFromId: String? = null
+)
+
 @Composable
 fun ContactEditPage(
+    pageMode: ContactEditPageMode,
     pageViewModel: ContactEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToContactDetailsPage: (String) ->Unit
