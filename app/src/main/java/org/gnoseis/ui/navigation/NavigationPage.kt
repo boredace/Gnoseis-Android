@@ -79,6 +79,8 @@ import org.gnoseis.ui.organization.OrganizationListPage
 import org.gnoseis.ui.organization.OrganizationListPageDestination
 import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchPageDestination
+import org.gnoseis.ui.settings.SettingsPage
+import org.gnoseis.ui.settings.SettingsPageRoute
 
 const val TAG = "navigation_page"
 
@@ -459,6 +461,18 @@ fun NavigationPage(
                 ){
                     TestPage(
 //                        onNavMenuClick = { navController.popBackStack()}
+                    )
+                }
+
+
+                //
+                // ********** SETTINGS PAGE **********
+                //
+
+                composable<SettingsPageRoute> {
+                    SettingsPage(
+                        onNavMenuclick = { navController.popBackStack() },
+                        listItemClicked = {}
                     )
                 }
             }
