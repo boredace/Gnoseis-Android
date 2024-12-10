@@ -87,7 +87,8 @@ object AppViewModelProvider {
         initializer {
             ContactEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.contactRepository
+                gnoseisApplication().container.contactRepository,
+                gnoseisApplication().container.linkedRecordRepository,
             )
         }
         initializer {

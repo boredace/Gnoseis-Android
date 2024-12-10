@@ -74,7 +74,7 @@ object ContactListPageDestination : NavigationDestination {
 fun ContactListPage(
     pageViewModel: ContactListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToContactDetailsPage: (String) -> Unit,
-    navigateToContactEditPage: (String) -> Unit,
+    navigateToContactEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,7 +94,7 @@ fun ContactListPage(
 fun ContactPageScaffold(
     pageState: ContactListViewModel.ContactListPageState,
     navigateToContactDetailsPage: (String) -> Unit,
-    navigateToContactEditPage: (String) -> Unit,
+    navigateToContactEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -136,7 +136,7 @@ fun ContactPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToContactEditPage("new") }
+                onClick = { navigateToContactEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Contact")
                 Spacer(modifier = Modifier.width(15.dp))
