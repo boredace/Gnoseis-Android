@@ -306,7 +306,6 @@ fun NavigationPage(
                 ) {
                     NoteListPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
-//                        navigateToNoteEditPage = {navController.navigate("${NoteEditDestination.route}/$it") },
                         navigateToNoteEditPage = {navController.navigate(NoteEditRoute(it, NoteEditPageMode.NEW))},
                         navigateToSearchPage = {navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
@@ -331,41 +330,15 @@ fun NavigationPage(
                         navigateToItemDetailsPage = { navController.navigate("${ItemDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/1") },
-//                        navigateToNoteEditPage = {navController.navigate("${NoteEditDestination.route}/1/${it}") },
                         navigateToNoteEditPage = { navController.navigate(NoteEditRoute(it, NoteEditPageMode.EDIT))},
 
 
                         )
                 }
-                //
-                // ********** NOTE EDIT PAGE **********
-                //
-                /*composable(
-                    route = NoteEditDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(NoteEditDestination.pageTypeArg) {
-                            type = NavType.StringType
-                         },
-                        navArgument(NoteEditDestination.noteIdArg) {
-                            type = NavType.StringType
-                            defaultValue = "-9"
-                        }
-                    )
-                ){
-                    val noteId = it.arguments?.getInt("note_id") ?: -9  // -9 means add new note
-                    NoteEditPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToNoteDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate("${NoteDetailsPageDestination.route}/$it")
-                        }
-                    )
-                }*/
 
                 composable<NoteEditRoute> {
                     val args = it.toRoute<NoteEditRoute>()
                     NoteEditPage(
-                        noteId = args.noteId,
                         pageMode = args.pageMode,
                         navMenuClick = { navController.popBackStack() },
                         navigateToNoteDetailsPage = {

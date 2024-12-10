@@ -89,17 +89,6 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 
-object NoteEditDestination : NavigationDestination {
-    override val route = "note_edit"
-    override val titleRes = -9
-    const val pageTypeArg = "0" // 0: new, 1: edit, 2: new and link
-    const val noteIdArg = "-9"
-//    const val linkToTypeId = -9
-//    const val linkToIdArg = ""
-//    val routeWithArgs = "${NoteEditDestination.route}/{$pageTypeArg}/{$noteIdArg}/{$linkToTypeId}/{$linkToIdArg}"
-    val routeWithArgs = "${NoteEditDestination.route}/{$pageTypeArg}/{$noteIdArg}"
-}
-
 @Serializable
 data class NoteEditRoute(
     val noteId: String?,
@@ -111,10 +100,7 @@ data class NoteEditRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditPage(
-    noteId: String? = null,
     pageMode: NoteEditPageMode,
-    linkFromType: RecordType? = null,
-    linkFromId: String? = null,
     pageViewModel: NoteEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToNoteDetailsPage: (String) ->Unit
@@ -397,6 +383,7 @@ fun MyTimePickerDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
