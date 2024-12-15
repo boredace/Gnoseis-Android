@@ -47,23 +47,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
+import org.gnoseis.AppViewModelProvider
 
 @Serializable
 data class BackupSettingsPageRoute(
-    val dummy: Boolean? = false
+        val dummy: Boolean? = false
 )
 
 
 @Composable
 fun BackupSettingsPage(
+    pageViewModel: BackupSettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onNavMenuClick: () -> Unit,
     onExportClicked: () -> Unit,
     onImportClicked: () -> Unit,
     ) {
     BackupSettingsScaffold(
         onNavMenuClick = onNavMenuClick,
-        onExportClicked = onExportClicked,
+        onExportClicked = {
+            pageViewModel.backupDatabase("/storage/emulated/0/Download/gnoseis_data.backup")
+
+        },
         onImportClicked = onImportClicked,
     )
 }
@@ -147,6 +153,8 @@ fun BackupSettingsBody(
         }
     }
 }
+
+
 
 
 @Preview

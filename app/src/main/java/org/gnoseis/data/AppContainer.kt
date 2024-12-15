@@ -32,6 +32,7 @@ import android.content.Context
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.ContactRepository
+import org.gnoseis.data.repository.DatabaseRepository
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
@@ -39,6 +40,7 @@ import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.data.repository.SearchRepository
 
 interface  AppContainer {
+    val databaseRepository: DatabaseRepository
     val categoryRepository: CategoryRepository
     val contactRepository: ContactRepository
     val itemRepository: ItemRepository
@@ -49,6 +51,13 @@ interface  AppContainer {
 }
 
 class AppDataContainer(private val context: Context) : AppContainer {
+
+    override val databaseRepository: DatabaseRepository by lazy {
+        DatabaseRepository(
+            context
+        )
+    }
+
     override val categoryRepository: CategoryRepository by lazy{
         CategoryRepository(
             GnoseisDatabase.getDatabase(context).categoryDao()
