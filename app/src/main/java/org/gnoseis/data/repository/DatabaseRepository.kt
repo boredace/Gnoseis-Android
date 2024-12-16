@@ -29,7 +29,7 @@
 package org.gnoseis.data.repository
 
 import android.content.Context
-import android.util.Log
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.gnoseis.data.database.GnoseisDatabase
@@ -38,12 +38,10 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 
-const val TAG = "Settings"
-
 class DatabaseRepository (
     private val context: Context,
 ){
-    suspend fun copyDatabase(destinationPath: String) : Boolean {
+    suspend fun exportDatabase(destinationPath: String) : Boolean {
         val dbFile = context.getDatabasePath("gnoseis_data")
         val destFile = File(destinationPath)
         val db = GnoseisDatabase.getDatabase(context)
@@ -51,25 +49,49 @@ class DatabaseRepository (
         return try {
             withContext(Dispatchers.IO) {
                 db.closeDatabase()
-                Log.i(TAG, "Closed database")
 
                 FileInputStream(dbFile).use { input ->
                     FileOutputStream(destFile).use { output ->
                         input.copyTo(output) // Copy the file contents
                     }
                 }
-                val db = GnoseisDatabase.getDatabase(context)
             }
-            Log.i("Settings", "Maybe Success?")
             true
         } catch (e: IOException) {
-            Log.i("Settings", "Maybe Failure?")
             e.printStackTrace()
             false
         }
     }
 
-        fun closeApp() {
+    suspend fun importDatabase(selectedFile: Uri) : Boolean{
+        val dbFile = context.getDatabasePath("gnoseis_data")
 
+        // Open the input stream from the Uri
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(selectedFile)
+
+        // Ensure the input stream was opened successfully
+        if (inputStream == null) {
+            return false
         }
+
+        return try {
+            withContext(Dispatchers.IO) {
+                // Close the database if needed
+                val db = GnoseisDatabase.getDatabase(context)
+                db.closeDatabase()
+
+                // Create the output stream to the app's internal storage
+                FileOutputStream(dbFile).use { output ->
+                    inputStream.use { input ->
+                        input.copyTo(output) // Copy content from input to output
+                    }
+                }
+            }
+            true
+        } catch (e: IOException) {
+            e.printStackTrace()
+            false
+        }
+    }
  }

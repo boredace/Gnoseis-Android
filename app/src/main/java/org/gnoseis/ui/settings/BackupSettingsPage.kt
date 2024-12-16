@@ -29,7 +29,9 @@
 package org.gnoseis.ui.settings
 
 import android.app.Activity
-import android.util.Log
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,7 +51,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,7 +74,6 @@ data class BackupSettingsPageRoute(
         val dummy: Boolean? = false
 )
 
-private const val TAG = "BACKUP"
 
 @Composable
 fun BackupSettingsPage(
@@ -76,22 +82,40 @@ fun BackupSettingsPage(
     onImportClicked: () -> Unit,
     ) {
 
+
+
     val exportSuccess = pageViewModel.exportuccess.value
+    val importSuccess = pageViewModel.importuccess.value
 
     val context = LocalContext.current
     val activity = context as? Activity
+
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Create a file picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        selectedFileUri = uri // Update the selected URI
+        pageViewModel.importDatabase(selectedFileUri!!)
+    }
 
     BackupSettingsScaffold(
         onNavMenuClick = onNavMenuClick,
         onExportClicked = {
             val dateStamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
                 .format((Date()))
-            pageViewModel.backupDatabase("/storage/emulated/0/Download/gnoseis_data_${dateStamp}.backup")
+            pageViewModel.exportDatabase("/storage/emulated/0/Download/gnoseis_data_${dateStamp}.backup")
         },
-        onImportClicked = onImportClicked,
+        onImportClicked = {
+            filePickerLauncher.launch(arrayOf("*/*")) // Use a MIME type like "image/*" for specific files
+        },
         exportSuccess = exportSuccess,
+        importSuccess = importSuccess,
         onExportCompleteConfirm = {
-            Log.i(TAG, "Closing app")
+            activity?.finish()
+        },
+        onImportCompleteConfirm = {
             activity?.finish()
         }
 
@@ -105,7 +129,9 @@ fun BackupSettingsScaffold(
     onExportClicked: () -> Unit,
     onImportClicked: () -> Unit,
     exportSuccess: Boolean,
+    importSuccess: Boolean,
     onExportCompleteConfirm: () -> Unit,
+    onImportCompleteConfirm: () -> Unit,
 
     ) {
     Scaffold(
@@ -129,7 +155,9 @@ fun BackupSettingsScaffold(
                     onExportClicked = onExportClicked,
                     onImportClicked = onImportClicked,
                     exportSuccess = exportSuccess,
-                    onExportCompleteConfirm =  onExportCompleteConfirm,
+                    importSuccess = importSuccess,
+                    onExportCompleteConfirm = onExportCompleteConfirm,
+                    onImportCompleteConfirm = onImportCompleteConfirm,
                 )
             }
         }
@@ -142,12 +170,17 @@ fun BackupSettingsBody(
     onExportClicked: () -> Unit,
     onImportClicked: () -> Unit,
     exportSuccess: Boolean,
+    importSuccess: Boolean,
     onExportCompleteConfirm: () -> Unit,
+    onImportCompleteConfirm: () -> Unit,
 
     ) {
 
     if(exportSuccess) {
-        BackupCompleteDialog( onConfirm = onExportCompleteConfirm )
+        ExportCompleteDialog( onConfirm = onExportCompleteConfirm )
+    }
+    if(importSuccess) {
+        ImportCompleteDialog( onConfirm = onImportCompleteConfirm )
     }
 
     Column(
@@ -203,18 +236,32 @@ fun BackupSettingsBody(
         ) {
             Text(text = "You can import existing backup file to replace database currently used by the application.")
         }
+
+        Row(
+            modifier = Modifier
+                .padding(bottom = 12.dp)
+        ) {
+            Text(text = "Warning: All existing data in your application will be replaced with the data from imported file. Ensure you have exported existing database using the Export function above before proceeding.", color = Color.Red)
+        }
+        Row(
+            modifier = Modifier
+                .padding(bottom = 12.dp, top = 0.dp)
+        ) {
+            Text(text = "Once imported application will need to be restarted.")
+        }
         Row(Modifier.fillMaxWidth()) {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onImportClicked() }
             ) { Text(text = "Import") }
         }
+
     }
 }
 
 
 @Composable
-fun BackupCompleteDialog(
+fun ExportCompleteDialog(
     onConfirm: () -> Unit,
 ) {
     AlertDialog(
@@ -241,6 +288,34 @@ fun BackupCompleteDialog(
 }
 
 
+@Composable
+fun ImportCompleteDialog(
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        text = {
+            Column(){
+                Row(){
+                    Text(text = "Database file imported successfully and replaced the old database. " +
+                            "Application needs to be restarted.")
+                }
+            }
+        },
+        onDismissRequest = {},
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm() }
+            ) {
+                Text(text="Exit the Application")
+            }
+        },
+        title = { Text(text="Import Successful") },
+        icon =  { Icon(Icons.Outlined.CheckCircleOutline, contentDescription = null) },
+    )
+
+}
+
+
 
 @Preview
 @Composable
@@ -251,6 +326,8 @@ fun BackupSettingsPagePreview(
         onExportClicked = {},
         onImportClicked = {},
         onExportCompleteConfirm = {},
-        exportSuccess = false
+        onImportCompleteConfirm = {},
+        exportSuccess = false,
+        importSuccess = false,
     )
 }

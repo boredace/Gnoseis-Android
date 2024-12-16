@@ -28,6 +28,7 @@
 
 package org.gnoseis.ui.settings
 
+import android.net.Uri
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -42,12 +43,23 @@ class BackupSettingsViewModel(
     private val _exportSuccess = mutableStateOf(false)
     val exportuccess: State<Boolean> = _exportSuccess
 
+    private val _importSuccess = mutableStateOf(false)
+    val importuccess: State<Boolean> = _importSuccess
 
 
-    fun backupDatabase(path: String): Boolean {
+    fun exportDatabase(path: String): Boolean {
         viewModelScope.launch {
-            databaseRepository.copyDatabase(path).let{
+            databaseRepository.exportDatabase(path).let{
                 _exportSuccess.value = it
+            }
+        }
+        return false
+    }
+
+    fun importDatabase(path: Uri): Boolean {
+        viewModelScope.launch {
+            databaseRepository.importDatabase(path).let{
+                _importSuccess.value = it
             }
         }
         return false
