@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.settings
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
@@ -36,11 +38,18 @@ import org.gnoseis.data.repository.DatabaseRepository
 class BackupSettingsViewModel(
     private val databaseRepository: DatabaseRepository
 ) : ViewModel() {
+
+    private val _exportSuccess = mutableStateOf(false)
+    val exportuccess: State<Boolean> = _exportSuccess
+
+
+
     fun backupDatabase(path: String): Boolean {
         viewModelScope.launch {
-            val result = databaseRepository.copyDatabase(path)
+            databaseRepository.copyDatabase(path).let{
+                _exportSuccess.value = it
+            }
         }
         return false
-
     }
 }

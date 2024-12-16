@@ -57,7 +57,6 @@ class AppDataContainer(private val context: Context) : AppContainer {
             context
         )
     }
-
     override val categoryRepository: CategoryRepository by lazy{
         CategoryRepository(
             GnoseisDatabase.getDatabase(context).categoryDao()

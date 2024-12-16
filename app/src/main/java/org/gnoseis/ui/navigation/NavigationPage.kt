@@ -488,7 +488,6 @@ fun NavigationPage(
                 composable<BackupSettingsPageRoute> {
                     BackupSettingsPage(
                         onNavMenuClick = { navController.popBackStack() },
-                        onExportClicked = {},
                         onImportClicked = {}
 
                         )
