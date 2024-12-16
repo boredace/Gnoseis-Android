@@ -45,6 +45,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navOptions
 import kotlinx.coroutines.launch
 import org.gnoseis.ui.icons.SettingsIcon
+import org.gnoseis.ui.settings.SettingsPageRoute
 
 @Composable
 fun DrawerContent(navController: NavHostController, drawerState: DrawerState) {
@@ -60,11 +61,7 @@ fun DrawerContent(navController: NavHostController, drawerState: DrawerState) {
         NavigationDrawerItems(navController, drawerState)
 
         Spacer(modifier = Modifier.weight(1f))
-        /*Text(
-            "Battery Watch Dog",
-            fontSize = 16.dp,
-            modifier = Modifier.padding(horizontal = 28.dp)
-           )*/
+
         Spacer(modifier = Modifier.height(4.dp))
 
 
@@ -90,20 +87,14 @@ fun DrawerContent(navController: NavHostController, drawerState: DrawerState) {
             label = { Text(text = "Settings") },
             selected = destination?.route == "SettingPage",
             onClick = {
-                navController.navigate("SettingPage", navOptions {
-                    this.launchSingleTop = true
-                    this.restoreState = true
-                })
+                navController.navigate(SettingsPageRoute())
                 scope.launch {
                     drawerState.close()
                 }
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-        /* Text(
-             "Version 0.1", textAlign = TextAlign.Center,
-             modifier = Modifier.width(150.dp)
-         )*/
+
         Spacer(Modifier.height(26.dp))
 
     }
