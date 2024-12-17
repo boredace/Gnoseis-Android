@@ -51,9 +51,15 @@ import org.gnoseis.ui.organization.OrganizationDetailsViewModel
 import org.gnoseis.ui.organization.OrganizationEditViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
 import org.gnoseis.ui.search.SearchPageViewModel
+import org.gnoseis.ui.settings.BackupSettingsViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
+        initializer {
+            BackupSettingsViewModel(
+                gnoseisApplication().container.databaseRepository
+            )
+        }
         initializer {
             CategoryListViewModel(
                 gnoseisApplication().container.categoryRepository

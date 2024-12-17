@@ -76,6 +76,9 @@ abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun noteItemDao(): NoteItemDao
     abstract fun linkedRecordDao(): LinkedRecordDao
     abstract fun searchDao(): SearchDao
+    fun closeDatabase() {
+        this.close()
+    }
 
 
     companion object {
@@ -110,5 +113,6 @@ abstract class GnoseisDatabase : RoomDatabase() {
                     .also { Instance = it }
             }
         }
+
     }
 }

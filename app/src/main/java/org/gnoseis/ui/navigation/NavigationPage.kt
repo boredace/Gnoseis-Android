@@ -28,6 +28,7 @@
 
 package org.gnoseis.ui.navigation
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
@@ -80,6 +81,10 @@ import org.gnoseis.ui.organization.OrganizationListPage
 import org.gnoseis.ui.organization.OrganizationListPageDestination
 import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchPageDestination
+import org.gnoseis.ui.settings.BackupSettingsPage
+import org.gnoseis.ui.settings.BackupSettingsPageRoute
+import org.gnoseis.ui.settings.SettingsPage
+import org.gnoseis.ui.settings.SettingsPageRoute
 
 const val TAG = "navigation_page"
 
@@ -451,6 +456,32 @@ fun NavigationPage(
                     TestPage(
 //                        onNavMenuClick = { navController.popBackStack()}
                     )
+                }
+
+
+                //
+                // ********** SETTINGS PAGE **********
+                //
+
+                composable<SettingsPageRoute> {
+                    SettingsPage(
+                        onNavMenuclick = { navController.popBackStack() },
+                        listItemClicked = { menuIndex ->
+                            Log.i("Settings", "Menu Index ${menuIndex}")
+
+                            when(menuIndex) {
+                                0 -> navController.navigate(BackupSettingsPageRoute())
+                            }
+                        }
+                    )
+                }
+
+                composable<BackupSettingsPageRoute> {
+                    BackupSettingsPage(
+                        onNavMenuClick = { navController.popBackStack() },
+                        onImportClicked = {}
+
+                        )
                 }
             }
         }
