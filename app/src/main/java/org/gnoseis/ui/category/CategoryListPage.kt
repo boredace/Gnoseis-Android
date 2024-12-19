@@ -73,7 +73,7 @@ object CategoryListPageDestination : NavigationDestination {
 fun CategoryListPage(
     pageViewModel: CategoryListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,7 +94,7 @@ fun CategoryListPage(
 fun CategoryListPageScaffold(
     pageState: CategoryListViewModel.CategoryListPageState,
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -136,7 +136,7 @@ fun CategoryListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToCategoryEditPage("new") }
+                onClick = { navigateToCategoryEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Category")
                 Spacer(modifier = Modifier.width(15.dp))

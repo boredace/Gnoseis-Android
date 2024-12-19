@@ -75,8 +75,9 @@ object AppViewModelProvider {
         initializer {
             CategoryEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.categoryRepository
-            )
+                gnoseisApplication().container.categoryRepository,
+                gnoseisApplication().container.linkedRecordRepository,
+                )
         }
         initializer {
             ContactListViewModel(

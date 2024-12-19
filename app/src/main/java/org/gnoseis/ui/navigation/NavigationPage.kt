@@ -42,6 +42,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
+import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
@@ -49,8 +50,8 @@ import org.gnoseis.ui.TestPage
 import org.gnoseis.ui.TestPageDestination
 import org.gnoseis.ui.category.CategoryDetailsPage
 import org.gnoseis.ui.category.CategoryDetailsPageDestination
-import org.gnoseis.ui.category.CategoryEditDestination
 import org.gnoseis.ui.category.CategoryEditPage
+import org.gnoseis.ui.category.CategoryEditRoute
 import org.gnoseis.ui.category.CategoryListPage
 import org.gnoseis.ui.category.CategoryListPageDestination
 import org.gnoseis.ui.contact.ContactDetailsPage
@@ -116,6 +117,11 @@ fun NavigationPage(
     ) {
         Box(/*modifier = Modifier.padding(it)*/) {
             NavHost(navController = navController, startDestination = "note_page") {
+
+                // #############################################################
+                // ###################    CATEGORY    ##########################
+                // #############################################################
+
                 //
                 // ********** CATEGORY LIST PAGE **********
                 //
@@ -124,7 +130,7 @@ fun NavigationPage(
                 ) {
                     CategoryListPage(
                         navigateToCategoryDetailsPage = { navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
-                        navigateToCategoryEditPage = { navController.navigate("${CategoryEditDestination.route}/$it") },
+                        navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, CategoryEditPageMode.NEW))},
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -148,21 +154,14 @@ fun NavigationPage(
                         navigateToItemDetailsPage = {navController.navigate("${ItemDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/4") },
-                        navigateToCategoryEditPage = { navController.navigate("${CategoryEditDestination.route}/$it")} ,
+                        navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, CategoryEditPageMode.EDIT)) },
                         )
                 }
-                //
-                // ********** CATEGORY EDIT PAGE **********
-                //
-                composable(
-                    route = CategoryEditDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(CategoryEditDestination.categoryIdArg) {
-                            type = NavType.StringType
-                        }
-                    )
-                ){
+
+                composable<CategoryEditRoute> {
+                    val args = it.toRoute<CategoryEditRoute>()
                     CategoryEditPage(
+                        pageMode = args.pageMode,
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = {
                             navController.popBackStack()
@@ -170,6 +169,7 @@ fun NavigationPage(
                         }
                     )
                 }
+
 
 
 
@@ -380,6 +380,7 @@ fun NavigationPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/3") },
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Organization, it) )},
+                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Organization, it) )},
                         navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Organization, it) )},
                         navigateToOrganizationEditPage = {navController.navigate("${OrganizationEditDestination.route}/$it") },
                     )

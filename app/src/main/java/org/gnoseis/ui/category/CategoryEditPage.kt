@@ -52,8 +52,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -62,39 +60,51 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CATEGORY
 import org.gnoseis.data.entity.category.Category
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object CategoryEditDestination : NavigationDestination {
-    override val route = "category_edit"
-    override val titleRes = -9
-    const val categoryIdArg = "categoryId"
-    val routeWithArgs = "${CategoryEditDestination.route}/{$categoryIdArg}"
-}
-const val TAG = "category_edit"
+@Serializable
+data class CategoryEditRoute(
+    val categoryId: String?,
+    val pageMode: CategoryEditPageMode,
+    val linkFromType: RecordType? = null,
+    val linkFromId: String? = null
+)
+
+const val TAG = "CategoryEditPage"
 
 @Composable
 fun CategoryEditPage(
+    pageMode: CategoryEditPageMode,
     pageViewModel: CategoryEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
 
     ) {
-    val pageState by pageViewModel.categoryEditPageState.collectAsState()
+    val pageState = pageViewModel.pageState.value
+    val editState = pageViewModel.editState.value
+
     val coroutineScope = rememberCoroutineScope()
 
 
     CategoryEditScaffold(
         pageState = pageState,
+        editState = editState,
         onNavMenuclick = navMenuClick,
         onSave = {
             coroutineScope.launch {
                 val addedCategoryId = pageViewModel.onSave()
                 if(addedCategoryId != null) {
-                    navigateToCategoryDetailsPage(addedCategoryId)
+                    if(pageMode == CategoryEditPageMode.NEWLINK) {
+                        navMenuClick()
+                    } else {
+                        navigateToCategoryDetailsPage(addedCategoryId)
+                    }
                 } else {
                     navMenuClick()
                 }
@@ -109,7 +119,8 @@ fun CategoryEditPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryEditScaffold(
-    pageState: CategoryEditViewModel.CategoryEditState,
+    pageState: CategoryEditViewModel.PageState,
+    editState: CategoryEditViewModel.EditState,
     onNavMenuclick: () -> Unit,
     onSave: () -> Unit,
     onCategoryNameChanged: (String) -> Unit,
@@ -139,7 +150,7 @@ fun CategoryEditScaffold(
                     Button(
 //                        modifier = Modifier.fillMaxWidth(),
                         onClick = { onSave() },
-                        enabled = pageState.isValid
+                        enabled = editState.isValid
 
                     ) {
                         when {
@@ -159,6 +170,7 @@ fun CategoryEditScaffold(
             ) {
                 CategoryEditBody(
                     pageState = pageState,
+                    editState = editState,
                     onCategoryNameChanged = onCategoryNameChanged,
                     onCategoryDescriptionChanged = onCategoryDescriptionChanged
                 )
@@ -169,7 +181,8 @@ fun CategoryEditScaffold(
 
 @Composable
 fun CategoryEditBody(
-    pageState: CategoryEditViewModel.CategoryEditState,
+    pageState: CategoryEditViewModel.PageState,
+    editState: CategoryEditViewModel.EditState,
     onCategoryNameChanged: (String) -> Unit,
     onCategoryDescriptionChanged: (String) -> Unit
 ){
@@ -180,7 +193,7 @@ fun CategoryEditBody(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             label = {Text(text="Category name")},
-            value = pageState.editCategoryName?:"",
+            value = editState.editCategoryName?:"",
             onValueChange = {
                 if(it.length <= TITLE_LENGTH_CATEGORY) {
                     onCategoryNameChanged(it)
@@ -197,7 +210,7 @@ fun CategoryEditBody(
                 .fillMaxWidth()
                 .fillMaxHeight(),
             label = {Text(text="Category description")},
-            value = pageState.editCategoryDescription?:"",
+            value = editState.editCategoryDescription?:"",
             onValueChange = {
                 onCategoryDescriptionChanged(it)
             },
@@ -216,12 +229,15 @@ fun CategoryEditPagePreview()
     GnoseisTheme {
         Surface {
             CategoryEditScaffold(
-                pageState = CategoryEditViewModel.CategoryEditState(
-                    isValid = false,
+                pageState = CategoryEditViewModel.PageState(
+                    isNew = true,
                     category = Category(
                         ownerDbId = "aaa",
                         categoryName = "New category name"
                     ),
+                ),
+                editState = CategoryEditViewModel.EditState(
+                    isValid = true,
                 ),
                 onNavMenuclick = {},
                 onSave = {},

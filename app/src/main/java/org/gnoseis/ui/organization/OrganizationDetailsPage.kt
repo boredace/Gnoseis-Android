@@ -50,9 +50,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddLink
-import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Notes
-import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -129,6 +127,7 @@ fun OrganizationDetailsPage(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
     navigateToLinkNewContactPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
@@ -150,6 +149,7 @@ fun OrganizationDetailsPage(
         navigateToNoteDetailsPage = navigateToNoteDetailsPage,
         navigateToLinkRecordsPage = navigateToLinkRecordsPage,
         navigateToLinkNewNotePage = navigateToLinkNewNotePage,
+        navigateToLinkNewCategoryPage = navigateToLinkNewCategoryPage,
         navigateToLinkNewContactPage = navigateToLinkNewContactPage,
         navigateToOrganizationEditPage = navigateToOrganizationEditPage,
     )
@@ -170,6 +170,7 @@ fun OrganizationDetailsScaffold(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
     navigateToLinkNewContactPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
@@ -242,7 +243,7 @@ fun OrganizationDetailsScaffold(
                     onFab2Click = { navigateToLinkNewContactPage(organization.id) },
                     fab3Icon = ImageVector.vectorResource(R.drawable.outline_label_24),
                     fab3Text = "New Category",
-                    onFab3Click = { },
+                    onFab3Click = { navigateToLinkNewCategoryPage(organization.id) },
                     fab4Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
                     fab4Text = "New Item",
                     onFab4Click = { },
@@ -543,7 +544,8 @@ fun OrganizationDetailsPagePreview() {
                 navigateToLinkNewNotePage = {},
                 navigateToLinkNewContactPage = {},
                 navigateToOrganizationEditPage = {},
-                linkedRecordTabs = listOf(
+                navigateToLinkNewCategoryPage = {},
+            linkedRecordTabs = listOf(
                     LinkedRecordTypeCount(
                         recordTypeId = 1,
                         count = 3
