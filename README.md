@@ -4,6 +4,8 @@ Gnoseis is a high performance Android native CRM application that can be also us
 ## Features
 List of features will go here
 
+## Roadmap
+The next couple releases are planned using Milestones. To track progress see [here](https://github.com/boredace/Gnoseis-Android/milestones?direction=asc&sort=title&state=open).
 ## Screenshots
 
 ## Licensing
