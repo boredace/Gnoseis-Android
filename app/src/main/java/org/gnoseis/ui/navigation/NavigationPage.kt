@@ -44,6 +44,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.ItemEditPageMode
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.TestPage
@@ -62,8 +63,8 @@ import org.gnoseis.ui.contact.ContactListPage
 import org.gnoseis.ui.contact.ContactListPageDestination
 import org.gnoseis.ui.item.ItemDetailsPage
 import org.gnoseis.ui.item.ItemDetailsPageDestination
-import org.gnoseis.ui.item.ItemEditDestination
 import org.gnoseis.ui.item.ItemEditPage
+import org.gnoseis.ui.item.ItemEditRoute
 import org.gnoseis.ui.item.ItemListPage
 import org.gnoseis.ui.item.ItemListPageDestination
 import org.gnoseis.ui.link.LinkRecordsDestination
@@ -237,7 +238,7 @@ fun NavigationPage(
                 ) {
                     ItemListPage(
                         navigateToItemDetailsPage = {navController.navigate("${ItemDetailsPageDestination.route}/$it") },
-                        navigateToItemEditPage = {navController.navigate("${ItemEditDestination.route}/new") },
+                        navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, ItemEditPageMode.NEW)) },
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -261,27 +262,19 @@ fun NavigationPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/5") },
-                        navigateToItemEditPage = {navController.navigate("${ItemEditDestination.route}/$it") },
+                        navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, ItemEditPageMode.EDIT)) },
                         )
                 }
 
-                //
-                // ********** ITEM EDIT PAGE **********
-                //
-                composable(
-                    route = ItemEditDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(ItemEditDestination.itemIdArg) {
-                            type = NavType.StringType
-                        }
-                    )
-                ){
+                composable<ItemEditRoute> {
+                    val args = it.toRoute<ItemEditRoute>()
                     ItemEditPage(
+                        pageMode = args.pageMode,
                         navMenuClick = { navController.popBackStack() },
                         navigateToItemDetailsPage = {
                             navController.popBackStack()
                             navController.navigate("${ItemDetailsPageDestination.route}/$it")
-                        },
+                        }
                     )
                 }
 
@@ -382,6 +375,7 @@ fun NavigationPage(
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Organization, it) )},
                         navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Organization, it) )},
                         navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Organization, it) )},
+                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Organization, it))},
                         navigateToOrganizationEditPage = {navController.navigate("${OrganizationEditDestination.route}/$it") },
                     )
                 }

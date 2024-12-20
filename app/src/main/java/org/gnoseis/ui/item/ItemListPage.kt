@@ -73,7 +73,7 @@ object ItemListPageDestination : NavigationDestination {
 fun ItemListPage(
     pageViewModel: ItemListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,7 +94,7 @@ fun ItemListPage(
 fun ItemListPageScaffold(
     pageState: ItemListViewModel.ItemListPageState,
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -135,7 +135,7 @@ fun ItemListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToItemEditPage("new") }
+                onClick = { navigateToItemEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Item")
                 Spacer(modifier = Modifier.width(15.dp))

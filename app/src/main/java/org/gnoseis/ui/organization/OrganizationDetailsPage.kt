@@ -129,6 +129,7 @@ fun OrganizationDetailsPage(
     navigateToLinkNewNotePage: (String) -> Unit,
     navigateToLinkNewCategoryPage: (String) -> Unit,
     navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 ) {
@@ -151,6 +152,7 @@ fun OrganizationDetailsPage(
         navigateToLinkNewNotePage = navigateToLinkNewNotePage,
         navigateToLinkNewCategoryPage = navigateToLinkNewCategoryPage,
         navigateToLinkNewContactPage = navigateToLinkNewContactPage,
+        navigateToLinkNewItemPage = navigateToLinkNewItemPage,
         navigateToOrganizationEditPage = navigateToOrganizationEditPage,
     )
 }
@@ -172,6 +174,7 @@ fun OrganizationDetailsScaffold(
     navigateToLinkNewNotePage: (String) -> Unit,
     navigateToLinkNewCategoryPage: (String) -> Unit,
     navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 
@@ -246,7 +249,7 @@ fun OrganizationDetailsScaffold(
                     onFab3Click = { navigateToLinkNewCategoryPage(organization.id) },
                     fab4Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
                     fab4Text = "New Item",
-                    onFab4Click = { },
+                    onFab4Click = { navigateToLinkNewItemPage(organization.id) },
                 )
                 /*ExtendedFloatingActionButton(
                     onClick = { navigateToLinkRecordsPage(organization.id) }
@@ -544,6 +547,7 @@ fun OrganizationDetailsPagePreview() {
                 navigateToLinkNewNotePage = {},
                 navigateToLinkNewContactPage = {},
                 navigateToOrganizationEditPage = {},
+                navigateToLinkNewItemPage = {},
                 navigateToLinkNewCategoryPage = {},
             linkedRecordTabs = listOf(
                     LinkedRecordTypeCount(

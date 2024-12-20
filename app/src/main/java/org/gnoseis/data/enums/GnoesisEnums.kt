@@ -57,6 +57,11 @@ enum class ContactEditPageMode {
     NEWLINK
 }
 
+enum class ItemEditPageMode {
+    NEW,
+    EDIT,
+    NEWLINK
+}
 
 enum class NoteEditPageMode {
     NEW,

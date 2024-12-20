@@ -113,7 +113,8 @@ object AppViewModelProvider {
         initializer {
             ItemEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.itemRepository
+                gnoseisApplication().container.itemRepository,
+                gnoseisApplication().container.linkedRecordRepository
             )
         }
         initializer {
