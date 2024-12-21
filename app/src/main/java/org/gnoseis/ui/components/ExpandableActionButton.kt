@@ -43,10 +43,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLink
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.Contacts
-import androidx.compose.material.icons.outlined.Label
-import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -60,8 +56,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.gnoseis.R
-import org.gnoseis.ui.icons.CategoryIcon
-import org.gnoseis.ui.icons.ItemIcon
 
 
 // Custom fab that allows for displaying extended content
@@ -85,10 +79,6 @@ fun ExpandableActionButton(
     fab4Text: String? = null,
     onFab4Click: () -> Unit? = {},
 ) {
-//    var isExpanded by remember { mutableStateOf(false) }
-//    if (!expandable) { // Close the expanded fab if you change to non expandable nav destination
-//        isExpanded = false
-//    }
 
     val fabSize = 64.dp
     var expandedBoxHeight = 84.dp
@@ -128,7 +118,7 @@ fun ExpandableActionButton(
                     height = (animateDpAsState(if (isExpanded) expandedBoxHeight else 0.dp, animationSpec = spring(dampingRatio = 4f))).value)
                 .alpha(0.8f)
                 .background(
-                    color = Color.Black,
+                    color = Color.Transparent,
                     shape = RoundedCornerShape(18.dp)
                 )
         ) {
@@ -175,8 +165,8 @@ fun ExpandableActionButton(
                                 animateFloatAsState(
                                     targetValue = if (isExpanded) 1f else 0f,
                                     animationSpec = tween(
-                                        durationMillis = if (isExpanded) 350 else 100,
-                                        delayMillis = if (isExpanded) 100 else 0,
+                                        durationMillis = if (isExpanded) 35 else 10,
+                                        delayMillis = if (isExpanded) 10 else 0,
                                         easing = EaseIn
                                     )
                                 ).value
@@ -225,8 +215,8 @@ fun ExpandableActionButton(
                                     animateFloatAsState(
                                         targetValue = if (isExpanded) 1f else 0f,
                                         animationSpec = tween(
-                                            durationMillis = if (isExpanded) 350 else 100,
-                                            delayMillis = if (isExpanded) 100 else 0,
+                                            durationMillis = if (isExpanded) 35 else 10,
+                                            delayMillis = if (isExpanded) 10 else 0,
                                             easing = EaseIn
                                         )
                                     ).value
@@ -277,8 +267,8 @@ fun ExpandableActionButton(
                                     animateFloatAsState(
                                         targetValue = if (isExpanded) 1f else 0f,
                                         animationSpec = tween(
-                                            durationMillis = if (isExpanded) 350 else 100,
-                                            delayMillis = if (isExpanded) 100 else 0,
+                                            durationMillis = if (isExpanded) 35 else 10,
+                                            delayMillis = if (isExpanded) 10 else 0,
                                             easing = EaseIn
                                         )
                                     ).value
@@ -329,8 +319,8 @@ fun ExpandableActionButton(
                                     animateFloatAsState(
                                         targetValue = if (isExpanded) 1f else 0f,
                                         animationSpec = tween(
-                                            durationMillis = if (isExpanded) 350 else 100,
-                                            delayMillis = if (isExpanded) 100 else 0,
+                                            durationMillis = if (isExpanded) 35 else 10,
+                                            delayMillis = if (isExpanded) 10 else 0,
                                             easing = EaseIn
                                         )
                                     ).value
@@ -360,20 +350,20 @@ fun ExpandableActionButton(
                 contentDescription = null,
                 modifier = Modifier
                     .size(24.dp)
-                    .offset(x = animateDpAsState(if (isExpanded) -70.dp else 0.dp, animationSpec = spring(dampingRatio = 3f)).value)
+                    .offset(x = animateDpAsState(if (isExpanded) -70.dp else 0.dp, animationSpec = spring(dampingRatio = 2f)).value)
             )
 
             Text(
                 text = fabText,
                 softWrap = false,
                 modifier = Modifier
-                    .offset(x = animateDpAsState(if (isExpanded) 10.dp else 50.dp, animationSpec = spring(dampingRatio = 3f)).value)
+                    .offset(x = animateDpAsState(if (isExpanded) 10.dp else 50.dp, animationSpec = spring(dampingRatio = 2f)).value)
                     .alpha(
                         animateFloatAsState(
                             targetValue = if (isExpanded) 1f else 0f,
                             animationSpec = tween(
-                                durationMillis = if (isExpanded) 350 else 100,
-                                delayMillis = if (isExpanded) 100 else 0,
+                                durationMillis = if (isExpanded) 35 else 10,
+                                delayMillis = if (isExpanded) 10 else 0,
                                 easing = EaseIn)).value)
             )
 
