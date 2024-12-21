@@ -151,7 +151,8 @@ object AppViewModelProvider {
         initializer {
             OrganizationEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.organizationRepository
+                gnoseisApplication().container.organizationRepository,
+                gnoseisApplication().container.linkedRecordRepository
             )
         }
 

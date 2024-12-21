@@ -68,3 +68,9 @@ enum class NoteEditPageMode {
     EDIT,
     NEWLINK
 }
+
+enum class OrganizationEditPageMode {
+    NEW,
+    EDIT,
+    NEWLINK
+}

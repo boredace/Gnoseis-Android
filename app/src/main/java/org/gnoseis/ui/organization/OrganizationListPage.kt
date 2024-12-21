@@ -74,7 +74,7 @@ object OrganizationListPageDestination : NavigationDestination {
 fun OrganizationListPage(
     pageViewModel: OrganizationListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToOrganizationDetailsPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
+    navigateToOrganizationEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,7 +94,7 @@ fun OrganizationListPage(
 fun OrganizationPageScaffold(
     pageState: OrganizationListViewModel.OrganizationListPageState,
     navigateToOrganizationDetailsPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
+    navigateToOrganizationEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -136,7 +136,7 @@ fun OrganizationPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToOrganizationEditPage("new") }
+                onClick = { navigateToOrganizationEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Organization")
                 Spacer(modifier = Modifier.width(15.dp))
