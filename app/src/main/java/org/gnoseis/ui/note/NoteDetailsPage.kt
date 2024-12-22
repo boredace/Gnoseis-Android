@@ -33,6 +33,7 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,7 +55,6 @@ import androidx.compose.material.icons.filled.AddLink
 import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,20 +73,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.R
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
@@ -94,6 +97,7 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.category.CategoryList
 import org.gnoseis.ui.components.DeleteRecordAlertDialog
+import org.gnoseis.ui.components.ExpandableActionButton
 import org.gnoseis.ui.contact.ContactList
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
@@ -102,7 +106,6 @@ import org.gnoseis.ui.icons.NoteIcon
 import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.organization.OrganizationList
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.time.Instant
@@ -112,14 +115,10 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 
-object NoteDetailsPageDestination : NavigationDestination {
-    override val route = "note_details_page"
-    override val titleRes = -9
-    const val noteIdArg = "noteId"
-    val routeWithArgs = "$route/{$noteIdArg}"
-}
-
-const val TAG = "note_details_page"
+@Serializable
+data class NoteDetailsRoute(
+    val noteId: String
+)
 
 @Composable
 fun NoteDetailsPage(
@@ -130,12 +129,14 @@ fun NoteDetailsPage(
     navigateToItemDetailsPage: (String) -> Unit,
     navigateToOrganizationDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
+    navigateToLinkNewOrganizationPage: (String) -> Unit,
     navigateToNoteEditPage: (String) -> Unit
 ) {
     val pageState by pageViewModel.noteDetailsPageState.collectAsState()
     val linkedRecords by pageViewModel.linkedRecords.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
-
 
     NoteDetailsScaffold(
         note = pageState.note?: Note(),
@@ -150,6 +151,10 @@ fun NoteDetailsPage(
         navigateToItemDetailsPage = navigateToItemDetailsPage,
         navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage,
         navigateToLinkRecordsPage = navigateToLinkRecordsPage,
+        navigateToLinkNewContactPage = navigateToLinkNewContactPage,
+        navigateToLinkNewCategoryPage = navigateToLinkNewCategoryPage,
+        navigateToLinkNewItemPage = navigateToLinkNewItemPage,
+        navigateToLinkNewOrganizationPage = navigateToLinkNewOrganizationPage,
         navigateToNoteEditPage = navigateToNoteEditPage,
     )
 }
@@ -167,6 +172,10 @@ fun NoteDetailsScaffold(
     navigateToItemDetailsPage: (String) -> Unit,
     navigateToOrganizationDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
+    navigateToLinkNewOrganizationPage: (String) -> Unit,
     navigateToNoteEditPage: (String) -> Unit
 ){
     val pullRefreshState = rememberPullToRefreshState()
@@ -178,11 +187,14 @@ fun NoteDetailsScaffold(
         }
     }
 
+    var fabExpanded by remember { mutableStateOf(false)}
     var showDeleteAlertDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier
+                    .alpha(if(fabExpanded) 0.1f else 1f),
                 title = { Text(text="Note") },
                 colors = TopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -229,12 +241,32 @@ fun NoteDetailsScaffold(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { navigateToLinkRecordsPage(note.id) }
-            ) {
-                Icon(Icons.Filled.AddLink, "Link Records")
-                Spacer(modifier = Modifier.width(15.dp))
-                Text(text = "Link Records")
+            Column() {
+                ExpandableActionButton(
+                    isExpanded = fabExpanded,
+                    fabIcon = Icons.Filled.AddLink,
+                    fabText = "Link Existing",
+                    onFabClick = {
+                        if (fabExpanded) {
+                            fabExpanded = false
+                            navigateToLinkRecordsPage(note.id)
+                        } else {
+                            fabExpanded = true
+                        }
+                    },
+                    fab1Icon = ImageVector.vectorResource(R.drawable.outline_people_24),
+                    fab1Text = "New Contact",
+                    onFab1Click = { navigateToLinkNewContactPage(note.id) },
+                    fab2Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
+                    fab2Text = "New Item",
+                    onFab2Click = { navigateToLinkNewItemPage(note.id) },
+                    fab3Icon = ImageVector.vectorResource(R.drawable.outline_label_24),
+                    fab3Text = "New Category",
+                    onFab3Click = { navigateToLinkNewCategoryPage(note.id) },
+                    fab4Icon = ImageVector.vectorResource(R.drawable.baseline_business_24),
+                    fab4Text = "New Organization",
+                    onFab4Click = { navigateToLinkNewOrganizationPage(note.id) },
+                )
             }
         },
         content = { innerPadding ->
@@ -258,6 +290,20 @@ fun NoteDetailsScaffold(
                     navigateToItemDetailsPage = navigateToItemDetailsPage,
                     navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
                 )
+            }
+            if (fabExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize ()
+                        .alpha(0.8f)
+                        .background(Color.Black)
+                        .clickable(
+                            enabled = true,
+                            onClick = { fabExpanded = false }
+                        )
+                ) {
+
+                }
             }
         }
     )
@@ -526,7 +572,11 @@ fun NoteDetailsPagePreview() {
                         count = 1
                     )
                 ),
-                linkedRecords = NoteDetailsViewModel.NoteLinkedRecords()
+                linkedRecords = NoteDetailsViewModel.NoteLinkedRecords(),
+                navigateToLinkNewItemPage = {},
+                navigateToLinkNewOrganizationPage = {},
+                navigateToLinkNewCategoryPage = {},
+                navigateToLinkNewContactPage = {},
             )
         }
     }

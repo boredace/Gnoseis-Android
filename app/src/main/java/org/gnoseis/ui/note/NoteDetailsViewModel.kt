@@ -31,6 +31,7 @@ package org.gnoseis.ui.note
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -57,7 +58,7 @@ class NoteDetailsViewModel(
             noteRepository = noteRepository,
             linkedRecordRepository = linkedRecordRepository,
         )
-    private var noteId : String = checkNotNull(savedStateHandle[NoteDetailsPageDestination.noteIdArg])
+    private var noteId : String = checkNotNull(savedStateHandle.toRoute<NoteDetailsRoute>().noteId)
 
     val linkedRecords: StateFlow<NoteLinkedRecords> =
         combine(
