@@ -57,7 +57,7 @@ import org.gnoseis.ui.category.CategoryEditRoute
 import org.gnoseis.ui.category.CategoryListPage
 import org.gnoseis.ui.category.CategoryListPageDestination
 import org.gnoseis.ui.contact.ContactDetailsPage
-import org.gnoseis.ui.contact.ContactDetailsPageDestination
+import org.gnoseis.ui.contact.ContactDetailsRoute
 import org.gnoseis.ui.contact.ContactEditPage
 import org.gnoseis.ui.contact.ContactEditRoute
 import org.gnoseis.ui.contact.ContactListPage
@@ -151,7 +151,7 @@ fun NavigationPage(
                 ){
                     CategoryDetailsPage(
                         navMenuClick = { navController.popBackStack() },
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
@@ -186,24 +186,15 @@ fun NavigationPage(
                     route = ContactListPageDestination.route
                 ) {
                     ContactListPage(
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.NEW))},
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
 
-                //
-                // ********** CONTACT DETAILS PAGE **********
-                //
-                composable(
-                    route = ContactDetailsPageDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(ContactDetailsPageDestination.contactIdArg) {
-                            type = NavType.StringType
-                        }
-                    )
-                ){
+               composable<ContactDetailsRoute> {
+                    val args = it.toRoute<ContactDetailsRoute>()
                     ContactDetailsPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = {navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
@@ -211,8 +202,12 @@ fun NavigationPage(
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/2") },
+                        navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Contact, it) )},
+                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Contact, it) )},
+                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Contact, it) )},
+                        navigateToLinkNewOrganizationPage = { navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, RecordType.Contact, it) )},
                         navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.EDIT))},
-                    )
+                        )
                 }
 
                 composable<ContactEditRoute> {
@@ -222,7 +217,7 @@ fun NavigationPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToContactDetailsPage = {
                             navController.popBackStack()
-                            navController.navigate("${ContactDetailsPageDestination.route}/$it")
+                            navController.navigate(ContactDetailsRoute(it))
                         }
                     )
                 }
@@ -250,7 +245,7 @@ fun NavigationPage(
                     ItemDetailsPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = {navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/5") },
@@ -310,7 +305,7 @@ fun NavigationPage(
                     NoteDetailsPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = { navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/1") },
@@ -364,7 +359,7 @@ fun NavigationPage(
                     OrganizationDetailsPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = {navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/3") },
@@ -422,7 +417,7 @@ fun NavigationPage(
                 ) {
                     SearchPage(
                         navigateToCategoryDetailsPage = {navController.navigate("${CategoryDetailsPageDestination.route}/$it") },
-                        navigateToContactDetailsPage = { navController.navigate("${ContactDetailsPageDestination.route}/$it") },
+                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToNoteDetailsPage = {navController.navigate("${NoteDetailsPageDestination.route}/$it") },
                         navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
