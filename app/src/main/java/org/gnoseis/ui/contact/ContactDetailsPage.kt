@@ -32,6 +32,7 @@ import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -186,6 +189,8 @@ fun ContactDetailsScaffold(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier
+                    .alpha(if(fabExpanded) 0.1f else 1f),
                 title = { Text(text="Contact") },
                 colors = TopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -265,6 +270,20 @@ fun ContactDetailsScaffold(
                     navigateToNoteDetailsPage = navigateToNoteDetailsPage,
                     navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
                 )
+            }
+            if (fabExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize ()
+                        .alpha(0.8f)
+                        .background(Color.Black)
+                        .clickable(
+                            enabled = true,
+                            onClick = { fabExpanded = false }
+                        )
+                ) {
+
+                }
             }
         }
     )
