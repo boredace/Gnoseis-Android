@@ -59,15 +59,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.item.Item
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ItemListPageDestination : NavigationDestination {
-    override val route = "item_list_page"
-    override val titleRes = -9
-}
+@Serializable
+data class ItemListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun ItemListPage(

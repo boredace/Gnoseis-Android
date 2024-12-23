@@ -86,6 +86,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.R
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
@@ -104,18 +105,14 @@ import org.gnoseis.ui.icons.NoteIcon
 import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.note.NoteList
 import org.gnoseis.ui.theme.GnoseisTheme
 
 
-object OrganizationDetailsPageDestination : NavigationDestination {
-    override val route = "organization_details_page"
-    override val titleRes = -9
-    const val organizationIdArg = "organizationId"
-    val routeWithArgs = "$route/{$organizationIdArg}"
-}
-
+@Serializable
+data class OrganizationDetailsRoute(
+    val organizationId: String
+)
 
 @Composable
 fun OrganizationDetailsPage(
@@ -157,7 +154,6 @@ fun OrganizationDetailsPage(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrganizationDetailsScaffold(
@@ -188,7 +184,6 @@ fun OrganizationDetailsScaffold(
         }
     }
     var fabExpanded by remember { mutableStateOf(false)}
-
     var showDeleteAlertDialog by remember { mutableStateOf(false) }
 
     Scaffold(

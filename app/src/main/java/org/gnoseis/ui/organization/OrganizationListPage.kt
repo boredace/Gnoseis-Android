@@ -59,16 +59,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object OrganizationListPageDestination : NavigationDestination {
-    override val route = "organization_list_page"
-    override val titleRes = -9
-}
-
+@Serializable
+data class OrganizationListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun OrganizationListPage(
@@ -109,7 +108,6 @@ fun OrganizationPageScaffold(
     }
     Scaffold(
         topBar = {
-
             TopAppBar(
                 title = { Text("Organizations") },
                 colors = TopAppBarColors(
@@ -170,7 +168,6 @@ fun OrganizationPageBody(
         navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
     )
 }
-
 
 
 

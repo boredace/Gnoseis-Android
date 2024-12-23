@@ -59,16 +59,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.contact.Contact
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ContactListPageDestination : NavigationDestination {
-    override val route = "contact_list_page"
-    override val titleRes = -9
-}
-
+@Serializable
+data class ContactListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun ContactListPage(

@@ -55,19 +55,19 @@ import org.gnoseis.ui.category.CategoryDetailsRoute
 import org.gnoseis.ui.category.CategoryEditPage
 import org.gnoseis.ui.category.CategoryEditRoute
 import org.gnoseis.ui.category.CategoryListPage
-import org.gnoseis.ui.category.CategoryListPageDestination
+import org.gnoseis.ui.category.CategoryListRoute
 import org.gnoseis.ui.contact.ContactDetailsPage
 import org.gnoseis.ui.contact.ContactDetailsRoute
 import org.gnoseis.ui.contact.ContactEditPage
 import org.gnoseis.ui.contact.ContactEditRoute
 import org.gnoseis.ui.contact.ContactListPage
-import org.gnoseis.ui.contact.ContactListPageDestination
+import org.gnoseis.ui.contact.ContactListRoute
 import org.gnoseis.ui.item.ItemDetailsPage
 import org.gnoseis.ui.item.ItemDetailsRoute
 import org.gnoseis.ui.item.ItemEditPage
 import org.gnoseis.ui.item.ItemEditRoute
 import org.gnoseis.ui.item.ItemListPage
-import org.gnoseis.ui.item.ItemListPageDestination
+import org.gnoseis.ui.item.ItemListRoute
 import org.gnoseis.ui.link.LinkRecordsDestination
 import org.gnoseis.ui.link.LinkRecordsPage
 import org.gnoseis.ui.note.NoteDetailsPage
@@ -75,13 +75,13 @@ import org.gnoseis.ui.note.NoteDetailsRoute
 import org.gnoseis.ui.note.NoteEditPage
 import org.gnoseis.ui.note.NoteEditRoute
 import org.gnoseis.ui.note.NoteListPage
-import org.gnoseis.ui.note.NoteListPageDestination
+import org.gnoseis.ui.note.NoteListRoute
 import org.gnoseis.ui.organization.OrganizationDetailsPage
-import org.gnoseis.ui.organization.OrganizationDetailsPageDestination
+import org.gnoseis.ui.organization.OrganizationDetailsRoute
 import org.gnoseis.ui.organization.OrganizationEditPage
 import org.gnoseis.ui.organization.OrganizationEditRoute
 import org.gnoseis.ui.organization.OrganizationListPage
-import org.gnoseis.ui.organization.OrganizationListPageDestination
+import org.gnoseis.ui.organization.OrganizationListRoute
 import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchPageDestination
 import org.gnoseis.ui.settings.BackupSettingsPage
@@ -89,24 +89,19 @@ import org.gnoseis.ui.settings.BackupSettingsPageRoute
 import org.gnoseis.ui.settings.SettingsPage
 import org.gnoseis.ui.settings.SettingsPageRoute
 
-const val TAG = "navigation_page"
-
 @Composable
 fun NavigationPage(
-//    mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
-
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     val navController = rememberNavController()
-
 
     fun navMenuClick() {
         if(drawerState.isClosed){
             coroutineScope.launch {
                 drawerState.open()
             }
-        }else{
+        } else {
             coroutineScope.launch {
                 drawerState.close()
             }
@@ -118,15 +113,13 @@ fun NavigationPage(
         drawerState = drawerState
     ) {
         Box(/*modifier = Modifier.padding(it)*/) {
-            NavHost(navController = navController, startDestination = "note_page") {
+            NavHost(navController = navController, startDestination = NoteListRoute) {
 
                 // #############################################################
-                // ###################    CATEGORY    ##########################
+                // ####################  CATEGORY   ############################
                 // #############################################################
 
-                composable(
-                    route = CategoryListPageDestination.route
-                ) {
+                composable<CategoryListRoute> {
                     CategoryListPage(
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
                         navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, CategoryEditPageMode.NEW))},
@@ -142,7 +135,7 @@ fun NavigationPage(
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/4") },
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Category, it) )},
                         navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Category, it) )},
@@ -164,19 +157,12 @@ fun NavigationPage(
                     )
                 }
 
-
-
-
                 // #############################################################
                 // ##################  CONTACT   ###############################
                 // #############################################################
 
-                //
-                // ********** CONTACT LIST PAGE **********
-                //
-                composable(
-                    route = ContactListPageDestination.route
-                ) {
+                composable<ContactListRoute> {
+                    val args = it.toRoute<ContactListRoute>()
                     ContactListPage(
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.NEW))},
@@ -192,7 +178,7 @@ fun NavigationPage(
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/2") },
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Contact, it) )},
                         navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Contact, it) )},
@@ -218,12 +204,8 @@ fun NavigationPage(
                 // #####################    ITEM    ############################
                 // #############################################################
 
-                //
-                // ********** ITEM LIST PAGE **********
-                //
-                composable(
-                    route = ItemListPageDestination.route
-                ) {
+                composable<ItemListRoute> {
+                    val args = it.toRoute<ItemListRoute>()
                     ItemListPage(
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, ItemEditPageMode.NEW)) },
@@ -239,7 +221,7 @@ fun NavigationPage(
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/5") },
                         navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Item, it) )},
                         navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Item, it) )},
@@ -261,20 +243,11 @@ fun NavigationPage(
                     )
                 }
 
-
-
-
-
                 // #############################################################
                 // #####################    NOTE    ############################
                 // #############################################################
 
-                //
-                // ********** NOTE LIST PAGE **********
-                //
-                composable(
-                    route = NoteListPageDestination.route
-                ) {
+                composable<NoteListRoute>() {
                     NoteListPage(
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
                         navigateToNoteEditPage = {navController.navigate(NoteEditRoute(it, NoteEditPageMode.NEW))},
@@ -290,7 +263,7 @@ fun NavigationPage(
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = {navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                         navigateToLinkRecordsPage = { navController.navigate("${LinkRecordsDestination.route}/$it/2") },
                         navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Note, it) )},
                         navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Note, it) )},
@@ -316,31 +289,18 @@ fun NavigationPage(
                 // ###################      ORGANIZATION      ##################
                 // #############################################################
 
-                //
-                // ********** ORGANIZATION LIST PAGE **********
-                //
-                composable(
-                    route = OrganizationListPageDestination.route
-                ) {
+                composable<OrganizationListRoute> {
+                    val args = it.toRoute<OrganizationListRoute>()
                     OrganizationListPage(
-                        navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                         navigateToOrganizationEditPage = { navController.navigate(OrganizationEditRoute(it, OrganizationEditPageMode.NEW)) },
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
 
-                //
-                // ********** ORGANIZATION DETAILS PAGE **********
-                //
-                composable(
-                    route = OrganizationDetailsPageDestination.routeWithArgs,
-                    arguments = listOf(
-                        navArgument(OrganizationDetailsPageDestination.organizationIdArg) {
-                            type = NavType.StringType
-                        }
-                    )
-                ){
+                composable<OrganizationDetailsRoute> {
+                    val args = it.toRoute<OrganizationDetailsRoute>()
                     OrganizationDetailsPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
@@ -363,7 +323,7 @@ fun NavigationPage(
                         navMenuClick = { navController.popBackStack() },
                         navigateToOrganizationDetailsPage = {
                             navController.popBackStack()
-                            navController.navigate("${OrganizationDetailsPageDestination.route}/$it")
+                            navController.navigate(OrganizationDetailsRoute(it))
                         }
                     )
                 }
@@ -405,7 +365,7 @@ fun NavigationPage(
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate("${OrganizationDetailsPageDestination.route}/$it") },
+                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
                     )
                 }
 

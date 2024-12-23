@@ -29,7 +29,6 @@
 package org.gnoseis.ui.note
 
 import android.content.res.Configuration
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -60,16 +59,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object NoteListPageDestination : NavigationDestination {
-    override val route = "note_page"
-    override val titleRes = -9
-}
-
+@Serializable
+object NoteListRoute
 
 @Composable
 fun NoteListPage(
@@ -161,8 +157,6 @@ fun NotePageScaffold(
     )
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NotePageBody(
     pageState: NoteListViewModel.NotePageState,
@@ -173,11 +167,6 @@ fun NotePageBody(
         navigateToNoteDetailsPage = navigateToNoteDetailsPage
     )
 }
-
-
-
-
-
 
 
 
