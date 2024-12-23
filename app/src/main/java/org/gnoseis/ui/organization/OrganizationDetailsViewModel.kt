@@ -31,6 +31,7 @@ package org.gnoseis.ui.organization
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -58,7 +59,7 @@ class OrganizationDetailsViewModel(
             organizationRepository = organizationRepository,
             linkedRecordRepository = linkedRecordRepository,
         )
-    private var organizationId : String = checkNotNull(savedStateHandle[OrganizationDetailsPageDestination.organizationIdArg])
+    private var organizationId : String = checkNotNull(savedStateHandle.toRoute<OrganizationDetailsRoute>().organizationId)
 
     val linkedRecords: StateFlow<OrganizationLinkedRecords> =
         combine(

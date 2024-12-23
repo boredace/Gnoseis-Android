@@ -28,88 +28,184 @@
 
 package org.gnoseis.ui.organization
 
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.navigation.toRoute
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.OrganizationRepository
 
 class OrganizationEditViewModel(
     savedStateHandle: SavedStateHandle,
-    private val organizationRepository: OrganizationRepository
+    private val organizationRepository: OrganizationRepository,
+    private val linkedRecordRepository: LinkedRecordRepository,
 
-) : ViewModel(){
-    private var organizationId : String = checkNotNull(savedStateHandle[OrganizationEditDestination.organizationIdArg])
-    private var organization = MutableStateFlow(Organization())
+    ) : ViewModel(){
 
-    var organizationEditPageState by mutableStateOf(OrganizationEditPageState())
+    private val organizationId : String? = savedStateHandle.toRoute<OrganizationEditRoute>().organizationId
+
+    private val _editState = mutableStateOf(
+        EditState()
+    )
+
+    val editState: State<EditState> = _editState
+
+    private val _pageState = mutableStateOf(
+        PageState(
+            isNew = true,
+            pageMode = checkNotNull(savedStateHandle.toRoute<OrganizationEditRoute>().pageMode),
+            organizationId =  null,
+            linkFromType = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromId,
+            organization = null
+        )
+    )
+    val pageState: State<PageState> = _pageState
 
     init {
-        if (organizationId != "new") {
+        if (!organizationId.isNullOrEmpty()) {
             viewModelScope.launch {
                 organizationRepository.getOrganization(organizationId).let {
-                    organization.value = it
-                    organizationEditPageState = organizationEditPageState.copy(
+
+                    _pageState.value = _pageState.value.copy(
                         isNew = false,
+                        pageMode = checkNotNull(savedStateHandle.toRoute<OrganizationEditRoute>().pageMode),
+                        organizationId = it.id,
+                        linkFromType = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromId,
+                        organization = it
+                    )
+
+                    _editState.value = _editState.value.copy(
                         isValid = true,
-                        organizationName = it.organizationName,
-                        organizationDescription = it.comments
+                        editOrganizationName = it.organizationName,
+                        editOrganizationDescription = it.comments,
                     )
                 }
             }
         }
     }
+
     fun onEvent(event: OrganizationEditPageEvent) {
         when (event) {
             is OrganizationEditPageEvent.OrganizationNameChanged -> {
-                var _isValid = false
-                if(event.organizationName.length >= 1) {
-                    _isValid = true
-                }
-                organizationEditPageState = organizationEditPageState.copy(organizationName = event.organizationName, isValid = _isValid)
+                updateOrganizationName(event.organizationName)
             }
             is OrganizationEditPageEvent.OrganizationDescriptionChanged -> {
-                organizationEditPageState = organizationEditPageState.copy(organizationDescription = event.organizationDescription)
+                updateItemDescription(event.organizationDescription)
             }
             is OrganizationEditPageEvent.Save -> {}
         }
     }
 
-    suspend fun onSave() : String? {
-        if(organizationEditPageState.isValid && organizationEditPageState.isNew) {
-            val addOrganizationRowId = organizationRepository.addOrganization(
+    private var debounceJob: Job? = null
+
+    private fun updateOrganizationName(it: String) {
+        // update editOrganizationName only immediately
+        _editState.value = _editState.value.copy(editOrganizationName = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(it),
+                editOrganizationName = it,
+            )
+        }
+    }
+
+    private fun updateItemDescription(it: String) {
+        // update editOrganizationDescription only immediately
+        _editState.value = _editState.value.copy(editOrganizationDescription = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(_editState.value.editOrganizationName),
+                editOrganizationDescription = it,
+            )
+        }
+    }
+
+    private fun validateInput(itemName: String?):Boolean {
+        var result = false
+        if(!itemName.isNullOrEmpty()) result = true
+        return result
+    }
+
+    suspend fun onSave(): String? {
+        if(
+        // Add new Organization
+            _editState.value.isValid &&
+            _pageState.value.isNew
+        ) {
+            val addedRecordRowId = organizationRepository.addOrganization(
                 Organization(
-                    organizationName = organizationEditPageState.organizationName,
-                    comments = organizationEditPageState.organizationDescription
+                    ownerDbId = "db1",
+                    organizationName = _editState.value.editOrganizationName!!, // assuming cannot be valid if null
+                    comments = _editState.value.editOrganizationDescription,
                 )
             )
-            return organizationRepository.getOrganizationByRowId(addOrganizationRowId).id
-        } else if (organizationEditPageState.isValid && !organizationEditPageState.isNew) {
-            organizationRepository.updateOrganization(
-                organization.value.copy(
-                    organizationName = organizationEditPageState.organizationName,
-                    comments = organizationEditPageState.organizationDescription
+            val addedRecordId = organizationRepository.getOrganizationByRowId(addedRecordRowId).id
+            if (
+            // Also link to source record
+                _pageState.value.pageMode == OrganizationEditPageMode.NEWLINK &&
+                _pageState.value.linkFromId != null &&
+                _pageState.value.linkFromType != null
+            ) {
+                linkedRecordRepository.addLinkedRecord(
+                    LinkedRecord(
+                        ownerDbId = "db1",
+                        record1Id = _pageState.value.linkFromId!!,
+                        record2Id = addedRecordId,
+                        record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
+                        record2TypeId = RecordType.Organization.recordTypeId
+                    )
                 )
-            )
+            }
+            return addedRecordId
+
+        } else if (
+        // Update Existing Organization
+            _editState.value.isValid &&
+            !_pageState.value.isNew
+        ) {
+            organizationRepository.updateOrganization(_pageState.value.organization!!.copy(
+                organizationName = _editState.value.editOrganizationName!!,  // assuming cannot be valid if null
+                comments = _editState.value.editOrganizationDescription,
+            ))
             return null
         } else {
             return null
         }
     }
 
-
-    data class OrganizationEditPageState(
+    data class PageState(
         val isNew: Boolean = true,
-        val isValid: Boolean = false,
-        val organizationName: String = "",
-        val organizationDescription: String? = null,
+        val pageMode: OrganizationEditPageMode? = null,
+        val organizationId: String? = null,
+        val linkFromType: RecordType? = null,
+        val linkFromId: String? = null,
+        val organization: Organization? = Organization(),
     )
 
+    data class EditState(
+        val isValid: Boolean = false,
+        val editOrganizationName: String? = null,
+        val editOrganizationDescription: String? = null,
+    )
 
     companion object {
         private const val TIMEOUT_MILLIS = 5_000L

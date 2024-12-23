@@ -83,7 +83,6 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.text.SimpleDateFormat
 import java.time.Instant

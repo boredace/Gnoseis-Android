@@ -28,88 +28,184 @@
 
 package org.gnoseis.ui.item
 
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.item.Item
+import org.gnoseis.data.entity.links.LinkedRecord
+import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ItemRepository
+import org.gnoseis.data.repository.LinkedRecordRepository
 
 class ItemEditViewModel(
     savedStateHandle: SavedStateHandle,
-    private val itemRepository: ItemRepository
+    private val itemRepository: ItemRepository,
+    private val linkedRecordRepository: LinkedRecordRepository,
 
-) : ViewModel(){
-    private var itemId : String = checkNotNull(savedStateHandle[ItemEditDestination.itemIdArg])
-//    private var isValid = MutableStateFlow(false)
-//    private var isNew = MutableStateFlow(true)
+    ) : ViewModel(){
+    private val itemId : String? = savedStateHandle.toRoute<ItemEditRoute>().itemId
 
-    var itemEditPageState by mutableStateOf(ItemEditPageState())
+    private val _editState = mutableStateOf(
+        EditState()
+    )
+    val editState: State<EditState> = _editState
+
+    private val _pageState = mutableStateOf(
+        PageState(
+            isNew = true,
+            pageMode = checkNotNull(savedStateHandle.toRoute<ItemEditRoute>().pageMode),
+            itemId =  null,
+            linkFromType = savedStateHandle.toRoute<ItemEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<ItemEditRoute>().linkFromId,
+            item = null
+        )
+    )
+    val pageState: State<PageState> = _pageState
 
     init {
-        if (itemId != "new") {
+        if (!itemId.isNullOrEmpty()) {
             viewModelScope.launch {
                 itemRepository.getItem(itemId).let {
-                    itemEditPageState.isNew = false
-                    itemEditPageState.isValid = true
-                    itemEditPageState.editItemName = it.itemName
-                    itemEditPageState.editItemDescription = it.comments
-                    itemEditPageState.item = it
+
+                    _pageState.value = _pageState.value.copy(
+                        isNew = false,
+                        pageMode = checkNotNull(savedStateHandle.toRoute<ItemEditRoute>().pageMode),
+                        itemId = it.id,
+                        linkFromType = savedStateHandle.toRoute<ItemEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<ItemEditRoute>().linkFromId,
+                        item = it
+                    )
+
+                    _editState.value = _editState.value.copy(
+                        isValid = true,
+                        editItemName = it.itemName,
+                        editItemDescription = it.comments,
+                    )
                 }
             }
         }
     }
+
     fun onEvent(event: ItemEditPageEvent) {
         when (event) {
             is ItemEditPageEvent.ItemNameChanged -> {
-                var _isValid = false
-                if(event.itemName.length >= 1) {
-                    _isValid = true
-                }
-                itemEditPageState = itemEditPageState.copy(editItemName = event.itemName, isValid = _isValid)
+                updateItemName(event.itemName)
             }
             is ItemEditPageEvent.ItemDescriptionChanged -> {
-                itemEditPageState = itemEditPageState.copy(editItemDescription = event.itemDescription)
+                updateItemDescription(event.itemDescription)
             }
             is ItemEditPageEvent.Save -> { }
         }
     }
 
+    private var debounceJob: Job? = null
+
+    private fun updateItemName(it: String) {
+        // update editItemName only immediately
+        _editState.value = _editState.value.copy(editItemName = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(it),
+                editItemName = it,
+            )
+        }
+    }
+
+    private fun updateItemDescription(it: String) {
+        // update editItemDescription only immediately
+        _editState.value = _editState.value.copy(editItemDescription = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(_editState.value.editItemName),
+                editItemDescription = it,
+            )
+        }
+    }
+
+    private fun validateInput(itemName: String?):Boolean {
+        var result = false
+        if(!itemName.isNullOrEmpty()) result = true
+        return result
+    }
+
+        // TODO: Call onSave from Event above
+
 
     suspend fun onSave(): String? {
-        if(itemEditPageState.isValid && itemEditPageState.isNew) {
-            val addedItemRowId = itemRepository.addItem(
+        if(
+        // Add new Item
+            _editState.value.isValid &&
+            _pageState.value.isNew
+        ) {
+            val addedRecordRowId = itemRepository.addItem(
                 Item(
                     ownerDbId = "db1",
-                    itemName = itemEditPageState.editItemName,
-                    comments = itemEditPageState.editItemDescription
+                    itemName = _editState.value.editItemName!!, // assuming cannot be valid if null
+                    comments = _editState.value.editItemDescription,
                 )
             )
-            return itemRepository.getItemByRowId(addedItemRowId).id
-        } else if (itemEditPageState.isValid && !itemEditPageState.isNew) {
-            itemRepository.updateItem(
-                itemEditPageState.item!!.copy(
-                    itemName = itemEditPageState.editItemName,
-                    comments = itemEditPageState.editItemDescription
+            val addedRecordId = itemRepository.getItemByRowId(addedRecordRowId).id
+            if (
+            // Also link to source record
+                _pageState.value.pageMode == ItemEditPageMode.NEWLINK &&
+                _pageState.value.linkFromId != null &&
+                _pageState.value.linkFromType != null
+            ) {
+                linkedRecordRepository.addLinkedRecord(
+                    LinkedRecord(
+                        ownerDbId = "db1",
+                        record1Id = _pageState.value.linkFromId!!,
+                        record2Id = addedRecordId,
+                        record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
+                        record2TypeId = RecordType.Item.recordTypeId
+                    )
                 )
-            )
+            }
+            return addedRecordId
+
+        } else if (
+        // Update Existing Item
+            _editState.value.isValid &&
+            !_pageState.value.isNew
+        ) {
+            itemRepository.updateItem(_pageState.value.item!!.copy(
+                itemName = _editState.value.editItemName!!,  // assuming cannot be valid if null
+                comments = _editState.value.editItemDescription,
+            ))
             return null
         } else {
             return null
         }
     }
 
+    data class PageState(
+        val isNew: Boolean = true,
+        val pageMode: ItemEditPageMode? = null,
+        val itemId: String? = null,
+        val linkFromType: RecordType? = null,
+        val linkFromId: String? = null,
+        val item: Item? = Item(),
+    )
 
-
-    data class ItemEditPageState(
-        var isValid: Boolean = false,
-        var isNew: Boolean = true,
-        var editItemName: String = "",
-        var editItemDescription: String? = null,
-        var item: Item? = Item()
+    data class EditState(
+        val isValid: Boolean = false,
+        val editItemName: String? = null,
+        val editItemDescription: String? = null,
     )
 
     companion object {

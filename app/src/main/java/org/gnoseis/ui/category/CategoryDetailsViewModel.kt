@@ -31,6 +31,7 @@ package org.gnoseis.ui.category
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -60,19 +61,7 @@ class CategoryDetailsViewModel(
             linkedRecordRepository = linkedRecordRepository,
         )
 
-    private var categoryId : String = checkNotNull(savedStateHandle[CategoryDetailsPageDestination.categoryIdArg])
-
-/*
-    val item: StateFlow<Item> =
-        itemRepository
-            .getItemStream(itemId)
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-                Item(ownerDbId = "zzz", itemName = "xxx")
-            )
-*/
-
+    private var categoryId : String = checkNotNull(savedStateHandle.toRoute<CategoryDetailsRoute>().categoryId)
 
     val linkedRecords: StateFlow<CategoryLinkedRecords> =
         combine(
@@ -126,8 +115,6 @@ class CategoryDetailsViewModel(
         val linkedNotes: List<Note> = emptyList(),
         val linkedOrganizations: List<Organization> = emptyList()
     )
-
-
 
     companion object {
         private const val TIMEOUT_MILLIS = 5_000L

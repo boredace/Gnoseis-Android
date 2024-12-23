@@ -59,21 +59,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.category.Category
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object CategoryListPageDestination : NavigationDestination {
-    override val route = "category_list_page"
-    override val titleRes = -9
-}
+@Serializable
+data class CategoryListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun CategoryListPage(
     pageViewModel: CategoryListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -88,13 +88,12 @@ fun CategoryListPage(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryListPageScaffold(
     pageState: CategoryListViewModel.CategoryListPageState,
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -136,7 +135,7 @@ fun CategoryListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToCategoryEditPage("new") }
+                onClick = { navigateToCategoryEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Category")
                 Spacer(modifier = Modifier.width(15.dp))
@@ -168,11 +167,6 @@ fun CategoryPageBody(
         navigateToCategoryDetailsPage = navigateToCategoryDetailsPage
     )
 }
-
-
-
-
-
 
 
 @Preview

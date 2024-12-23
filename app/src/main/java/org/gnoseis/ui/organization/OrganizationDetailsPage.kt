@@ -50,9 +50,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddLink
-import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Notes
-import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -80,13 +78,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
+import org.gnoseis.R
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
@@ -103,18 +105,14 @@ import org.gnoseis.ui.icons.NoteIcon
 import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.note.NoteList
 import org.gnoseis.ui.theme.GnoseisTheme
 
 
-object OrganizationDetailsPageDestination : NavigationDestination {
-    override val route = "organization_details_page"
-    override val titleRes = -9
-    const val organizationIdArg = "organizationId"
-    val routeWithArgs = "$route/{$organizationIdArg}"
-}
-
+@Serializable
+data class OrganizationDetailsRoute(
+    val organizationId: String
+)
 
 @Composable
 fun OrganizationDetailsPage(
@@ -126,6 +124,9 @@ fun OrganizationDetailsPage(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 ) {
@@ -146,10 +147,12 @@ fun OrganizationDetailsPage(
         navigateToNoteDetailsPage = navigateToNoteDetailsPage,
         navigateToLinkRecordsPage = navigateToLinkRecordsPage,
         navigateToLinkNewNotePage = navigateToLinkNewNotePage,
+        navigateToLinkNewCategoryPage = navigateToLinkNewCategoryPage,
+        navigateToLinkNewContactPage = navigateToLinkNewContactPage,
+        navigateToLinkNewItemPage = navigateToLinkNewItemPage,
         navigateToOrganizationEditPage = navigateToOrganizationEditPage,
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,6 +168,9 @@ fun OrganizationDetailsScaffold(
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToLinkRecordsPage: (String) -> Unit,
     navigateToLinkNewNotePage: (String) -> Unit,
+    navigateToLinkNewCategoryPage: (String) -> Unit,
+    navigateToLinkNewContactPage: (String) -> Unit,
+    navigateToLinkNewItemPage: (String) -> Unit,
     navigateToOrganizationEditPage: (String) -> Unit,
 
 
@@ -178,7 +184,6 @@ fun OrganizationDetailsScaffold(
         }
     }
     var fabExpanded by remember { mutableStateOf(false)}
-
     var showDeleteAlertDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -228,12 +233,18 @@ fun OrganizationDetailsScaffold(
                             fabExpanded = true
                         }
                     },
-                    fab1Icon = Icons.Outlined.TextSnippet,
+                    fab1Icon = ImageVector.vectorResource(R.drawable.outline_description_24),
                     fab1Text = "New Note",
                     onFab1Click = { navigateToLinkNewNotePage(organization.id) },
-                    fab2Icon = Icons.Outlined.Contacts,
+                    fab2Icon = ImageVector.vectorResource(R.drawable.outline_people_24),
                     fab2Text = "New Contact",
-                    onFab2Click = {}
+                    onFab2Click = { navigateToLinkNewContactPage(organization.id) },
+                    fab3Icon = ImageVector.vectorResource(R.drawable.outline_label_24),
+                    fab3Text = "New Category",
+                    onFab3Click = { navigateToLinkNewCategoryPage(organization.id) },
+                    fab4Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
+                    fab4Text = "New Item",
+                    onFab4Click = { navigateToLinkNewItemPage(organization.id) },
                 )
                 /*ExtendedFloatingActionButton(
                     onClick = { navigateToLinkRecordsPage(organization.id) }
@@ -529,8 +540,11 @@ fun OrganizationDetailsPagePreview() {
                 navigateToNoteDetailsPage = {},
                 navigateToLinkRecordsPage = {},
                 navigateToLinkNewNotePage = {},
+                navigateToLinkNewContactPage = {},
                 navigateToOrganizationEditPage = {},
-                linkedRecordTabs = listOf(
+                navigateToLinkNewItemPage = {},
+                navigateToLinkNewCategoryPage = {},
+            linkedRecordTabs = listOf(
                     LinkedRecordTypeCount(
                         recordTypeId = 1,
                         count = 3

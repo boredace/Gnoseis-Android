@@ -59,21 +59,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.item.Item
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ItemListPageDestination : NavigationDestination {
-    override val route = "item_list_page"
-    override val titleRes = -9
-}
+@Serializable
+data class ItemListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun ItemListPage(
     pageViewModel: ItemListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,7 +94,7 @@ fun ItemListPage(
 fun ItemListPageScaffold(
     pageState: ItemListViewModel.ItemListPageState,
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
@@ -135,7 +135,7 @@ fun ItemListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToItemEditPage("new") }
+                onClick = { navigateToItemEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Item")
                 Spacer(modifier = Modifier.width(15.dp))
