@@ -75,8 +75,6 @@ fun SettingsPageScaffold(
     onNavMenuClick: () -> Unit,
     listItemClicked: (Int) -> Unit,
 ){
-//    val pullRefreshState = rememberPullToRefreshState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -93,7 +91,6 @@ fun SettingsPageScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-//                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 SettingsPageBody(
                     listItemClicked = listItemClicked,
