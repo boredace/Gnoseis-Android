@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "org.gnoseis"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "org.gnoseis"
         minSdk = 29
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 4
-        versionName = "0.2-dev-link_new_records (0.2.4)"
+        versionName = "0.2.0-dev (0.2.0.4)"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -59,14 +59,11 @@ dependencies {
     testImplementation(composeBom)
     androidTestImplementation(composeBom)
 
-
-//    implementation(platform("androidx.compose:compose-bom:2024.02.01"))
-
     implementation("com.google.devtools.ksp:symbol-processing-api:1.9.22-1.0.17")
 
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -76,7 +73,7 @@ dependencies {
 
     // Navigation
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("androidx.navigation:navigation-compose:2.8.4")
+    implementation("androidx.navigation:navigation-compose:2.8.5")
 
     // Room
     implementation("androidx.room:room-common:2.6.1")
@@ -85,12 +82,11 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.2")
+    implementation("androidx.compose.material:material-icons-extended-android:1.7.6")
 
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-//    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.01"))
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
