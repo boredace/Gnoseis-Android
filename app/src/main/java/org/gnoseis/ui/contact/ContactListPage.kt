@@ -58,6 +58,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.contact.Contact
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -151,10 +153,14 @@ fun ContactPageBody(
     navigateToContactDetailsPage: (String) -> Unit,
     ){
 
-    ContactList(
-        contacts = pageState.contacts,
-        navigateToContactDetailsPage = navigateToContactDetailsPage
-    )
+    if(pageState.contacts.isNotEmpty()) {
+        ContactList(
+            contacts = pageState.contacts,
+            navigateToContactDetailsPage = navigateToContactDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Contact)
+    }
 }
 
 

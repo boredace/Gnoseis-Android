@@ -58,6 +58,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.category.Category
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -149,10 +151,15 @@ fun CategoryPageBody(
     pageState: CategoryListViewModel.CategoryListPageState,
     navigateToCategoryDetailsPage: (String) -> Unit
 ){
-    CategoryList(
-        categories = pageState.categories,
-        navigateToCategoryDetailsPage = navigateToCategoryDetailsPage
-    )
+    if(pageState.categories.isNotEmpty()) {
+        CategoryList(
+            categories = pageState.categories,
+            navigateToCategoryDetailsPage = navigateToCategoryDetailsPage
+            )
+    } else {
+        NoRecordsToDisplay(RecordType.Category)
+    }
+
 }
 
 

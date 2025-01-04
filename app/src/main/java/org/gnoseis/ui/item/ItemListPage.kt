@@ -30,7 +30,10 @@ package org.gnoseis.ui.item
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -51,6 +54,7 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -58,6 +62,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.item.Item
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
+import org.gnoseis.ui.icons.ItemIcon
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -149,10 +156,14 @@ fun ItemPageBody(
     pageState: ItemListViewModel.ItemListPageState,
     navigateToItemDetailsPage: (String) -> Unit
 ){
-    ItemList(
-        items = pageState.items,
-        navigateToItemDetailsPage = navigateToItemDetailsPage
-    )
+    if(pageState.items.isNotEmpty()) {
+        ItemList(
+            items = pageState.items,
+            navigateToItemDetailsPage = navigateToItemDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Item)
+    }
 }
 
 

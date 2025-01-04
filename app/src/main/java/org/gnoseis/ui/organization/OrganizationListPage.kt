@@ -58,6 +58,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -149,11 +151,14 @@ fun OrganizationPageBody(
     pageState: OrganizationListViewModel.OrganizationListPageState,
     navigateToOrganizationDetailsPage: (String) -> Unit,
     ){
-
-    OrganizationList(
-        organizations = pageState.organizations,
-        navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
-    )
+    if(pageState.organizations.isNotEmpty()) {
+        OrganizationList(
+            organizations = pageState.organizations,
+            navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Organization)
+    }
 }
 
 
