@@ -1,0 +1,112 @@
+/*
+*   Gnoseis is an Android native CRM application and general knowledge manager.
+*
+*   Copyright (C) 2024 Gnoseis.org
+*
+*   This program is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation version 3 of the License.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*
+*   You should have received a copy of the GNU General Public License
+*   along with this program. If not, see
+*   https://github.com/gnoseis.org/Gnoseis-Android/blob/main/LICENSE.
+*
+*   Dual Licensing Notice:
+*
+*   Gnoseis can also be licensed under commercial terms. See
+*   https://github.com/gnoseis.org/Gnoseis-Android/blob/main/COMMERCIAL_LICENSE
+*
+*   By contributing to Gnoseis, you agree that your contributions will be
+*   licensed under both the open-source license in the LICENSE file and the
+*   commercial license described in the COMMERCIAL_LICENSE file.
+*/
+
+package org.gnoseis.ui.settings
+
+import android.content.Context
+import android.net.Uri
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
+import org.gnoseis.data.database.GnoseisDatabase
+import org.gnoseis.data.entity.note.Note
+import org.gnoseis.data.repository.DatabaseRepository
+import org.gnoseis.testutil.MainDispatcherRule
+import org.gnoseis.testutil.waitFor
+import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.File
+
+@RunWith(AndroidJUnit4::class)
+class BackupSettingsViewModelTest {
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val backup = File(context.cacheDir, "vm_test.backup")
+    private val vm = BackupSettingsViewModel(DatabaseRepository(context))
+
+    @Before
+    fun setUp() {
+        GnoseisDatabase.resetInstanceForTesting()
+        context.deleteDatabase("gnoseis_data")
+        backup.delete()
+        runBlocking {
+            val dao = GnoseisDatabase.getDatabase(context).noteDao()
+            waitFor { runBlocking { dao.getNotes().first().isNotEmpty() } } // seed note (bug 3)
+            dao.addNote(Note(title = "A"))
+        }
+    }
+
+    @After
+    fun tearDown() {
+        GnoseisDatabase.resetInstanceForTesting()
+        context.deleteDatabase("gnoseis_data")
+        backup.delete()
+    }
+
+    @Test
+    fun initialState_nothingSucceededYet() {
+        assertFalse(vm.exportuccess.value)
+        assertFalse(vm.importuccess.value)
+    }
+
+    @Test
+    fun export_returnValueIsAlwaysFalse_butStateReportsSuccess() = runTest {
+        // Documented: the Boolean return value is not the result; exportuccess is.
+        assertFalse(vm.exportDatabase(backup.path))
+
+        waitFor { vm.exportuccess.value }
+        assertTrue(backup.length() > 0)
+    }
+
+    @Test
+    fun export_failure_keepsStateFalse() = runTest {
+        vm.exportDatabase(File(context.cacheDir, "missing-dir/x.backup").path)
+        Thread.sleep(300)
+        assertFalse(vm.exportuccess.value)
+    }
+
+    @Test
+    fun import_reportsSuccess() = runTest {
+        vm.exportDatabase(backup.path)
+        waitFor { vm.exportuccess.value }
+        GnoseisDatabase.resetInstanceForTesting() // avoid bug 1
+
+        assertFalse(vm.importDatabase(Uri.fromFile(backup)))
+
+        waitFor { vm.importuccess.value }
+    }
+}
