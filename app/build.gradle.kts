@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlinx.kover")
 
 }
 
@@ -45,11 +46,24 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+    sourceSets {
+        // Exported Room schemas, used by MigrationTestHelper in instrumented tests
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -85,9 +99,32 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended-android:1.7.6")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+kover {
+    reports {
+        filters {
+            excludes {
+                // Generated code: Room DAO/DB implementations, serializers, Compose singletons
+                classes(
+                    "*_Impl",
+                    "*_Impl\$*",
+                    "*\$\$serializer",
+                    "*ComposableSingletons*",
+                    "*.BuildConfig",
+                )
+            }
+        }
+    }
 }
