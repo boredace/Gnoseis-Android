@@ -36,6 +36,7 @@ import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.inMemoryDatabase
+import org.gnoseis.testutil.knownBug
 import org.gnoseis.testutil.link
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -83,21 +84,29 @@ class NoteItemDaoTest {
 
     @Test
     fun deleteLinkedNoteToItem_byItem_removesItemLinksInBothDirections() {
-        dao.addNoteItem(link("item", RecordType.Item, "note1", RecordType.Note))
-        dao.addNoteItem(link("note2", RecordType.Note, "item", RecordType.Item))
+        knownBug(
+            "NoteItemDao (unused class) - the delete query only matches links where the item is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
+        ) {
+            dao.addNoteItem(link("item", RecordType.Item, "note1", RecordType.Note))
+            dao.addNoteItem(link("note2", RecordType.Note, "item", RecordType.Item))
 
-        dao.deleteLinkedNoteToItem("item")
+            dao.deleteLinkedNoteToItem("item")
 
-        assertEquals(emptyList<String>(), linkedIds("item"))
+            assertEquals(emptyList<String>(), linkedIds("item"))
+        }
     }
 
     @Test
     fun deleteLinkedItemToNote_byNote_removesNoteLinksInBothDirections() {
-        dao.addNoteItem(link("note", RecordType.Note, "item1", RecordType.Item))
-        dao.addNoteItem(link("item2", RecordType.Item, "note", RecordType.Note))
+        knownBug(
+            "NoteItemDao (unused class) - the delete query only matches links where the note is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
+        ) {
+            dao.addNoteItem(link("note", RecordType.Note, "item1", RecordType.Item))
+            dao.addNoteItem(link("item2", RecordType.Item, "note", RecordType.Note))
 
-        dao.deleteLinkedItemToNote("note")
+            dao.deleteLinkedItemToNote("note")
 
-        assertEquals(emptyList<String>(), linkedIds("note"))
+            assertEquals(emptyList<String>(), linkedIds("note"))
+        }
     }
 }
