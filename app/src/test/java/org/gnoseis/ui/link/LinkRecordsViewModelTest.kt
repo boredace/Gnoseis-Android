@@ -32,6 +32,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.category.Category
@@ -168,22 +170,42 @@ class LinkRecordsViewModelTest {
 
     @Test
     fun linkingAnAlreadyLinkedRecord_doesNotCreateDuplicateLink() = runTest {
-        knownBug(
-            "#13 - linking a record that is already linked creates a duplicate link, and the tab badge then shows 2. LinkRecordsViewModel.linkSelectedResults() does not skip results with isLinked == true. Fix: skip them.",
-        ) {
-            seed()
-            c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
-            val vm = vm()
-            vm.searchResults.test {
-                val results = awaitResults { it.isNotEmpty() }
-                vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
-                vm.linkSelectedResults()
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            val counts = c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first()
-            assertEquals(1, counts.single { it.recordTypeId == RecordType.Organization.recordTypeId }.count)
+        seed()
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
+        val vm = vm()
+        vm.searchResults.test {
+            val results = awaitResults { it.isNotEmpty() }
+            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
+            vm.linkSelectedResults()
+            cancelAndIgnoreRemainingEvents()
         }
+
+        val counts = c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first()
+        assertEquals(1, counts.single { it.recordTypeId == RecordType.Organization.recordTypeId }.count)
+    }
+
+    /** #13, path A: the user taps "Link" twice. */
+    @Test
+    fun tappingLinkTwice_createsOneLink_andClearsSelection() = runTest {
+        seed()
+        val vm = vm()
+        vm.searchResults.test {
+            val results = awaitResults { it.isNotEmpty() }
+            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
+
+            // Two taps racing each other, then a late third tap
+            val first = async { vm.linkSelectedResults() }
+            val second = async { vm.linkSelectedResults() }
+            awaitAll(first, second)
+            vm.linkSelectedResults()
+
+            assertEquals(0, vm.selectedCount.intValue)
+            assertEquals(true, results.first { it.recordId == org.id }.isLinked)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val counts = c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first()
+        assertEquals(1, counts.single { it.recordTypeId == RecordType.Organization.recordTypeId }.count)
     }
 
     @Test

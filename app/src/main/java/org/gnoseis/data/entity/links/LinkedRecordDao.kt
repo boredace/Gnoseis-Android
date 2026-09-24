@@ -223,6 +223,25 @@ interface LinkedRecordDao {
 
     @Insert
     suspend fun addLinkedRecord(linkedRecord: LinkedRecord)
+
+    /**
+     * Inserts the link only if the two records are not linked yet, in either direction.
+     */
+    @Query(
+        "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
+                "SELECT :id, :ownerDbId, :record1Id, :record2Id, :record1TypeId, :record2TypeId " +
+                "WHERE NOT EXISTS (" +
+                "SELECT 1 FROM LinkedRecord " +
+                "WHERE (record1Id = :record1Id AND record2Id = :record2Id) " +
+                "OR (record1Id = :record2Id AND record2Id = :record1Id))" )
+    suspend fun addLinkedRecordIfAbsent(
+        id: String,
+        ownerDbId: String,
+        record1Id: String,
+        record2Id: String,
+        record1TypeId: Int,
+        record2TypeId: Int,
+    )
 }
 
 

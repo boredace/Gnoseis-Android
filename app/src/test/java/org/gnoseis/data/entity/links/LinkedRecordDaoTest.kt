@@ -170,6 +170,26 @@ class LinkedRecordDaoTest {
     }
 
     @Test
+    fun addLinkedRecordIfAbsent_insertsNewLink_butSkipsExistingPairInEitherDirection() = runTest {
+        suspend fun addIfAbsent(l: LinkedRecord) = dao.addLinkedRecordIfAbsent(
+            l.id, l.ownerDbId, l.record1Id, l.record2Id, l.record1TypeId, l.record2TypeId,
+        )
+        val first = link("a", RecordType.Note, "b", RecordType.Contact)
+
+        addIfAbsent(first)
+        addIfAbsent(link("a", RecordType.Note, "b", RecordType.Contact))
+        addIfAbsent(link("b", RecordType.Contact, "a", RecordType.Note))
+        addIfAbsent(link("a", RecordType.Note, "c", RecordType.Item))
+
+        assertEquals(listOf("b", "c"), dao.getRecordIdsLinkedToRecordId("a").first().sorted())
+        assertEquals(listOf("a"), dao.getRecordIdsLinkedToRecordId("b").first())
+        assertEquals(
+            listOf(LinkedRecordTypeCount(RecordType.Contact.recordTypeId, 1), LinkedRecordTypeCount(RecordType.Item.recordTypeId, 1)),
+            dao.getLinkedRecordTypesForRecordIdStream("a").first().sortedBy { it.recordTypeId },
+        )
+    }
+
+    @Test
     fun deletingRecordDirectly_leavesOrphanLinks() = runTest {
         // There are no foreign keys: only DeleteRecordUseCase cleans up links.
         insertAllRecords()

@@ -32,6 +32,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.item.Item
+import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
@@ -68,5 +69,22 @@ class LinkedRecordRepositoryTest {
 
         assertEquals(listOf(orgNote), c.linkedRecordRepository.getLinkedNoteListByOrganizationId(org.id).first())
         assertEquals(listOf(itemNote), c.linkedRecordRepository.getLinkedNoteListByItemId(item.id).first())
+    }
+
+    @Test
+    fun addLinkedRecord_ignoresDuplicates_inBothDirections() = runTest {
+        val org = Organization(organizationName = "Acme")
+        val note = Note(title = "n")
+        c.organizationRepository.addOrganization(org)
+        c.noteRepository.addNote(note)
+
+        c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, note.id, RecordType.Note))
+        c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, note.id, RecordType.Note))
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
+
+        assertEquals(
+            listOf(LinkedRecordTypeCount(RecordType.Note.recordTypeId, 1)),
+            c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(org.id).first(),
+        )
     }
 }
