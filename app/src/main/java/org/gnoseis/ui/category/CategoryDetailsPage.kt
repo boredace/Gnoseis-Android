@@ -88,6 +88,8 @@ import org.gnoseis.data.enums.IconTextPosition
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.components.DeleteRecordAlertDialog
 import org.gnoseis.ui.components.ExpandableActionButton
+import org.gnoseis.ui.components.rememberSelectedLinkedRecordType
+import org.gnoseis.ui.components.tabIndexOf
 import org.gnoseis.ui.contact.ContactList
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
@@ -121,6 +123,8 @@ fun CategoryDetailsPage(
     navigateToLinkNewItemPage: (String) -> Unit,
     navigateToLinkNewOrganizationPage: (String) -> Unit,
     navigateToCategoryEditPage: (String) -> Unit,
+    linkedNewRecordTypeId: Int? = null,
+    onLinkedNewRecordTypeShown: () -> Unit = {},
 ) {
     val pageState by pageViewModel.categoryDetailsPageState.collectAsState()
     val linkedRecords by pageViewModel.linkedRecords.collectAsState()
@@ -143,6 +147,8 @@ fun CategoryDetailsPage(
         navigateToLinkNewItemPage = navigateToLinkNewItemPage,
         navigateToLinkNewOrganizationPage = navigateToLinkNewOrganizationPage,
         navigateToCategoryEditPage = navigateToCategoryEditPage,
+        linkedNewRecordTypeId = linkedNewRecordTypeId,
+        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         )
 }
 
@@ -164,6 +170,8 @@ fun CategoryDetailsScaffold(
     navigateToLinkNewItemPage: (String) -> Unit,
     navigateToLinkNewOrganizationPage: (String) -> Unit,
     navigateToCategoryEditPage: (String) -> Unit,
+    linkedNewRecordTypeId: Int? = null,
+    onLinkedNewRecordTypeShown: () -> Unit = {},
 
 
 ){
@@ -249,7 +257,9 @@ fun CategoryDetailsScaffold(
                     navigateToContactDetailsPage = navigateToContactDetailsPage,
                     navigateToItemDetailsPage = navigateToItemDetailsPage,
                     navigateToNoteDetailsPage = navigateToNoteDetailsPage,
-                    navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
+                    navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage,
+                    linkedNewRecordTypeId = linkedNewRecordTypeId,
+                    onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                 )
             }
             if (fabExpanded) {
@@ -279,7 +289,9 @@ fun CategoryDetailsBody(
     navigateToContactDetailsPage: (String) -> Unit,
     navigateToNoteDetailsPage: (String) -> Unit,
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToOrganizationDetailsPage: (String) -> Unit
+    navigateToOrganizationDetailsPage: (String) -> Unit,
+    linkedNewRecordTypeId: Int? = null,
+    onLinkedNewRecordTypeShown: () -> Unit = {},
 ) {
     if(showDeleteAlertDialog) {
         DeleteRecordAlertDialog(
@@ -293,7 +305,8 @@ fun CategoryDetailsBody(
                     linkedRecords.linkedOrganizations.count()
         )
     }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabRecordTypeId by rememberSelectedLinkedRecordType(linkedNewRecordTypeId, onLinkedNewRecordTypeShown)
+    val selectedTabIndex = tabIndexOf(linkedRecordTabs, selectedTabRecordTypeId)
     val pagerState = rememberPagerState { linkedRecordTabs.size + 1 }
 
     Column() {
@@ -323,7 +336,7 @@ fun CategoryDetailsBody(
                             modifier = Modifier
                                 .background(color = MaterialTheme.colorScheme.surfaceContainer),
                             selected = selectedTabIndex == 0,
-                            onClick = { selectedTabIndex = 0 },
+                            onClick = { selectedTabRecordTypeId = null },
                             icon = {
                                 CategoryIcon("Details", align)
                             }
@@ -333,8 +346,8 @@ fun CategoryDetailsBody(
                             Tab(
                                 modifier = Modifier
                                     .background(color = MaterialTheme.colorScheme.surfaceContainer),
-                                selected = index == selectedTabIndex + 1,
-                                onClick = { selectedTabIndex = index + 1 },
+                                selected = selectedTabIndex == index + 1,
+                                onClick = { selectedTabRecordTypeId = item.recordTypeId },
 //                                text = { Text(text = "(${item.count.toString()})") },
                                 icon = {
                                     when (item.recordTypeId) {

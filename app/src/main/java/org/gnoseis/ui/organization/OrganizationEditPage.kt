@@ -82,6 +82,7 @@ fun OrganizationEditPage(
     pageViewModel: OrganizationEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToOrganizationDetailsPage: (String) -> Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 ) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
@@ -98,7 +99,7 @@ fun OrganizationEditPage(
                         val addedOrganizationId = pageViewModel.onSave()
                         if (addedOrganizationId != null) {
                             if(pageMode == OrganizationEditPageMode.NEWLINK) {
-                                navMenuClick()
+                                navigateBackAfterLinkingNew()
                             } else  {
                                 navigateToOrganizationDetailsPage(addedOrganizationId)
                             }

@@ -81,7 +81,8 @@ fun ContactEditPage(
     pageMode: ContactEditPageMode,
     pageViewModel: ContactEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
-    navigateToContactDetailsPage: (String) ->Unit
+    navigateToContactDetailsPage: (String) ->Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
     val pageState = pageViewModel.pageState.value
@@ -99,7 +100,7 @@ fun ContactEditPage(
                         val addedContactId = pageViewModel.onSave()
                         if (addedContactId != null) {
                             if(pageMode == ContactEditPageMode.NEWLINK) {
-                                navMenuClick()
+                                navigateBackAfterLinkingNew()
                             } else {
                                 navigateToContactDetailsPage(addedContactId)
                             }

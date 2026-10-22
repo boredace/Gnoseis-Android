@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,11 +53,10 @@ class LinkRecordsViewModel(
 ) : ViewModel(){
     var currentQuery = MutableStateFlow("")
 
-    private val _sourceRecordId : String = checkNotNull(savedStateHandle[LinkRecordsDestination.sourceRecordIdArg])
-    private val _sourceRecordTypeId : Int = checkNotNull(savedStateHandle[LinkRecordsDestination.sourceRecordTypeIdArg])
+    private val route = savedStateHandle.toRoute<LinkRecordsRoute>()
 
-    val sourceRecordId = MutableStateFlow(_sourceRecordId)
-    val sourceRecordTypeId = MutableStateFlow(_sourceRecordTypeId)
+    val sourceRecordId = MutableStateFlow(route.sourceRecordId)
+    val sourceRecordTypeId = MutableStateFlow(route.sourceRecordType.recordTypeId)
 
     private var alreadyLinked : StateFlow<List<String>> =
         linkedRecordRepository.getRecordIdsLinkedToRecordId(sourceRecordId.value)
