@@ -115,7 +115,8 @@ class GnoseisDatabaseTest {
         dao.addNote(Note(title = "precious"))
         GnoseisDatabase.resetInstanceForTesting()
         val path: File = context.getDatabasePath(DB_NAME)
-        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 2 }
+        // A future version, so no migration path exists whatever the current version is
+        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 999 }
 
         val opened = runCatching { GnoseisDatabase.getDatabase(context).noteDao().getNotes().first() }
         GnoseisDatabase.resetInstanceForTesting()
