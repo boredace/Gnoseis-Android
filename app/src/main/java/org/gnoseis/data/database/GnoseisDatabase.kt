@@ -29,6 +29,7 @@
 package org.gnoseis.data.database
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -111,6 +112,17 @@ abstract class GnoseisDatabase : RoomDatabase() {
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { Instance = it }
+            }
+        }
+
+        /**
+         * Closes and forgets the singleton so each test starts from a fresh database file.
+         */
+        @VisibleForTesting
+        internal fun resetInstanceForTesting() {
+            synchronized(this) {
+                Instance?.close()
+                Instance = null
             }
         }
 

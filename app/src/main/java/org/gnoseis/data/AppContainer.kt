@@ -50,7 +50,10 @@ interface  AppContainer {
     val searchRepository: SearchRepository
 }
 
-class AppDataContainer(private val context: Context) : AppContainer {
+class AppDataContainer(
+    private val context: Context,
+    private val database: () -> GnoseisDatabase = { GnoseisDatabase.getDatabase(context) },
+) : AppContainer {
 
     override val databaseRepository: DatabaseRepository by lazy {
         DatabaseRepository(
@@ -59,37 +62,37 @@ class AppDataContainer(private val context: Context) : AppContainer {
     }
     override val categoryRepository: CategoryRepository by lazy{
         CategoryRepository(
-            GnoseisDatabase.getDatabase(context).categoryDao()
+            database().categoryDao()
         )
     }
     override val contactRepository: ContactRepository by lazy{
         ContactRepository(
-            GnoseisDatabase.getDatabase(context).contactDao()
+            database().contactDao()
         )
     }
     override val itemRepository: ItemRepository by lazy {
         ItemRepository(
-            GnoseisDatabase.getDatabase(context).itemDao()
+            database().itemDao()
         )
     }
     override val noteRepository: NoteRepository by lazy {
         NoteRepository(
-            GnoseisDatabase.getDatabase(context).noteDao()
+            database().noteDao()
         )
     }
     override val organizationRepository: OrganizationRepository by lazy {
         OrganizationRepository(
-            GnoseisDatabase.getDatabase(context).organizationDao()
+            database().organizationDao()
         )
     }
     override val linkedRecordRepository: LinkedRecordRepository by lazy {
         LinkedRecordRepository(
-            GnoseisDatabase.getDatabase(context).linkedRecordDao()
+            database().linkedRecordDao()
         )
     }
     override val searchRepository: SearchRepository by lazy {
         SearchRepository(
-            GnoseisDatabase.getDatabase(context).searchDao()
+            database().searchDao()
         )
     }
 }
