@@ -45,7 +45,6 @@ import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
-import org.gnoseis.testutil.knownBug
 import org.gnoseis.testutil.link
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -210,18 +209,13 @@ class LinkRecordsViewModelTest {
 
     @Test
     fun contactWithoutFirstName_appearsInResults() = runTest {
-        knownBug(
-            issue = 19,
-            "the Link Records page crashes when any contact has no first name (the SearchDao title is NULL, see SearchDaoTest). Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
-        ) {
-            seed()
-            val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
-            c.contactRepository.addContact(lastNameOnly)
+        seed()
+        val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
+        c.contactRepository.addContact(lastNameOnly)
 
-            vm().searchResults.test {
-                val results = awaitResults { it.isNotEmpty() }
-                assertTrue(results.any { it.recordId == lastNameOnly.id })
-            }
+        vm().searchResults.test {
+            val results = awaitResults { it.isNotEmpty() }
+            assertTrue(results.any { it.recordId == lastNameOnly.id })
         }
     }
 }

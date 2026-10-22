@@ -44,7 +44,7 @@ interface SearchDao {
             "            WHERE t1.title LIKE :query\n" +
             "           UNION\n" +
             "           SELECT t2.id AS recordId,\n" +
-            "                  t2.NameLast || ', ' || t2.NameFirst AS recordTitle,\n" +
+            "                  t2.NameLast || COALESCE(', ' || t2.NameFirst, '') AS recordTitle,\n" +
             "                  2 AS recordTypeId\n" +
             "             FROM Contact AS t2\n" +
             "            WHERE t2.NameLast LIKE :query OR \n" +
