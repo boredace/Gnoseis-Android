@@ -80,6 +80,7 @@ fun CategoryEditPage(
     pageViewModel: CategoryEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
     val pageState = pageViewModel.pageState.value
@@ -97,7 +98,7 @@ fun CategoryEditPage(
                 val addedCategoryId = pageViewModel.onSave()
                 if(addedCategoryId != null) {
                     if(pageMode == CategoryEditPageMode.NEWLINK) {
-                        navMenuClick()
+                        navigateBackAfterLinkingNew()
                     } else {
                         navigateToCategoryDetailsPage(addedCategoryId)
                     }

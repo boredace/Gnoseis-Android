@@ -85,7 +85,7 @@ class LinkRecordsViewModelTest {
 
     private fun vm(sourceId: String = note.id, sourceType: RecordType = RecordType.Note) = mainDispatcherRule.viewModel {
         LinkRecordsViewModel(
-            SavedStateHandle(mapOf("sourceRecordId" to sourceId, "sourceRecordTypeId" to sourceType.recordTypeId)),
+            SavedStateHandle(mapOf("sourceRecordId" to sourceId, "sourceRecordType" to sourceType)),
             c.linkedRecordRepository,
             c.searchRepository,
         )

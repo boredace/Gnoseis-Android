@@ -98,7 +98,8 @@ fun NoteEditPage(
     pageMode: NoteEditPageMode,
     pageViewModel: NoteEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
-    navigateToNoteDetailsPage: (String) ->Unit
+    navigateToNoteDetailsPage: (String) ->Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
     val pageState = pageViewModel.pageState.value
@@ -120,7 +121,7 @@ fun NoteEditPage(
                 val addedNoteId = pageViewModel.onSave()
                 if(addedNoteId != null) {
                     if(pageMode == NoteEditPageMode.NEWLINK) {
-                        navMenuClick()
+                        navigateBackAfterLinkingNew()
                     } else {
                         navigateToNoteDetailsPage(addedNoteId)
                     }

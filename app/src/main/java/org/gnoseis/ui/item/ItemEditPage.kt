@@ -84,6 +84,7 @@ fun ItemEditPage(
     pageViewModel: ItemEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToItemDetailsPage: (String) -> Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
     val pageState = pageViewModel.pageState.value
@@ -100,7 +101,7 @@ fun ItemEditPage(
                 val addedItemId = pageViewModel.onSave()
                 if(addedItemId != null) {
                     if(pageMode == ItemEditPageMode.NEWLINK) {
-                        navMenuClick()
+                        navigateBackAfterLinkingNew()
                     } else {
                         navigateToItemDetailsPage(addedItemId)
                     }
