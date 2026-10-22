@@ -55,9 +55,12 @@ class SearchPageViewModelTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
-    private fun vm() = SearchPageViewModel(SavedStateHandle(), c.searchRepository)
+    private fun vm() = mainDispatcherRule.viewModel { SearchPageViewModel(SavedStateHandle(), c.searchRepository) }
 
     private suspend fun ReceiveTurbine<List<SearchResult>>.awaitResults(predicate: (List<SearchResult>) -> Boolean): List<SearchResult> {
         var results = awaitItem()

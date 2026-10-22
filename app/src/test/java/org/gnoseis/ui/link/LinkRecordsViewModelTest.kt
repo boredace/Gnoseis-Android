@@ -62,7 +62,10 @@ class LinkRecordsViewModelTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
     private val note = Note(title = "Source note")
     private val otherNote = Note(title = "Other note")
@@ -80,11 +83,13 @@ class LinkRecordsViewModelTest {
         c.categoryRepository.addCategory(category)
     }
 
-    private fun vm(sourceId: String = note.id, sourceType: RecordType = RecordType.Note) = LinkRecordsViewModel(
-        SavedStateHandle(mapOf("sourceRecordId" to sourceId, "sourceRecordType" to sourceType)),
-        c.linkedRecordRepository,
-        c.searchRepository,
-    )
+    private fun vm(sourceId: String = note.id, sourceType: RecordType = RecordType.Note) = mainDispatcherRule.viewModel {
+        LinkRecordsViewModel(
+            SavedStateHandle(mapOf("sourceRecordId" to sourceId, "sourceRecordType" to sourceType)),
+            c.linkedRecordRepository,
+            c.searchRepository,
+        )
+    }
 
     private suspend fun ReceiveTurbine<List<SearchResult>>.awaitResults(predicate: (List<SearchResult>) -> Boolean): List<SearchResult> {
         var results = awaitItem()

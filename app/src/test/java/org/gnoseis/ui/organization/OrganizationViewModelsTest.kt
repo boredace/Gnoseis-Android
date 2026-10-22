@@ -63,18 +63,23 @@ class OrganizationViewModelsTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
     private fun editVm(id: String?, mode: OrganizationEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
-        OrganizationEditViewModel(
-            SavedStateHandle(mapOf("organizationId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
-            c.organizationRepository,
-            c.linkedRecordRepository,
-        )
+        mainDispatcherRule.viewModel {
+            OrganizationEditViewModel(
+                SavedStateHandle(mapOf("organizationId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                c.organizationRepository,
+                c.linkedRecordRepository,
+            )
+        }
 
     @Test
     fun list_reflectsRepository() = runTest {
-        val vm = OrganizationListViewModel(c.organizationRepository)
+        val vm = mainDispatcherRule.viewModel { OrganizationListViewModel(c.organizationRepository) }
         vm.organizationListPageState.test {
             assertEquals(emptyList<Organization>(), awaitItem().organizations)
             val org = Organization(organizationName = "Acme")
@@ -93,7 +98,7 @@ class OrganizationViewModelsTest {
         c.noteRepository.addNote(note)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
-        val vm = OrganizationDetailsViewModel(SavedStateHandle(mapOf("organizationId" to org.id)), c.organizationRepository, c.linkedRecordRepository)
+        val vm = mainDispatcherRule.viewModel { OrganizationDetailsViewModel(SavedStateHandle(mapOf("organizationId" to org.id)), c.organizationRepository, c.linkedRecordRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()

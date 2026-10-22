@@ -40,7 +40,11 @@ import org.gnoseis.data.entity.organization.Organization
 
 @Dao
 interface LinkedRecordDao {
-    @Query("select typeid as recordTypeId, count(typeid) as count\n" +
+    /**
+     * Counts distinct linked records per type, so a pair linked more than once (possible
+     * before #13) shows the same number as the deduplicated lists (#23).
+     */
+    @Query("select typeid as recordTypeId, count(distinct lr) as count\n" +
             "FROM\n" +
             "(\n" +
             "select lrt1.record2TypeId as typeId, lrt1.id as id, lrt1.record2Id as lr \n" +
@@ -52,7 +56,7 @@ interface LinkedRecordDao {
             "where record2Id = :recordId \n" +
             ")\n" +
             "group by typeid\n" +
-            "order by count(typeid) desc")
+            "order by count(distinct lr) desc")
     fun getLinkedRecordTypesForRecordIdStream(recordId: String): Flow<List<LinkedRecordTypeCount>>
 
 

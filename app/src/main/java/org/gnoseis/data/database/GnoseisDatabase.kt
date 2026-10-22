@@ -67,7 +67,7 @@ import org.gnoseis.data.entity.sharing.SharedRecord
         Organization::class,
         SharedRecord::class
     ],
-    version = 1
+    version = 2
 )
 abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
@@ -85,10 +85,28 @@ abstract class GnoseisDatabase : RoomDatabase() {
 
     companion object {
         /**
+         * #23: before #13, the same two records could be linked more than once, in either
+         * direction. Keeps the first link of each unordered pair and deletes the rest.
+         * The schema itself is unchanged.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "DELETE FROM LinkedRecord WHERE rowid NOT IN (" +
+                            "SELECT MIN(rowid) FROM LinkedRecord " +
+                            "GROUP BY MIN(record1Id, record2Id), MAX(record1Id, record2Id))"
+                )
+            }
+        }
+
+        /**
          * Every schema change must bump `version` and add a Migration here. Each version's
          * schema is exported to app/schemas and MigrationTest opens every one of them.
+         * Declared after the migrations it lists, which are initialized in order.
          */
-        internal val MIGRATIONS: Array<Migration> = arrayOf()
+        internal val MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_1_2,
+        )
 
         @Volatile
         private var Instance: GnoseisDatabase? = null
