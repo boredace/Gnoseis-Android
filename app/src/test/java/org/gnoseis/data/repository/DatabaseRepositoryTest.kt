@@ -39,7 +39,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.testutil.knownBug
 import org.gnoseis.testutil.waitFor
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -115,51 +114,37 @@ class DatabaseRepositoryTest {
     /** #14: export closes the singleton database that the repositories keep using. */
     @Test
     fun afterExport_existingDaoStillReadsAndWrites() = runTest {
-        knownBug(
-            issue = 14,
-            "after a backup (export) the next save fails. DatabaseRepository.exportDatabase() closes the GnoseisDatabase singleton, but the app keeps using that closed instance. Fix: do not close the DB; checkpoint the WAL and copy the file.",
-        ) {
-            val noteDao = db().noteDao() // AppDataContainer holds DAOs from this instance
-            noteDao.addNote(Note(title = "A"))
+        val noteDao = db().noteDao() // AppDataContainer holds DAOs from this instance
+        noteDao.addNote(Note(title = "A"))
 
-            repository.exportDatabase(backup.path)
-            noteDao.addNote(Note(title = "B"))
+        repository.exportDatabase(backup.path)
+        noteDao.addNote(Note(title = "B"))
 
-            assertEquals(setOf("A", "B"), noteDao.getNotes().first().userTitles())
-        }
+        assertEquals(setOf("A", "B"), noteDao.getNotes().first().userTitles())
     }
 
     /** #14: a list screen observing notes during a backup should keep receiving updates. */
     @Test
     fun afterExport_activeObserverStillReceivesUpdates() = runTest {
-        knownBug(
-            issue = 14,
-            "after a backup (export) saving fails and open screens stop updating. exportDatabase() closes the singleton database the app keeps using. Fix: do not close the DB; checkpoint the WAL and copy the file.",
-        ) {
-            val noteDao = db().noteDao()
-            noteDao.addNote(Note(title = "A"))
+        val noteDao = db().noteDao()
+        noteDao.addNote(Note(title = "A"))
 
-            noteDao.getNotes().test {
-                assertEquals(setOf("A"), awaitItem().userTitles())
-                repository.exportDatabase(backup.path)
-                noteDao.addNote(Note(title = "B"))
-                var titles = awaitItem().userTitles()
-                while (titles != setOf("A", "B")) titles = awaitItem().userTitles()
-                cancelAndIgnoreRemainingEvents()
-            }
+        noteDao.getNotes().test {
+            assertEquals(setOf("A"), awaitItem().userTitles())
+            repository.exportDatabase(backup.path)
+            noteDao.addNote(Note(title = "B"))
+            var titles = awaitItem().userTitles()
+            while (titles != setOf("A", "B")) titles = awaitItem().userTitles()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
     // ---------- Import ----------
 
-    /**
-     * Backup contains note A; the live database then gets note B. The process is "restarted"
-     * after the export so that #14 does not interfere with the import tests.
-     */
+    /** Backup contains note A; the live database then gets note B. */
     private suspend fun backupWithAThenAddB() {
         db().noteDao().addNote(Note(title = "A"))
         assertTrue(repository.exportDatabase(backup.path))
-        GnoseisDatabase.resetInstanceForTesting()
         db().noteDao().addNote(Note(title = "B"))
         assertEquals(setOf("A", "B"), db().userTitles())
     }
@@ -187,88 +172,75 @@ class DatabaseRepositoryTest {
     /** #14 + #15: import also closes the singleton, so the next save after a restore fails. */
     @Test
     fun afterImport_existingDaoCanWrite() = runTest {
-        knownBug(
-            issue = 15,
-            "after a restore (import) the next save fails. importDatabase() closes the singleton database and never resets GnoseisDatabase.Instance. Fix: reset the instance after copying and restart the app process.",
-        ) {
-            backupWithAThenAddB()
-            val noteDao = db().noteDao()
+        backupWithAThenAddB()
+        val noteDao = db().noteDao()
 
-            repository.importDatabase(Uri.fromFile(backup))
-            noteDao.addNote(Note(title = "C"))
+        repository.importDatabase(Uri.fromFile(backup))
+        noteDao.addNote(Note(title = "C"))
 
-            assertEquals(setOf("A", "C"), noteDao.getNotes().first().userTitles())
-        }
+        assertEquals(setOf("A", "C"), noteDao.getNotes().first().userTitles())
     }
 
     /** #15: screens observing data should show the restored data. */
     @Test
     fun import_activeObserverSeesRestoredData() = runTest {
-        knownBug(
-            issue = 15,
-            "after a restore (import) open screens keep showing the old data. Room is not told the file was replaced, so its observers never refresh. Fix: reset the instance after copying and restart the app process.",
-        ) {
-            backupWithAThenAddB()
-            val noteDao = db().noteDao()
+        backupWithAThenAddB()
+        val noteDao = db().noteDao()
 
-            noteDao.getNotes().test {
-                var titles = awaitItem().userTitles()
-                while (titles != setOf("A", "B")) titles = awaitItem().userTitles()
-                repository.importDatabase(Uri.fromFile(backup))
-                titles = awaitItem().userTitles()
-                while (titles != setOf("A")) titles = awaitItem().userTitles()
-                cancelAndIgnoreRemainingEvents()
-            }
+        noteDao.getNotes().test {
+            var titles = awaitItem().userTitles()
+            while (titles != setOf("A", "B")) titles = awaitItem().userTitles()
+            repository.importDatabase(Uri.fromFile(backup))
+            titles = awaitItem().userTitles()
+            while (titles != setOf("A")) titles = awaitItem().userTitles()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
-    /** #15: only the main file is replaced; a -wal/-shm pair left behind would be replayed. */
+    /** #15: data saved after a restore is kept after the app restarts. */
     @Test
-    fun import_leavesNoStaleWalOrShmFiles() = runTest {
+    fun afterImport_savedDataSurvivesRestart() = runTest {
         backupWithAThenAddB()
-        val dbFile = context.getDatabasePath(DB_NAME)
-        val wal = File(dbFile.path + "-wal")
-        val walBeforeImport = wal.exists() && wal.length() > 0
 
-        repository.importDatabase(Uri.fromFile(backup))
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        db().noteDao().addNote(Note(title = "C"))
+        GnoseisDatabase.resetInstanceForTesting() // simulate process restart
 
-        assertTrue("WAL should exist while the DB is open (sanity check)", walBeforeImport)
-        assertFalse("stale -wal left next to restored DB", wal.exists() && wal.length() > 0)
-        GnoseisDatabase.resetInstanceForTesting()
-        assertEquals(setOf("A"), db().userTitles())
+        assertEquals(setOf("A", "C"), db().userTitles())
+    }
+
+    /** #16: a backup from another database version is rejected, not loaded. */
+    @Test
+    fun import_backupFromOtherSchemaVersion_isRejected_andDataKept() = runTest {
+        backupWithAThenAddB()
+        SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 99 }
+
+        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A", "B"), db().userTitles())
     }
 
     @Test
     fun import_fileThatIsNotADatabase_isRejected_andDataKept() = runTest {
-        knownBug(
-            issue = 16,
-            "restore accepts any file. importDatabase() overwrites the user's database without checking the file, then reports success. Fix: open the file read-only first and check integrity_check and the schema version.",
-        ) {
-            db().noteDao().addNote(Note(title = "A"))
-            backup.writeText("this is not an sqlite database")
+        db().noteDao().addNote(Note(title = "A"))
+        backup.writeText("this is not an sqlite database")
 
-            val result = runCatching { repository.importDatabase(Uri.fromFile(backup)) }
-            GnoseisDatabase.resetInstanceForTesting()
-            val titles = runCatching { db().userTitles() }
+        val result = runCatching { repository.importDatabase(Uri.fromFile(backup)) }
+        GnoseisDatabase.resetInstanceForTesting()
+        val titles = runCatching { db().userTitles() }
 
-            assertEquals(false, result.getOrNull())
-            assertEquals(setOf("A"), titles.getOrNull())
-        }
+        assertEquals(false, result.getOrNull())
+        assertEquals(setOf("A"), titles.getOrNull())
     }
 
     @Test
     fun import_missingFile_returnsFalse_insteadOfThrowing() = runTest {
-        knownBug(
-            issue = 17,
-            "restore crashes on an unreadable file. contentResolver.openInputStream() throws outside the try/catch in importDatabase(). Fix: catch the exception and return false.",
-        ) {
-            db().noteDao().addNote(Note(title = "A"))
-            val missing = Uri.fromFile(File(context.cacheDir, "does-not-exist.backup"))
+        db().noteDao().addNote(Note(title = "A"))
+        val missing = Uri.fromFile(File(context.cacheDir, "does-not-exist.backup"))
 
-            val result = runCatching { repository.importDatabase(missing) }
+        val result = runCatching { repository.importDatabase(missing) }
 
-            assertEquals(Result.success(false), result)
-        }
+        assertEquals(Result.success(false), result)
     }
 
     private companion object {

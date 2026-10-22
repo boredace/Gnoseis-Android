@@ -46,11 +46,18 @@ class BackupSettingsViewModel(
     private val _importSuccess = mutableStateOf(false)
     val importuccess: State<Boolean> = _importSuccess
 
+    private val _exportFailed = mutableStateOf(false)
+    val exportFailed: State<Boolean> = _exportFailed
+
+    private val _importFailed = mutableStateOf(false)
+    val importFailed: State<Boolean> = _importFailed
+
 
     fun exportDatabase(path: String): Boolean {
         viewModelScope.launch {
             databaseRepository.exportDatabase(path).let{
                 _exportSuccess.value = it
+                _exportFailed.value = !it
             }
         }
         return false
@@ -60,8 +67,17 @@ class BackupSettingsViewModel(
         viewModelScope.launch {
             databaseRepository.importDatabase(path).let{
                 _importSuccess.value = it
+                _importFailed.value = !it
             }
         }
         return false
+    }
+
+    /** Hides the result dialog of the last export or import. */
+    fun dismissResult() {
+        _exportSuccess.value = false
+        _importSuccess.value = false
+        _exportFailed.value = false
+        _importFailed.value = false
     }
 }
