@@ -33,6 +33,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +84,12 @@ abstract class GnoseisDatabase : RoomDatabase() {
 
 
     companion object {
+        /**
+         * Every schema change must bump `version` and add a Migration here. Each version's
+         * schema is exported to app/schemas and MigrationTest opens every one of them.
+         */
+        internal val MIGRATIONS: Array<Migration> = arrayOf()
+
         @Volatile
         private var Instance: GnoseisDatabase? = null
 
@@ -91,10 +98,11 @@ abstract class GnoseisDatabase : RoomDatabase() {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, GnoseisDatabase::class.java, "gnoseis_data")
                     /**
-                     * Setting this option in your app's database builder means that Room
-                     * permanently deletes all data from the tables in your database when it
-                     * attempts to perform a migration with no defined migration path.
+                     * No fallbackToDestructiveMigration(): it silently deletes all user data
+                     * whenever no migration path exists (#18). Opening a database without a
+                     * path now fails instead, leaving the file untouched.
                      */
+                    .addMigrations(*MIGRATIONS)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -109,7 +117,6 @@ abstract class GnoseisDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    .fallbackToDestructiveMigration()
                     .build()
                     .also { Instance = it }
             }

@@ -49,6 +49,8 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Exported Room schemas, read by MigrationTest
+            all { it.systemProperty("room.schemaLocation", "$projectDir/schemas") }
         }
     }
     sourceSets {
