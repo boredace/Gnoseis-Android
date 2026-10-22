@@ -40,7 +40,6 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
-import org.gnoseis.testutil.knownBug
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -121,18 +120,13 @@ class SearchPageViewModelTest {
 
     @Test
     fun contactWithoutFirstName_appearsInResults() = runTest {
-        knownBug(
-            issue = 19,
-            "the Search page crashes when any contact has no first name (the SearchDao title is NULL, see SearchDaoTest). Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
-        ) {
-            seed()
-            val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
-            c.contactRepository.addContact(lastNameOnly)
+        seed()
+        val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
+        c.contactRepository.addContact(lastNameOnly)
 
-            vm().searchResults.test {
-                val results = awaitResults { it.isNotEmpty() }
-                assertTrue(results.any { it.recordId == lastNameOnly.id })
-            }
+        vm().searchResults.test {
+            val results = awaitResults { it.isNotEmpty() }
+            assertTrue(results.any { it.recordId == lastNameOnly.id })
         }
     }
 }

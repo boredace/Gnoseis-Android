@@ -40,7 +40,6 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.inMemoryDatabase
-import org.gnoseis.testutil.knownBug
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -133,18 +132,13 @@ class SearchDaoTest {
 
     @Test
     fun contactWithoutFirstName_canBeSearched() = runTest {
-        knownBug(
-            issue = 19,
-            "search crashes when a contact has no first name. SearchDao builds the title as NameLast || ', ' || NameFirst, which is NULL when NameFirst is NULL, and SearchResult.recordTitle cannot be null. Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
-        ) {
-            // A contact only needs a last name to be valid (ContactEditViewModel).
-            db.contactDao().addContact(Contact(id = "c", nameLast = "Doe", nameFirst = null))
+        // A contact only needs a last name to be valid (ContactEditViewModel).
+        db.contactDao().addContact(Contact(id = "c", nameLast = "Doe", nameFirst = null))
 
-            val results = search("%doe%")
+        val results = search("%doe%")
 
-            assertEquals(listOf("c"), results.map { it.recordId })
-            assertEquals("Doe", results.single().recordTitle.trimEnd(',', ' '))
-        }
+        assertEquals(listOf("c"), results.map { it.recordId })
+        assertEquals("Doe", results.single().recordTitle)
     }
 
     @Test
