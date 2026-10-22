@@ -56,7 +56,7 @@ class BackupSettingsViewModelTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val backup = File(context.cacheDir, "vm_test.backup")
-    private val vm = BackupSettingsViewModel(DatabaseRepository(context))
+    private val vm = mainDispatcherRule.viewModel { BackupSettingsViewModel(DatabaseRepository(context)) }
 
     @Before
     fun setUp() {
@@ -72,6 +72,7 @@ class BackupSettingsViewModelTest {
 
     @After
     fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
         GnoseisDatabase.resetInstanceForTesting()
         context.deleteDatabase("gnoseis_data")
         backup.delete()

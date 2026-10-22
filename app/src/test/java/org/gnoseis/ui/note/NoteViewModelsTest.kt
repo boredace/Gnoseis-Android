@@ -68,21 +68,26 @@ class NoteViewModelsTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
     private fun editVm(noteId: String?, mode: NoteEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
-        NoteEditViewModel(
-            SavedStateHandle(mapOf("noteId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
-            c.noteRepository,
-            c.linkedRecordRepository,
-        )
+        mainDispatcherRule.viewModel {
+            NoteEditViewModel(
+                SavedStateHandle(mapOf("noteId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                c.noteRepository,
+                c.linkedRecordRepository,
+            )
+        }
 
     private fun todayUtcMidnightMillis() =
         LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC) * 1000
 
     @Test
     fun list_reflectsRepository_newestFirst() = runTest {
-        val vm = NoteListViewModel(c.noteRepository)
+        val vm = mainDispatcherRule.viewModel { NoteListViewModel(c.noteRepository) }
         vm.notePageState.test {
             assertEquals(emptyList<Note>(), awaitItem().notes)
             val old = Note(title = "old", createDateTime = 1)
@@ -105,7 +110,7 @@ class NoteViewModelsTest {
         c.organizationRepository.addOrganization(org)
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, note.id, RecordType.Note))
-        val vm = NoteDetailsViewModel(SavedStateHandle(mapOf("noteId" to note.id)), c.noteRepository, c.linkedRecordRepository)
+        val vm = mainDispatcherRule.viewModel { NoteDetailsViewModel(SavedStateHandle(mapOf("noteId" to note.id)), c.noteRepository, c.linkedRecordRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
