@@ -156,15 +156,17 @@ class LinkedRecordDaoTest {
     }
 
     @Test
-    fun duplicateLinks_areDedupedInLists_butDoubleCountedInTabCounts() = runTest {
+    fun duplicateLinks_areDedupedInLists_andInTabCounts() = runTest {
+        // Raw inserts, as databases from before #13 can contain: same pair twice and reversed
         insertAllRecords()
+        dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
         dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
         dao.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
 
         assertEquals(listOf(note), dao.getLinkedNoteListByContactId(contact.id).first())
-        // Documented inconsistency: the tab badge says 2 while the tab lists 1 note.
+        // #23: the tab badge matches the one note the tab lists
         assertEquals(
-            listOf(LinkedRecordTypeCount(RecordType.Note.recordTypeId, 2)),
+            listOf(LinkedRecordTypeCount(RecordType.Note.recordTypeId, 1)),
             dao.getLinkedRecordTypesForRecordIdStream(contact.id).first(),
         )
     }

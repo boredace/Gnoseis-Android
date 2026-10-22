@@ -60,26 +60,31 @@ class ContactViewModelsTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
     private fun editVm(
         contactId: String?,
         mode: ContactEditPageMode,
         linkFromType: RecordType? = null,
         linkFromId: String? = null,
-    ) = ContactEditViewModel(
-        SavedStateHandle(
-            mapOf("contactId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
-        ),
-        c.contactRepository,
-        c.linkedRecordRepository,
-    )
+    ) = mainDispatcherRule.viewModel {
+        ContactEditViewModel(
+            SavedStateHandle(
+                mapOf("contactId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
+            ),
+            c.contactRepository,
+            c.linkedRecordRepository,
+        )
+    }
 
     // ---------- List ----------
 
     @Test
     fun list_reflectsRepository() = runTest {
-        val vm = ContactListViewModel(c.contactRepository)
+        val vm = mainDispatcherRule.viewModel { ContactListViewModel(c.contactRepository) }
         vm.contactListPageState.test {
             assertEquals(emptyList<Contact>(), awaitItem().contacts)
             val contact = Contact(nameLast = "Doe")
@@ -100,7 +105,7 @@ class ContactViewModelsTest {
         c.itemRepository.addItem(item)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, item.id, RecordType.Item))
-        val vm = ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository)
+        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()

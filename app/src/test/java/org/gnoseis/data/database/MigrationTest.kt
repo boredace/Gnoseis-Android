@@ -90,6 +90,33 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migration1To2_keepsOneLinkPerPairOfRecords() {
+        val path = context.getDatabasePath(dbName(1)).apply { parentFile!!.mkdirs() }
+        createFromSchema(path, 1)
+        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            fun link(id: String, record1Id: String, record2Id: String) = db.execSQL(
+                "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
+                        "VALUES (?, 'db1', ?, ?, 2, 1)",
+                arrayOf(id, record1Id, record2Id),
+            )
+            link("first", "contact", "note")
+            link("same-pair", "contact", "note")
+            link("reversed", "note", "contact")
+            link("other-pair", "contact", "note2")
+        }
+
+        val db = Room.databaseBuilder(context, GnoseisDatabase::class.java, dbName(1))
+            .addMigrations(*GnoseisDatabase.MIGRATIONS)
+            .build()
+        val remaining = db.openHelper.writableDatabase.query("SELECT id FROM LinkedRecord ORDER BY id").use {
+            buildList { while (it.moveToNext()) add(it.getString(0)) }
+        }
+        db.close()
+
+        assertEquals(listOf("first", "other-pair"), remaining)
+    }
+
     private fun dbName(version: Int) = "migration-from-$version"
 
     /** Creates a database exactly as Room would have created it at [version]. */

@@ -63,18 +63,23 @@ class ItemViewModelsTest {
     private val c = TestAppContainer()
 
     @After
-    fun tearDown() = c.close()
+    fun tearDown() {
+        mainDispatcherRule.clearViewModels() // before the database closes (#25)
+        c.close()
+    }
 
     private fun editVm(itemId: String?, mode: ItemEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
-        ItemEditViewModel(
-            SavedStateHandle(mapOf("itemId" to itemId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
-            c.itemRepository,
-            c.linkedRecordRepository,
-        )
+        mainDispatcherRule.viewModel {
+            ItemEditViewModel(
+                SavedStateHandle(mapOf("itemId" to itemId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                c.itemRepository,
+                c.linkedRecordRepository,
+            )
+        }
 
     @Test
     fun list_reflectsRepository() = runTest {
-        val vm = ItemListViewModel(c.itemRepository)
+        val vm = mainDispatcherRule.viewModel { ItemListViewModel(c.itemRepository) }
         vm.itemListPageState.test {
             assertEquals(emptyList<Item>(), awaitItem().items)
             val item = Item(itemName = "Laptop")
@@ -93,7 +98,7 @@ class ItemViewModelsTest {
         c.noteRepository.addNote(note)
         c.linkedRecordRepository.addLinkedRecord(link(item.id, RecordType.Item, cat.id, RecordType.Category))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, item.id, RecordType.Item))
-        val vm = ItemDetailsViewModel(SavedStateHandle(mapOf("itemId" to item.id)), c.itemRepository, c.linkedRecordRepository)
+        val vm = mainDispatcherRule.viewModel { ItemDetailsViewModel(SavedStateHandle(mapOf("itemId" to item.id)), c.itemRepository, c.linkedRecordRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
