@@ -104,33 +104,29 @@ class GnoseisDatabaseTest {
     }
 
     /**
-     * #18: fallbackToDestructiveMigration() silently drops all tables whenever Room finds a
-     * version it has no migration for. A database from another schema version (e.g. a backup
-     * made by a newer app build, restored via importDatabase) is simulated by bumping
-     * PRAGMA user_version. Acceptable outcomes: data kept, or opening fails loudly.
+     * #18: a database from another schema version (e.g. a backup made by a newer app build)
+     * is simulated by bumping PRAGMA user_version. With no migration path, opening it must
+     * fail loudly and leave the user's data in the file, never silently drop the tables.
      */
     @Test
-    fun openingDatabaseWithUnknownVersion_doesNotSilentlyWipeUserData() = runTest {
-        knownBug(
-            issue = 18,
-            "any schema version mismatch silently deletes ALL user data. GnoseisDatabase uses fallbackToDestructiveMigration(). Fix: remove it, add real migrations and test them against app/schemas.",
-        ) {
-            val dao = GnoseisDatabase.getDatabase(context).noteDao()
-            waitFor { runBlocking { seedNotes(dao.getNotes().first()).isNotEmpty() } } // avoid #20
-            dao.addNote(Note(title = "precious"))
-            GnoseisDatabase.resetInstanceForTesting()
-            val path: File = context.getDatabasePath(DB_NAME)
-            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 2 }
+    fun openingDatabaseWithUnknownVersion_failsAndKeepsUserData() = runTest {
+        val dao = GnoseisDatabase.getDatabase(context).noteDao()
+        waitFor { runBlocking { seedNotes(dao.getNotes().first()).isNotEmpty() } } // avoid #20
+        dao.addNote(Note(title = "precious"))
+        GnoseisDatabase.resetInstanceForTesting()
+        val path: File = context.getDatabasePath(DB_NAME)
+        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 2 }
 
-            val titles = runCatching {
-                GnoseisDatabase.getDatabase(context).noteDao().getNotes().first().mapNotNull { it.title }
+        val opened = runCatching { GnoseisDatabase.getDatabase(context).noteDao().getNotes().first() }
+        GnoseisDatabase.resetInstanceForTesting()
+
+        assertTrue("opening a database with no migration path should fail: $opened", opened.isFailure)
+        val titles = SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("SELECT title FROM Note", null).use { c ->
+                generateSequence { if (c.moveToNext()) c.getString(0) else null }.toList()
             }
-
-            assertTrue(
-                "user data was silently wiped: $titles",
-                titles.isFailure || "precious" in titles.getOrThrow(),
-            )
         }
+        assertTrue("user data was wiped: $titles", "precious" in titles)
     }
 
     private companion object {
