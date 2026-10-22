@@ -81,6 +81,8 @@ class BackupSettingsViewModelTest {
     fun initialState_nothingSucceededYet() {
         assertFalse(vm.exportuccess.value)
         assertFalse(vm.importuccess.value)
+        assertFalse(vm.exportFailed.value)
+        assertFalse(vm.importFailed.value)
     }
 
     @Test
@@ -93,9 +95,9 @@ class BackupSettingsViewModelTest {
     }
 
     @Test
-    fun export_failure_keepsStateFalse() = runTest {
+    fun export_failure_reportsFailure() = runTest {
         vm.exportDatabase(File(context.cacheDir, "missing-dir/x.backup").path)
-        Thread.sleep(300)
+        waitFor { vm.exportFailed.value }
         assertFalse(vm.exportuccess.value)
     }
 
@@ -103,10 +105,22 @@ class BackupSettingsViewModelTest {
     fun import_reportsSuccess() = runTest {
         vm.exportDatabase(backup.path)
         waitFor { vm.exportuccess.value }
-        GnoseisDatabase.resetInstanceForTesting() // avoid #14
 
         assertFalse(vm.importDatabase(Uri.fromFile(backup)))
 
         waitFor { vm.importuccess.value }
+        assertFalse(vm.importFailed.value)
+    }
+
+    @Test
+    fun import_invalidFile_reportsFailure_untilDismissed() = runTest {
+        backup.writeText("this is not an sqlite database")
+
+        vm.importDatabase(Uri.fromFile(backup))
+
+        waitFor { vm.importFailed.value }
+        assertFalse(vm.importuccess.value)
+        vm.dismissResult()
+        assertFalse(vm.importFailed.value)
     }
 }

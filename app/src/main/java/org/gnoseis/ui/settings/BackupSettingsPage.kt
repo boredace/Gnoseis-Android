@@ -28,7 +28,6 @@
 
 package org.gnoseis.ui.settings
 
-import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +40,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -51,13 +51,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -86,18 +81,15 @@ fun BackupSettingsPage(
 
     val exportSuccess = pageViewModel.exportuccess.value
     val importSuccess = pageViewModel.importuccess.value
-
-    val context = LocalContext.current
-    val activity = context as? Activity
-
-    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+    val exportFailed = pageViewModel.exportFailed.value
+    val importFailed = pageViewModel.importFailed.value
 
     // Create a file picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        selectedFileUri = uri // Update the selected URI
-        pageViewModel.importDatabase(selectedFileUri!!)
+        // uri is null when the user closes the file picker without choosing a file
+        uri?.let { pageViewModel.importDatabase(it) }
     }
 
     BackupSettingsScaffold(
@@ -112,12 +104,9 @@ fun BackupSettingsPage(
         },
         exportSuccess = exportSuccess,
         importSuccess = importSuccess,
-        onExportCompleteConfirm = {
-            activity?.finish()
-        },
-        onImportCompleteConfirm = {
-            activity?.finish()
-        }
+        exportFailed = exportFailed,
+        importFailed = importFailed,
+        onResultConfirm = { pageViewModel.dismissResult() },
 
     )
 }
@@ -130,8 +119,9 @@ fun BackupSettingsScaffold(
     onImportClicked: () -> Unit,
     exportSuccess: Boolean,
     importSuccess: Boolean,
-    onExportCompleteConfirm: () -> Unit,
-    onImportCompleteConfirm: () -> Unit,
+    exportFailed: Boolean,
+    importFailed: Boolean,
+    onResultConfirm: () -> Unit,
 
     ) {
     Scaffold(
@@ -156,8 +146,9 @@ fun BackupSettingsScaffold(
                     onImportClicked = onImportClicked,
                     exportSuccess = exportSuccess,
                     importSuccess = importSuccess,
-                    onExportCompleteConfirm = onExportCompleteConfirm,
-                    onImportCompleteConfirm = onImportCompleteConfirm,
+                    exportFailed = exportFailed,
+                    importFailed = importFailed,
+                    onResultConfirm = onResultConfirm,
                 )
             }
         }
@@ -171,16 +162,32 @@ fun BackupSettingsBody(
     onImportClicked: () -> Unit,
     exportSuccess: Boolean,
     importSuccess: Boolean,
-    onExportCompleteConfirm: () -> Unit,
-    onImportCompleteConfirm: () -> Unit,
+    exportFailed: Boolean,
+    importFailed: Boolean,
+    onResultConfirm: () -> Unit,
 
     ) {
 
     if(exportSuccess) {
-        ExportCompleteDialog( onConfirm = onExportCompleteConfirm )
+        ExportCompleteDialog( onConfirm = onResultConfirm )
     }
     if(importSuccess) {
-        ImportCompleteDialog( onConfirm = onImportCompleteConfirm )
+        ImportCompleteDialog( onConfirm = onResultConfirm )
+    }
+    if(exportFailed) {
+        BackupFailedDialog(
+            title = "Export Failed",
+            message = "The backup file could not be written to your Downloads folder.",
+            onConfirm = onResultConfirm,
+        )
+    }
+    if(importFailed) {
+        BackupFailedDialog(
+            title = "Import Failed",
+            message = "The selected file could not be read, is not a Gnoseis backup, or comes " +
+                    "from a different version of the app. Your existing data was not changed.",
+            onConfirm = onResultConfirm,
+        )
     }
 
     Column(
@@ -200,12 +207,6 @@ fun BackupSettingsBody(
             Text(text = "Pressing Export will create a copy of the current SQLite application database in your Documents folder. Currently backup file is not encrypted.")
         }
 
-        Row(
-            modifier = Modifier
-                .padding(bottom = 12.dp, top = 0.dp)
-        ) {
-            Text(text = "Once exported application will need to be restarted.")
-        }
 
         Row(Modifier.fillMaxWidth()) {
             OutlinedButton(
@@ -243,12 +244,6 @@ fun BackupSettingsBody(
         ) {
             Text(text = "Warning: All existing data in your application will be replaced with the data from imported file. Ensure you have exported existing database using the Export function above before proceeding.", color = Color.Red)
         }
-        Row(
-            modifier = Modifier
-                .padding(bottom = 12.dp, top = 0.dp)
-        ) {
-            Text(text = "Once imported application will need to be restarted.")
-        }
         Row(Modifier.fillMaxWidth()) {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
@@ -268,8 +263,7 @@ fun ExportCompleteDialog(
         text = {
             Column(){
                 Row(){
-                    Text(text = "Database file exported successfully to your Downloads " +
-                            "folder. Application needs to be restarted.")
+                    Text(text = "Database file exported successfully to your Downloads folder.")
                 }
             }
         },
@@ -278,7 +272,7 @@ fun ExportCompleteDialog(
             TextButton(
                 onClick = { onConfirm() }
             ) {
-                Text(text="Exit the Application")
+                Text(text="OK")
             }
         },
         title = { Text(text="Export Successful") },
@@ -296,8 +290,7 @@ fun ImportCompleteDialog(
         text = {
             Column(){
                 Row(){
-                    Text(text = "Database file imported successfully and replaced the old database. " +
-                            "Application needs to be restarted.")
+                    Text(text = "Database file imported successfully and replaced the old data.")
                 }
             }
         },
@@ -306,13 +299,35 @@ fun ImportCompleteDialog(
             TextButton(
                 onClick = { onConfirm() }
             ) {
-                Text(text="Exit the Application")
+                Text(text="OK")
             }
         },
         title = { Text(text="Import Successful") },
         icon =  { Icon(Icons.Outlined.CheckCircleOutline, contentDescription = null) },
     )
 
+}
+
+
+@Composable
+fun BackupFailedDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        text = { Text(text = message) },
+        onDismissRequest = { onConfirm() },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm() }
+            ) {
+                Text(text="OK")
+            }
+        },
+        title = { Text(text = title) },
+        icon =  { Icon(Icons.Outlined.ErrorOutline, contentDescription = null) },
+    )
 }
 
 
@@ -325,9 +340,10 @@ fun BackupSettingsPagePreview(
         onNavMenuClick = {},
         onExportClicked = {},
         onImportClicked = {},
-        onExportCompleteConfirm = {},
-        onImportCompleteConfirm = {},
+        onResultConfirm = {},
         exportSuccess = false,
         importSuccess = false,
+        exportFailed = false,
+        importFailed = false,
     )
 }
