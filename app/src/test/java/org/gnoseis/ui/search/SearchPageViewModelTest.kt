@@ -122,7 +122,8 @@ class SearchPageViewModelTest {
     @Test
     fun contactWithoutFirstName_appearsInResults() = runTest {
         knownBug(
-            "Bug 6 - the Search page crashes when any contact has no first name (the SearchDao title is NULL, see SearchDaoTest). Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
+            issue = 19,
+            "the Search page crashes when any contact has no first name (the SearchDao title is NULL, see SearchDaoTest). Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
         ) {
             seed()
             val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)

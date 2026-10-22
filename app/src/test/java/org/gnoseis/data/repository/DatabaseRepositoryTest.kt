@@ -64,7 +64,7 @@ class DatabaseRepositoryTest {
         GnoseisDatabase.resetInstanceForTesting()
         context.deleteDatabase(DB_NAME)
         backup.delete()
-        // Let the asynchronous seed-note insert (bug 3) finish first, so these tests only
+        // Let the asynchronous seed-note insert (#20) finish first, so these tests only
         // exercise backup/restore and are not disturbed by that race.
         runBlocking {
             val dao = db().noteDao()
@@ -112,11 +112,12 @@ class DatabaseRepositoryTest {
         assertFalse(repository.exportDatabase(path))
     }
 
-    /** Bug 1: export closes the singleton database that the repositories keep using. */
+    /** #14: export closes the singleton database that the repositories keep using. */
     @Test
     fun afterExport_existingDaoStillReadsAndWrites() = runTest {
         knownBug(
-            "Bug 1 - after a backup (export) the next save fails. DatabaseRepository.exportDatabase() closes the GnoseisDatabase singleton, but the app keeps using that closed instance. Fix: do not close the DB; checkpoint the WAL and copy the file.",
+            issue = 14,
+            "after a backup (export) the next save fails. DatabaseRepository.exportDatabase() closes the GnoseisDatabase singleton, but the app keeps using that closed instance. Fix: do not close the DB; checkpoint the WAL and copy the file.",
         ) {
             val noteDao = db().noteDao() // AppDataContainer holds DAOs from this instance
             noteDao.addNote(Note(title = "A"))
@@ -128,11 +129,12 @@ class DatabaseRepositoryTest {
         }
     }
 
-    /** Bug 1: a list screen observing notes during a backup should keep receiving updates. */
+    /** #14: a list screen observing notes during a backup should keep receiving updates. */
     @Test
     fun afterExport_activeObserverStillReceivesUpdates() = runTest {
         knownBug(
-            "Bug 1 - after a backup (export) saving fails and open screens stop updating. exportDatabase() closes the singleton database the app keeps using. Fix: do not close the DB; checkpoint the WAL and copy the file.",
+            issue = 14,
+            "after a backup (export) saving fails and open screens stop updating. exportDatabase() closes the singleton database the app keeps using. Fix: do not close the DB; checkpoint the WAL and copy the file.",
         ) {
             val noteDao = db().noteDao()
             noteDao.addNote(Note(title = "A"))
@@ -152,7 +154,7 @@ class DatabaseRepositoryTest {
 
     /**
      * Backup contains note A; the live database then gets note B. The process is "restarted"
-     * after the export so that bug 1 does not interfere with the import tests.
+     * after the export so that #14 does not interfere with the import tests.
      */
     private suspend fun backupWithAThenAddB() {
         db().noteDao().addNote(Note(title = "A"))
@@ -172,7 +174,7 @@ class DatabaseRepositoryTest {
         assertEquals(setOf("A"), db().userTitles())
     }
 
-    /** Bug 2: import does not reset GnoseisDatabase.Instance. */
+    /** #15: import does not reset GnoseisDatabase.Instance. */
     @Test
     fun import_restoresBackup_withoutRestart() = runTest {
         backupWithAThenAddB()
@@ -182,11 +184,12 @@ class DatabaseRepositoryTest {
         assertEquals(setOf("A"), db().userTitles())
     }
 
-    /** Bug 1 + 2: import also closes the singleton, so the next save after a restore fails. */
+    /** #14 + #15: import also closes the singleton, so the next save after a restore fails. */
     @Test
     fun afterImport_existingDaoCanWrite() = runTest {
         knownBug(
-            "Bug 2 - after a restore (import) the next save fails. importDatabase() closes the singleton database and never resets GnoseisDatabase.Instance. Fix: reset the instance after copying and restart the app process.",
+            issue = 15,
+            "after a restore (import) the next save fails. importDatabase() closes the singleton database and never resets GnoseisDatabase.Instance. Fix: reset the instance after copying and restart the app process.",
         ) {
             backupWithAThenAddB()
             val noteDao = db().noteDao()
@@ -198,11 +201,12 @@ class DatabaseRepositoryTest {
         }
     }
 
-    /** Bug 2: screens observing data should show the restored data. */
+    /** #15: screens observing data should show the restored data. */
     @Test
     fun import_activeObserverSeesRestoredData() = runTest {
         knownBug(
-            "Bug 2 - after a restore (import) open screens keep showing the old data. Room is not told the file was replaced, so its observers never refresh. Fix: reset the instance after copying and restart the app process.",
+            issue = 15,
+            "after a restore (import) open screens keep showing the old data. Room is not told the file was replaced, so its observers never refresh. Fix: reset the instance after copying and restart the app process.",
         ) {
             backupWithAThenAddB()
             val noteDao = db().noteDao()
@@ -218,7 +222,7 @@ class DatabaseRepositoryTest {
         }
     }
 
-    /** Bug 2: only the main file is replaced; a -wal/-shm pair left behind would be replayed. */
+    /** #15: only the main file is replaced; a -wal/-shm pair left behind would be replayed. */
     @Test
     fun import_leavesNoStaleWalOrShmFiles() = runTest {
         backupWithAThenAddB()
@@ -237,7 +241,8 @@ class DatabaseRepositoryTest {
     @Test
     fun import_fileThatIsNotADatabase_isRejected_andDataKept() = runTest {
         knownBug(
-            "Bug 3 - restore accepts any file. importDatabase() overwrites the user's database without checking the file, then reports success. Fix: open the file read-only first and check integrity_check and the schema version.",
+            issue = 16,
+            "restore accepts any file. importDatabase() overwrites the user's database without checking the file, then reports success. Fix: open the file read-only first and check integrity_check and the schema version.",
         ) {
             db().noteDao().addNote(Note(title = "A"))
             backup.writeText("this is not an sqlite database")
@@ -254,7 +259,8 @@ class DatabaseRepositoryTest {
     @Test
     fun import_missingFile_returnsFalse_insteadOfThrowing() = runTest {
         knownBug(
-            "Bug 4 - restore crashes on an unreadable file. contentResolver.openInputStream() throws outside the try/catch in importDatabase(). Fix: catch the exception and return false.",
+            issue = 17,
+            "restore crashes on an unreadable file. contentResolver.openInputStream() throws outside the try/catch in importDatabase(). Fix: catch the exception and return false.",
         ) {
             db().noteDao().addNote(Note(title = "A"))
             val missing = Uri.fromFile(File(context.cacheDir, "does-not-exist.backup"))

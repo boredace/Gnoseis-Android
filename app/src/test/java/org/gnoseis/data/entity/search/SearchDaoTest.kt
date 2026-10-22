@@ -134,7 +134,8 @@ class SearchDaoTest {
     @Test
     fun contactWithoutFirstName_canBeSearched() = runTest {
         knownBug(
-            "Bug 6 - search crashes when a contact has no first name. SearchDao builds the title as NameLast || ', ' || NameFirst, which is NULL when NameFirst is NULL, and SearchResult.recordTitle cannot be null. Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
+            issue = 19,
+            "search crashes when a contact has no first name. SearchDao builds the title as NameLast || ', ' || NameFirst, which is NULL when NameFirst is NULL, and SearchResult.recordTitle cannot be null. Fix: use COALESCE(', ' || NameFirst, '') in SearchDao.",
         ) {
             // A contact only needs a last name to be valid (ContactEditViewModel).
             db.contactDao().addContact(Contact(id = "c", nameLast = "Doe", nameFirst = null))

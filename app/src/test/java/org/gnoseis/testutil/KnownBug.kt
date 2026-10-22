@@ -28,14 +28,21 @@
 
 package org.gnoseis.testutil
 
+const val ISSUES_URL = "https://github.com/boredace/Gnoseis-Android/issues"
+
 /**
- * Marks a test that currently fails because of a known, confirmed bug. If [block] fails, the
- * test report shows [explanation] in plain words first, followed by the raw assertion or
- * exception. Once the bug is fixed the test passes and the wrapper has no effect.
+ * Marks a test that currently fails because of the bug tracked in GitHub [issue]. If [block]
+ * fails, the test report shows the issue link and [explanation] in plain words first, followed
+ * by the raw assertion or exception. Once the bug is fixed the test passes; remove the wrapper
+ * in the fixing commit.
  */
-inline fun <T> knownBug(explanation: String, block: () -> T): T =
+inline fun <T> knownBug(issue: Int, explanation: String, block: () -> T): T =
     try {
         block()
     } catch (e: Throwable) {
-        throw AssertionError("KNOWN BUG: $explanation\n    Raw failure: ${e.message ?: e}", e)
+        throw AssertionError(
+            "KNOWN BUG #$issue: $explanation\n    $ISSUES_URL/$issue\n    Raw failure: ${e.message ?: e}",
+            e,
+        )
     }
+

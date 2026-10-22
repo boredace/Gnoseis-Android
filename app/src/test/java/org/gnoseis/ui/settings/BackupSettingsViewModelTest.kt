@@ -65,7 +65,7 @@ class BackupSettingsViewModelTest {
         backup.delete()
         runBlocking {
             val dao = GnoseisDatabase.getDatabase(context).noteDao()
-            waitFor { runBlocking { dao.getNotes().first().isNotEmpty() } } // seed note (bug 3)
+            waitFor { runBlocking { dao.getNotes().first().isNotEmpty() } } // seed note (#20)
             dao.addNote(Note(title = "A"))
         }
     }
@@ -103,7 +103,7 @@ class BackupSettingsViewModelTest {
     fun import_reportsSuccess() = runTest {
         vm.exportDatabase(backup.path)
         waitFor { vm.exportuccess.value }
-        GnoseisDatabase.resetInstanceForTesting() // avoid bug 1
+        GnoseisDatabase.resetInstanceForTesting() // avoid #14
 
         assertFalse(vm.importDatabase(Uri.fromFile(backup)))
 

@@ -85,7 +85,8 @@ class NoteItemDaoTest {
     @Test
     fun deleteLinkedNoteToItem_byItem_removesItemLinksInBothDirections() {
         knownBug(
-            "NoteItemDao (unused class) - the delete query only matches links where the item is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
+            issue = 22,
+            "unused NoteItemDao - the delete query only matches links where the item is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
         ) {
             dao.addNoteItem(link("item", RecordType.Item, "note1", RecordType.Note))
             dao.addNoteItem(link("note2", RecordType.Note, "item", RecordType.Item))
@@ -99,7 +100,8 @@ class NoteItemDaoTest {
     @Test
     fun deleteLinkedItemToNote_byNote_removesNoteLinksInBothDirections() {
         knownBug(
-            "NoteItemDao (unused class) - the delete query only matches links where the note is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
+            issue = 22,
+            "unused NoteItemDao - the delete query only matches links where the note is record1, because its second clause checks Record1TypeID instead of Record2TypeID. Fix: delete the unused NoteItemDao.",
         ) {
             dao.addNoteItem(link("note", RecordType.Note, "item1", RecordType.Item))
             dao.addNoteItem(link("item2", RecordType.Item, "note", RecordType.Note))

@@ -82,14 +82,15 @@ class GnoseisDatabaseTest {
     }
 
     /**
-     * Bug 3: the seed note is inserted from an untracked CoroutineScope(Dispatchers.IO), so the
+     * #20: the seed note is inserted from an untracked CoroutineScope(Dispatchers.IO), so the
      * first read after creating the database may or may not include it. Repeats the scenario
      * to show the outcome is not deterministic.
      */
     @Test
     fun freshDatabase_firstRead_alwaysIncludesSeedNote() = runTest {
         knownBug(
-            "Bug 7 - the default 'seed' note appears at a random moment. The onCreate callback inserts it from an untracked CoroutineScope(Dispatchers.IO), racing with the first reads. Fix: insert it synchronously with the SupportSQLiteDatabase passed to onCreate.",
+            issue = 20,
+            "the default 'seed' note appears at a random moment. The onCreate callback inserts it from an untracked CoroutineScope(Dispatchers.IO), racing with the first reads. Fix: insert it synchronously with the SupportSQLiteDatabase passed to onCreate.",
         ) {
             val attempts = 20
             var missing = 0
@@ -103,7 +104,7 @@ class GnoseisDatabaseTest {
     }
 
     /**
-     * Bug 4: fallbackToDestructiveMigration() silently drops all tables whenever Room finds a
+     * #18: fallbackToDestructiveMigration() silently drops all tables whenever Room finds a
      * version it has no migration for. A database from another schema version (e.g. a backup
      * made by a newer app build, restored via importDatabase) is simulated by bumping
      * PRAGMA user_version. Acceptable outcomes: data kept, or opening fails loudly.
@@ -111,10 +112,11 @@ class GnoseisDatabaseTest {
     @Test
     fun openingDatabaseWithUnknownVersion_doesNotSilentlyWipeUserData() = runTest {
         knownBug(
-            "Bug 5 - any schema version mismatch silently deletes ALL user data. GnoseisDatabase uses fallbackToDestructiveMigration(). Fix: remove it, add real migrations and test them against app/schemas.",
+            issue = 18,
+            "any schema version mismatch silently deletes ALL user data. GnoseisDatabase uses fallbackToDestructiveMigration(). Fix: remove it, add real migrations and test them against app/schemas.",
         ) {
             val dao = GnoseisDatabase.getDatabase(context).noteDao()
-            waitFor { runBlocking { seedNotes(dao.getNotes().first()).isNotEmpty() } } // avoid bug 3
+            waitFor { runBlocking { seedNotes(dao.getNotes().first()).isNotEmpty() } } // avoid #20
             dao.addNote(Note(title = "precious"))
             GnoseisDatabase.resetInstanceForTesting()
             val path: File = context.getDatabasePath(DB_NAME)

@@ -208,7 +208,8 @@ class NoteViewModelsTest {
     @Test
     fun edit_editMode_savingWithoutChangingDate_keepsCreateDate() = runTest {
         knownBug(
-            "Bug 9 - editing a note overwrites its creation day. NoteEditViewModel.onSave() sets createDate = editDate, which holds the full createDateTime timestamp. Fix: only change the dates when the user picks a new date.",
+            issue = 21,
+            "editing a note overwrites its creation day. NoteEditViewModel.onSave() sets createDate = editDate, which holds the full createDateTime timestamp. Fix: only change the dates when the user picks a new date.",
         ) {
             val createDateTime = 1_700_000_123_456L
             val createDate = 1_699_920_000_000L
