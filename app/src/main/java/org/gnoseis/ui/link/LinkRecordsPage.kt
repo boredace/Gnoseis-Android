@@ -62,18 +62,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.search.SearchResult
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.search.SearchResultsList
 
-object LinkRecordsDestination : NavigationDestination {
-    override val route = "link_records"
-    override val titleRes = -9
-    const val sourceRecordIdArg = "sourceRecordId"
-    const val sourceRecordTypeIdArg = "sourceRecordTypeId"
-    val routeWithArgs = "$route/{$sourceRecordIdArg}/{$sourceRecordTypeIdArg}"
-}
+@Serializable
+data class LinkRecordsRoute(
+    val sourceRecordId: String,
+    val sourceRecordType: RecordType,
+)
 
 @Composable
 fun LinkRecordsPage(
@@ -94,7 +93,7 @@ fun LinkRecordsPage(
     LinkRecordsScaffold(
         results = results,
         onSearchBoxValueChanged = {
-            Log.i(LinkRecordsDestination.route,"onSearchBoxValueChanged value = ${it}")
+            Log.i("LinkRecords","onSearchBoxValueChanged value = ${it}")
             pageViewModel.updateCurrentQuery(it)
         },
         onNavMenuClick = onNavMenuClick,

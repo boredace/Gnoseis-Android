@@ -3,4 +3,11 @@
 
     <style name="Theme.Gnoseis" parent="android:Theme.Material.Light.NoActionBar" />
 
+    <!-- System splash screen, shown while the app starts -->
+    <style name="Theme.Gnoseis.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/gnoseis_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Gnoseis</item>
+    </style>
+
 </resources>

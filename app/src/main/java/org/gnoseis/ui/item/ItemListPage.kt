@@ -30,7 +30,10 @@ package org.gnoseis.ui.item
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -48,32 +51,32 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.item.Item
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
+import org.gnoseis.ui.icons.ItemIcon
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ItemListPageDestination : NavigationDestination {
-    override val route = "item_list_page"
-    override val titleRes = -9
-}
+@Serializable
+data class ItemListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun ItemListPage(
     pageViewModel: ItemListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,19 +97,11 @@ fun ItemListPage(
 fun ItemListPageScaffold(
     pageState: ItemListViewModel.ItemListPageState,
     navigateToItemDetailsPage: (String) -> Unit,
-    navigateToItemEditPage: (String) -> Unit,
+    navigateToItemEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -135,7 +130,7 @@ fun ItemListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToItemEditPage("new") }
+                onClick = { navigateToItemEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Item")
                 Spacer(modifier = Modifier.width(15.dp))
@@ -146,7 +141,6 @@ fun ItemListPageScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 ItemPageBody(
                     pageState = pageState,
@@ -162,10 +156,14 @@ fun ItemPageBody(
     pageState: ItemListViewModel.ItemListPageState,
     navigateToItemDetailsPage: (String) -> Unit
 ){
-    ItemList(
-        items = pageState.items,
-        navigateToItemDetailsPage = navigateToItemDetailsPage
-    )
+    if(pageState.items.isNotEmpty()) {
+        ItemList(
+            items = pageState.items,
+            navigateToItemDetailsPage = navigateToItemDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Item)
+    }
 }
 
 

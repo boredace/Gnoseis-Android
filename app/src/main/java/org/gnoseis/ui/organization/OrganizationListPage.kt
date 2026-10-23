@@ -48,33 +48,30 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object OrganizationListPageDestination : NavigationDestination {
-    override val route = "organization_list_page"
-    override val titleRes = -9
-}
-
+@Serializable
+data class OrganizationListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun OrganizationListPage(
     pageViewModel: OrganizationListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToOrganizationDetailsPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
+    navigateToOrganizationEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -94,22 +91,13 @@ fun OrganizationListPage(
 fun OrganizationPageScaffold(
     pageState: OrganizationListViewModel.OrganizationListPageState,
     navigateToOrganizationDetailsPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
+    navigateToOrganizationEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
-
             TopAppBar(
                 title = { Text("Organizations") },
                 colors = TopAppBarColors(
@@ -136,7 +124,7 @@ fun OrganizationPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToOrganizationEditPage("new") }
+                onClick = { navigateToOrganizationEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Organization")
                 Spacer(modifier = Modifier.width(15.dp))
@@ -147,7 +135,6 @@ fun OrganizationPageScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 OrganizationPageBody(
                     pageState = pageState,
@@ -164,13 +151,15 @@ fun OrganizationPageBody(
     pageState: OrganizationListViewModel.OrganizationListPageState,
     navigateToOrganizationDetailsPage: (String) -> Unit,
     ){
-
-    OrganizationList(
-        organizations = pageState.organizations,
-        navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
-    )
+    if(pageState.organizations.isNotEmpty()) {
+        OrganizationList(
+            organizations = pageState.organizations,
+            navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Organization)
+    }
 }
-
 
 
 

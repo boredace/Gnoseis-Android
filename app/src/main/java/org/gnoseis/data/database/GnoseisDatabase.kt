@@ -29,9 +29,11 @@
 package org.gnoseis.data.database
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +67,7 @@ import org.gnoseis.data.entity.sharing.SharedRecord
         Organization::class,
         SharedRecord::class
     ],
-    version = 1
+    version = 2
 )
 abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
@@ -76,9 +78,47 @@ abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun noteItemDao(): NoteItemDao
     abstract fun linkedRecordDao(): LinkedRecordDao
     abstract fun searchDao(): SearchDao
+    fun closeDatabase() {
+        this.close()
+    }
 
 
     companion object {
+        /**
+         * #23: before #13, the same two records could be linked more than once, in either
+         * direction. Keeps the first link of each unordered pair and deletes the rest.
+         * The schema itself is unchanged.
+         *
+         * #31: databases from builds before the public repository also have indexes no
+         * entity declares, such as idx_LinkedRecord. Room rejects any table whose indexes
+         * differ from the entities, so those databases crashed on upgrade and their backups
+         * could not be imported. No schema version declares an index, so every index that
+         * SQLite did not create itself (those have no sql) is dropped.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val extraIndexes = db.query(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
+                ).use { buildList { while (it.moveToNext()) add(it.getString(0)) } }
+                extraIndexes.forEach { db.execSQL("DROP INDEX `$it`") }
+
+                db.execSQL(
+                    "DELETE FROM LinkedRecord WHERE rowid NOT IN (" +
+                            "SELECT MIN(rowid) FROM LinkedRecord " +
+                            "GROUP BY MIN(record1Id, record2Id), MAX(record1Id, record2Id))"
+                )
+            }
+        }
+
+        /**
+         * Every schema change must bump `version` and add a Migration here. Each version's
+         * schema is exported to app/schemas and MigrationTest opens every one of them.
+         * Declared after the migrations it lists, which are initialized in order.
+         */
+        internal val MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_1_2,
+        )
+
         @Volatile
         private var Instance: GnoseisDatabase? = null
 
@@ -87,10 +127,11 @@ abstract class GnoseisDatabase : RoomDatabase() {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, GnoseisDatabase::class.java, "gnoseis_data")
                     /**
-                     * Setting this option in your app's database builder means that Room
-                     * permanently deletes all data from the tables in your database when it
-                     * attempts to perform a migration with no defined migration path.
+                     * No fallbackToDestructiveMigration(): it silently deletes all user data
+                     * whenever no migration path exists (#18). Opening a database without a
+                     * path now fails instead, leaving the file untouched.
                      */
+                    .addMigrations(*MIGRATIONS)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -105,10 +146,21 @@ abstract class GnoseisDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    .fallbackToDestructiveMigration()
                     .build()
                     .also { Instance = it }
             }
         }
+
+        /**
+         * Closes and forgets the singleton so each test starts from a fresh database file.
+         */
+        @VisibleForTesting
+        internal fun resetInstanceForTesting() {
+            synchronized(this) {
+                Instance?.close()
+                Instance = null
+            }
+        }
+
     }
 }

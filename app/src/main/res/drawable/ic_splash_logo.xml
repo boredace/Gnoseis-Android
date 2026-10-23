@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gnoseis graph mark for the system splash screen (icon without background) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+    <group
+        android:scaleX="2.6"
+        android:scaleY="2.6"
+        android:translateX="55.6"
+        android:translateY="63.4">
+        <path
+            android:pathData="M18,20L46,16M18,20L30,46M46,16L30,46M46,16L52,40M30,46L52,40"
+            android:strokeColor="@color/gnoseis_accent"
+            android:strokeAlpha="0.7"
+            android:strokeWidth="3.2"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@color/gnoseis_accent"
+            android:pathData="M11.5,20a6.5,6.5 0,1 0,13 0a6.5,6.5 0,1 0,-13 0zM41,16a5,5 0,1 0,10 0a5,5 0,1 0,-10 0zM22,46a8,8 0,1 0,16 0a8,8 0,1 0,-16 0zM48,40a4,4 0,1 0,8 0a4,4 0,1 0,-8 0z" />
+    </group>
+</vector>

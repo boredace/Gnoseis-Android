@@ -53,48 +53,58 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ITEM
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ItemEditDestination : NavigationDestination {
-    override val route = "item_edit"
-    override val titleRes = -9
-    const val itemIdArg = "itemId"
-    val routeWithArgs = "${route}/{$itemIdArg}"
-}
+@Serializable
+data class ItemEditRoute(
+    val itemId: String?,
+    val pageMode: ItemEditPageMode,
+    val linkFromType: RecordType? = null,
+    val linkFromId: String? = null
+)
+
+const val TAG = "ItemEditPage"
 @Composable
 fun ItemEditPage(
+    pageMode: ItemEditPageMode,
     pageViewModel: ItemEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
     navigateToItemDetailsPage: (String) -> Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
+    val pageState = pageViewModel.pageState.value
+    val editState = pageViewModel.editState.value
+
     val coroutineScope = rememberCoroutineScope()
-    val pageState = pageViewModel.itemEditPageState
 
     ItemEditScaffold(
         pageState = pageState,
+        editState = editState,
         onEvent = { pageViewModel.onEvent(it) },
         onSave = {
             coroutineScope.launch {
                 val addedItemId = pageViewModel.onSave()
                 if(addedItemId != null) {
-                    navigateToItemDetailsPage(addedItemId)
+                    if(pageMode == ItemEditPageMode.NEWLINK) {
+                        navigateBackAfterLinkingNew()
+                    } else {
+                        navigateToItemDetailsPage(addedItemId)
+                    }
                 } else {
                     navMenuClick()
                 }
@@ -108,21 +118,14 @@ fun ItemEditPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemEditScaffold(
-    pageState: ItemEditViewModel.ItemEditPageState,
+    pageState: ItemEditViewModel.PageState,
+    editState: ItemEditViewModel.EditState,
     onEvent: (ItemEditPageEvent) -> Unit,
     onSave: () -> Unit,
     onNavMenuclick: () -> Unit,
 
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
 
@@ -137,7 +140,7 @@ fun ItemEditScaffold(
                     Button(
 //                        modifier = Modifier.fillMaxWidth(),
                         onClick = { onSave() },
-                        enabled = pageState.isValid
+                        enabled = editState.isValid
 
                     ) {
                         when {
@@ -153,10 +156,9 @@ fun ItemEditScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 ItemEditBody(
-                    pageState = pageState,
+                    editState = editState,
                     onEvent = onEvent,
                 )
             }
@@ -167,7 +169,7 @@ fun ItemEditScaffold(
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun ItemEditBody(
-    pageState: ItemEditViewModel.ItemEditPageState,
+    editState: ItemEditViewModel.EditState,
     onEvent: (ItemEditPageEvent) -> Unit,
 ){
     Column(
@@ -178,7 +180,7 @@ fun ItemEditBody(
 
         ItemTextField(
             label = "Item Name",
-            value = pageState.editItemName?:"" ,
+            value = editState.editItemName?:"" ,
             onValueChanged = {
                 if(it.length <= TITLE_LENGTH_ITEM)
                     onEvent(ItemEditPageEvent.ItemNameChanged(it))},
@@ -191,7 +193,7 @@ fun ItemEditBody(
                 .fillMaxWidth()
                 .fillMaxHeight(),
             label = {Text(text="Item Description")},
-            value = pageState.editItemDescription?:"",
+            value = editState.editItemDescription?:"",
             onValueChange = {
                 onEvent(ItemEditPageEvent.ItemDescriptionChanged(it))
             },
@@ -256,9 +258,13 @@ fun ContactEditPagePreview()
     GnoseisTheme {
         Surface {
             ItemEditScaffold(
-                pageState = ItemEditViewModel.ItemEditPageState(
+                pageState = ItemEditViewModel.PageState(
+                    isNew = true,
+                    pageMode = ItemEditPageMode.NEW,
+                ),
+                editState = ItemEditViewModel.EditState(
                     isValid = false,
-                    editItemName = "Personal"
+                    editItemName = "this is fun",
                 ),
                 onEvent = {},
                 onSave = {},

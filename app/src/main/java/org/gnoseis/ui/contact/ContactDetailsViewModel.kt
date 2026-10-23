@@ -31,6 +31,7 @@ package org.gnoseis.ui.contact
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -58,7 +59,7 @@ class ContactDetailsViewModel(
             contactRepository = contactRepository,
             linkedRecordRepository = linkedRecordRepository,
         )
-    private var contactId : String = checkNotNull(savedStateHandle[ContactDetailsPageDestination.contactIdArg])
+    private var contactId : String = checkNotNull(savedStateHandle.toRoute<ContactDetailsRoute>().contactId)
 
 /*
     val item: StateFlow<Item> =

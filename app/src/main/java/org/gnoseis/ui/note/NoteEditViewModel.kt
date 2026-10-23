@@ -70,9 +70,6 @@ class NoteEditViewModel(
     private var editDate = MutableStateFlow(LocalDateTime.of(
         LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC)*1000)
 
-//    private var note = MutableStateFlow(Note())
-
-
     @OptIn(ExperimentalMaterial3Api::class)
     private var _datePickerState = MutableStateFlow(DatePickerState(
         locale = CalendarLocale.getDefault(),

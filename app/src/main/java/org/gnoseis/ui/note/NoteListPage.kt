@@ -29,7 +29,6 @@
 package org.gnoseis.ui.note
 
 import android.content.res.Configuration
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -49,27 +48,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object NoteListPageDestination : NavigationDestination {
-    override val route = "note_page"
-    override val titleRes = -9
-}
-
+@Serializable
+object NoteListRoute
 
 @Composable
 fun NoteListPage(
@@ -100,14 +94,6 @@ fun NotePageScaffold(
     onNavMenuclick: () -> Unit,
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
 
@@ -150,7 +136,6 @@ fun NotePageScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 NotePageBody(
                     pageState = pageState,
@@ -161,23 +146,20 @@ fun NotePageScaffold(
     )
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NotePageBody(
     pageState: NoteListViewModel.NotePageState,
     navigateToNoteDetailsPage: (String) -> Unit
 ){
-    NoteList(
-        notes = pageState.notes,
-        navigateToNoteDetailsPage = navigateToNoteDetailsPage
-    )
+    if(pageState.notes.isNotEmpty()) {
+        NoteList(
+            notes = pageState.notes,
+            navigateToNoteDetailsPage = navigateToNoteDetailsPage
+        )
+    } else {
+        NoRecordsToDisplay(RecordType.Note)
+    }
 }
-
-
-
-
-
 
 
 

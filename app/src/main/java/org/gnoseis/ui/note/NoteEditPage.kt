@@ -61,29 +61,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.navigation.NavigationDestination
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -103,7 +98,8 @@ fun NoteEditPage(
     pageMode: NoteEditPageMode,
     pageViewModel: NoteEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
-    navigateToNoteDetailsPage: (String) ->Unit
+    navigateToNoteDetailsPage: (String) ->Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
     val pageState = pageViewModel.pageState.value
@@ -125,7 +121,7 @@ fun NoteEditPage(
                 val addedNoteId = pageViewModel.onSave()
                 if(addedNoteId != null) {
                     if(pageMode == NoteEditPageMode.NEWLINK) {
-                        navMenuClick()
+                        navigateBackAfterLinkingNew()
                     } else {
                         navigateToNoteDetailsPage(addedNoteId)
                     }
@@ -154,14 +150,6 @@ fun NoteEditScaffold(
 
 
 ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
 
@@ -194,7 +182,7 @@ fun NoteEditScaffold(
                 Box(
                     modifier = Modifier
                         .padding(innerPadding)
-                        .nestedScroll(pullRefreshState.nestedScrollConnection)
+                        
                 ) {
                     NoteEditBody(
                         editState = editState,

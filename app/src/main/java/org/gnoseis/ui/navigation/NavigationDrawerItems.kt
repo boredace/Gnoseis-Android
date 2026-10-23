@@ -38,18 +38,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navOptions
 import kotlinx.coroutines.launch
-import org.gnoseis.ui.category.CategoryListPageDestination
-import org.gnoseis.ui.contact.ContactListPageDestination
+import org.gnoseis.ui.category.CategoryListRoute
+import org.gnoseis.ui.contact.ContactListRoute
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
 import org.gnoseis.ui.icons.ItemIcon
 import org.gnoseis.ui.icons.NoteIcon
 import org.gnoseis.ui.icons.OrganizationIcon
-import org.gnoseis.ui.item.ItemListPageDestination
-import org.gnoseis.ui.note.NoteListPageDestination
-import org.gnoseis.ui.organization.OrganizationListPageDestination
+import org.gnoseis.ui.item.ItemListRoute
+import org.gnoseis.ui.note.NoteListRoute
+import org.gnoseis.ui.organization.OrganizationListRoute
 
 @Composable
 fun NavigationDrawerItems(
@@ -58,20 +57,18 @@ fun NavigationDrawerItems(
 ) {
 
     var scope = rememberCoroutineScope()
-
     var currentBackStackEntryAsState = navController.currentBackStackEntryAsState()
-
     var destination = currentBackStackEntryAsState.value?.destination
 
     NavigationDrawerItem(
         icon = { ContactIcon() },
         label = { Text(text = "Contacts") },
-        selected = destination?.route == ContactListPageDestination.route,
+        selected = destination?.route == ContactListRoute.toString(),
         onClick = {
-            navController.navigate(ContactListPageDestination.route, navOptions {
+            navController.navigate(ContactListRoute()) {
                 this.launchSingleTop = true
                 this.restoreState = true
-            })
+            }
             scope.launch {
                 drawerState.close()
             }
@@ -82,12 +79,12 @@ fun NavigationDrawerItems(
     NavigationDrawerItem(
         icon = { OrganizationIcon() },
         label = { Text(text = "Organizations") },
-        selected = destination?.route == OrganizationListPageDestination.route,
+        selected = destination?.route == OrganizationListRoute.toString(),
         onClick = {
-            navController.navigate(OrganizationListPageDestination.route, navOptions {
+            navController.navigate(OrganizationListRoute()) {
                 this.launchSingleTop = true
                 this.restoreState = true
-            })
+            }
             scope.launch {
                 drawerState.close()
             }
@@ -95,16 +92,15 @@ fun NavigationDrawerItems(
         }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
 
-
     NavigationDrawerItem(
         icon = { NoteIcon() },
         label = { Text(text = "Notes") },
-        selected = destination?.route == NoteListPageDestination.route,
+        selected = destination?.route == NoteListRoute.toString(),
         onClick = {
-            navController.navigate(NoteListPageDestination.route, navOptions {
+            navController.navigate(NoteListRoute) {
                 this.launchSingleTop = true
                 this.restoreState = true
-            })
+            }
             scope.launch {
                 drawerState.close()
             }
@@ -115,12 +111,12 @@ fun NavigationDrawerItems(
     NavigationDrawerItem(
         icon = { CategoryIcon() } ,
         label = { Text(text = "Categories") },
-        selected = destination?.route == CategoryListPageDestination.route,
+        selected = destination?.route == CategoryListRoute.toString(),
         onClick = {
-            navController.navigate(CategoryListPageDestination.route, navOptions {
+            navController.navigate(CategoryListRoute()) {
                 this.launchSingleTop = true
                 this.restoreState = true
-            })
+            }
             scope.launch {
                 drawerState.close()
             }
@@ -131,19 +127,17 @@ fun NavigationDrawerItems(
     NavigationDrawerItem(
         icon = { ItemIcon() },
         label = { Text(text = "Items") },
-        selected = destination?.route == ItemListPageDestination.route,
+        selected = destination?.route == ItemListRoute.toString(),
         onClick = {
-            navController.navigate(ItemListPageDestination.route, navOptions {
+            navController.navigate(ItemListRoute()) {
                 this.launchSingleTop = true
                 this.restoreState = true
-            })
+            }
             scope.launch {
                 drawerState.close()
             }
 
         }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
-
-
 }
 

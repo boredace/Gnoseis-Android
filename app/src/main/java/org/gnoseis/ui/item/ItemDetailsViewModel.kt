@@ -31,6 +31,7 @@ package org.gnoseis.ui.item
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -58,7 +59,7 @@ class ItemDetailsViewModel(
             itemRepository = itemRepository,
             linkedRecordRepository = linkedRecordRepository,
         )
-    private var itemId : String = checkNotNull(savedStateHandle[ItemDetailsPageDestination.itemIdArg])
+    private var itemId : String = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId)
 
     val linkedRecords: StateFlow<ItemLinkedRecords> =
         combine(

@@ -126,8 +126,18 @@ class LinkedRecordRepository(
     fun getRecordIdsLinkedToRecordId(recordId: String): Flow<List<String>> =
         linkedRecordDao.getRecordIdsLinkedToRecordId(recordId)
 
+    /**
+     * Links two records. Does nothing if they are already linked (in either direction).
+     */
     suspend fun addLinkedRecord(linkedRecord: LinkedRecord) =
-        linkedRecordDao.addLinkedRecord(linkedRecord)
+        linkedRecordDao.addLinkedRecordIfAbsent(
+            id = linkedRecord.id,
+            ownerDbId = linkedRecord.ownerDbId,
+            record1Id = linkedRecord.record1Id,
+            record2Id = linkedRecord.record2Id,
+            record1TypeId = linkedRecord.record1TypeId,
+            record2TypeId = linkedRecord.record2TypeId,
+        )
 
 
     suspend fun deleteLinksToRecordID(id: String): Int =

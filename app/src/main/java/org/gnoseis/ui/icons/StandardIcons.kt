@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.gnoseis.R
 import org.gnoseis.data.enums.IconTextPosition
@@ -56,6 +57,8 @@ fun BaseIconImage (
     text: String?,
     textPosition: IconTextPosition?,
     colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     var baseImage :@Composable () -> Unit = {
         Image(
@@ -63,8 +66,8 @@ fun BaseIconImage (
             contentDescription = text,
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .width(24.dp)
-                .height(24.dp)
+                .width(width!!)
+                .height(height!!)
             ,
             colorFilter = colorFilter
         )
@@ -106,13 +109,17 @@ fun BaseIconImage (
 fun CategoryIcon(
     text: String? = null,
     textPosition: IconTextPosition? = IconTextPosition.Bottom,
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     BaseIconImage(
         drawable = R.drawable.outline_label_24,
         text = text,
         textPosition = textPosition,
         colorFilter = colorFilter,
+        width = width,
+        height = height,
     )
 }
 
@@ -120,13 +127,17 @@ fun CategoryIcon(
 fun ContactIcon(
     text: String? = null,
     textPosition: IconTextPosition? = IconTextPosition.Bottom,
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     BaseIconImage(
         drawable = R.drawable.outline_people_24,
         text = text,
         textPosition = textPosition,
         colorFilter = colorFilter,
+        width = width,
+        height = height,
     )
 }
 
@@ -191,13 +202,17 @@ fun FilterIcon() {
 fun ItemIcon(
     text: String? = null,
     textPosition: IconTextPosition? = IconTextPosition.Bottom,
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     BaseIconImage(
         drawable = R.drawable.outline_deployed_code_24,
         text = text,
         textPosition = textPosition,
         colorFilter = colorFilter,
+        width = width,
+        height = height,
     )
 }
 
@@ -205,13 +220,17 @@ fun ItemIcon(
 fun NoteIcon(
     text: String? = null,
     textPosition: IconTextPosition? = IconTextPosition.Bottom,
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     BaseIconImage(
         drawable = R.drawable.outline_description_24,
         text = text,
         textPosition = textPosition,
         colorFilter = colorFilter,
+        width = width,
+        height = height,
     )
 }
 
@@ -220,13 +239,17 @@ fun NoteIcon(
 fun OrganizationIcon(
     text: String? = null,
     textPosition: IconTextPosition? = IconTextPosition.Bottom,
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    width: Dp? = 24.dp,
+    height: Dp? = 24.dp,
 ) {
     BaseIconImage(
         drawable = R.drawable.baseline_business_24,
         text = text,
         textPosition = textPosition,
         colorFilter = colorFilter,
+        width = width,
+        height = height,
     )
 }
 @Composable

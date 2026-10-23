@@ -28,115 +28,169 @@
 
 package org.gnoseis.ui.category
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import androidx.navigation.toRoute
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.category.Category
+import org.gnoseis.data.entity.links.LinkedRecord
+import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.CategoryRepository
+import org.gnoseis.data.repository.LinkedRecordRepository
 
 class CategoryEditViewModel(
     savedStateHandle: SavedStateHandle,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val linkedRecordRepository: LinkedRecordRepository,
 
-) : ViewModel(){
-    private var categoryId : String = checkNotNull(savedStateHandle[CategoryEditDestination.categoryIdArg])
-    private var isValid = MutableStateFlow(false)
-    private var isNew = MutableStateFlow(true)
-    private var editCategoryName = MutableStateFlow("")
-    private var editCategoryDescription = MutableStateFlow( "")
-    private var category = MutableStateFlow(Category(ownerDbId = "new-new", categoryName="new-new"))
+    ) : ViewModel(){
 
-    val categoryEditPageState : StateFlow<CategoryEditState> =
-        combine(
-            isValid,
-            isNew,
-            editCategoryName,
-            editCategoryDescription,
-            category
-        ){
-            isValid, isNew, editCategoryName, editCategoryDescription, newCategory ->
-            CategoryEditState(
-                isValid = isValid,
-                isNew = isNew,
-                editCategoryName = editCategoryName,
-                editCategoryDescription = editCategoryDescription,
-                category = newCategory
-            )
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            CategoryEditState()
+    private val categoryId : String? = savedStateHandle.toRoute<CategoryEditRoute>().categoryId
+
+    private val _editState = mutableStateOf(
+        EditState()
+    )
+    val editState: State<EditState> = _editState
+
+    private val _pageState = mutableStateOf(
+        PageState(
+            isNew = true,
+            pageMode = checkNotNull(savedStateHandle.toRoute<CategoryEditRoute>().pageMode),
+            categoryId =  null,
+            linkFromType = savedStateHandle.toRoute<CategoryEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<CategoryEditRoute>().linkFromId,
+            category = null
         )
+    )
+    val pageState: State<PageState> = _pageState
 
     init {
-        if (categoryId != "new") {
+        if (!categoryId.isNullOrEmpty()) {
             viewModelScope.launch {
                 categoryRepository.getCategory(categoryId).let {
-                    isValid.value = true
-                    isNew.value = false
-                    editCategoryName.value = it.categoryName
-                    editCategoryDescription.value = it.comments ?: ""
-                    category.value = it
+
+                    _pageState.value = _pageState.value.copy(
+                        isNew = false,
+                        pageMode = checkNotNull(savedStateHandle.toRoute<CategoryEditRoute>().pageMode),
+                        categoryId = it.id,
+                        linkFromType = savedStateHandle.toRoute<CategoryEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<CategoryEditRoute>().linkFromId,
+                        category = it
+                    )
+
+                    _editState.value = _editState.value.copy(
+                        isValid = true,
+                        editCategoryName = it.categoryName,
+                        editCategoryDescription = it.comments,
+                    )
                 }
             }
         }
     }
+
     suspend fun onSave(): String? {
-        if(isValid.value && isNew.value) {
-            val addedCategoryRowId = categoryRepository.addCategory(
+        if(
+        // Add new Note
+            _editState.value.isValid &&
+            _pageState.value.isNew
+        ) {
+            val addedRecordRowId = categoryRepository.addCategory(
                 Category(
                     ownerDbId = "db1",
-                    categoryName = editCategoryName.value,
-                    comments = editCategoryDescription.value
+                    categoryName = _editState.value.editCategoryName!!, // assuming cannot be valid if null
+                    comments =_editState.value.editCategoryDescription,
                 )
             )
-            return categoryRepository.getCategoryByRowId(addedCategoryRowId).id
-        } else if (isValid.value && !isNew.value) {
-            categoryRepository.updateCategory(
-                category.value.copy(
-                    categoryName = editCategoryName.value,
-                    comments = editCategoryDescription.value
+            val addedRecordId = categoryRepository.getCategoryByRowId(addedRecordRowId).id
+            if (
+            // Also link to source record
+                _pageState.value.pageMode == CategoryEditPageMode.NEWLINK &&
+                _pageState.value.linkFromId != null &&
+                _pageState.value.linkFromType != null
+            ){
+                linkedRecordRepository.addLinkedRecord(
+                    LinkedRecord(
+                        ownerDbId = "db1",
+                        record1Id = _pageState.value.linkFromId!!,
+                        record2Id = addedRecordId,
+                        record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
+                        record2TypeId = RecordType.Category.recordTypeId
+                    )
                 )
-            )
+            }
+            return addedRecordId
+        } else if (
+        // Update Existing Category
+            _editState.value.isValid &&
+            !_pageState.value.isNew
+        ) {
+            categoryRepository.updateCategory(_pageState.value.category!!.copy(
+                categoryName = _editState.value.editCategoryName!!,  // assuming cannot be valid if null
+                comments = _editState.value.editCategoryDescription,
+            ))
             return null
         } else {
             return null
         }
     }
 
+    private var debounceJob: Job? = null
+
     fun updateCategoryName(it: String) {
-        editCategoryName.value = it
-        isValid.value = validateInput()
+        // update editCategoryName only immediately
+        _editState.value = _editState.value.copy(editCategoryName = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(it),
+                editCategoryName = it,
+            )
+        }
     }
 
     fun updateCategoryDescription(it: String) {
-        editCategoryDescription.value = it
-        isValid.value = validateInput()
+        // update editCategoryDescription only immediately
+        _editState.value = _editState.value.copy(editCategoryDescription = it)
+        debounceJob?.cancel()
+        // perform validations and update only when stopped typing
+        debounceJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            _editState.value = _editState.value.copy(
+                isValid = validateInput(_editState.value.editCategoryName),
+                editCategoryDescription = it,
+            )
+        }
     }
 
-    private fun validateInput():Boolean {
-        var tempVal = false
-        if(editCategoryName.value.isNotEmpty()) tempVal = true
-//        if(editCategoryDescription.value.isNotEmpty()) tempVal = true
-        return tempVal
+    private fun validateInput(categoryName: String?):Boolean {
+        var result = false
+        if(!categoryName.isNullOrEmpty()) result = true
+        return result
     }
 
-    data class CategoryEditState(
-        val isValid: Boolean = false,
+    data class PageState(
         val isNew: Boolean = true,
+        val pageMode: CategoryEditPageMode? = null,
+        val categoryId: String? = null,
+        val linkFromType: RecordType? = null,
+        val linkFromId: String? = null,
+        val category: Category? = Category(),
+    )
+
+    data class EditState(
+        val isValid: Boolean = false,
         val editCategoryName: String? = null,
         val editCategoryDescription: String? = null,
-        val category: Category? = Category(
-            ownerDbId = "ppp",
-            categoryName = "new-name",
-            comments = null
-        )
     )
 
 

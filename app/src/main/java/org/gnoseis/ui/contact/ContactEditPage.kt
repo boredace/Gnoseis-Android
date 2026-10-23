@@ -52,49 +52,58 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object ContactEditDestination : NavigationDestination {
-    override val route = "contact_edit"
-    override val titleRes = -9
-    const val contactIdArg = "contactId"
-    val routeWithArgs = "${route}/{$contactIdArg}"
-}
+@Serializable
+data class ContactEditRoute(
+    val contactId: String?,
+    val pageMode: ContactEditPageMode,
+    val linkFromType: RecordType? = null,
+    val linkFromId: String? = null
+)
+
 @Composable
 fun ContactEditPage(
+    pageMode: ContactEditPageMode,
     pageViewModel: ContactEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navMenuClick: () -> Unit,
-    navigateToContactDetailsPage: (String) ->Unit
+    navigateToContactDetailsPage: (String) ->Unit,
+    navigateBackAfterLinkingNew: () -> Unit,
 
     ) {
+    val pageState = pageViewModel.pageState.value
+    val editState = pageViewModel.editState.value
+
     val coroutineScope = rememberCoroutineScope()
-    val pageState = pageViewModel.contactEditPageState
 
     ContactEditScaffold(
         pageState = pageState,
+        editState = editState,
         onEvent = {
             when (it) {
                 is ContactEditPageEvent.Save -> {
                     coroutineScope.launch {
                         val addedContactId = pageViewModel.onSave()
                         if (addedContactId != null) {
-                            navigateToContactDetailsPage(addedContactId)
+                            if(pageMode == ContactEditPageMode.NEWLINK) {
+                                navigateBackAfterLinkingNew()
+                            } else {
+                                navigateToContactDetailsPage(addedContactId)
+                            }
                         } else {
                             navMenuClick()
                         }
@@ -113,20 +122,13 @@ fun ContactEditPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactEditScaffold(
-    pageState: ContactEditViewModel.ContactEditPageState,
+    pageState: ContactEditViewModel.PageState,
+    editState: ContactEditViewModel.EditState,
     onEvent: (ContactEditPageEvent) -> Unit,
     onNavMenuclick: () -> Unit,
 
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
 
@@ -143,7 +145,7 @@ fun ContactEditScaffold(
                         onClick = {
                             onEvent(ContactEditPageEvent.Save)
                         },
-                        enabled = pageState.isValid
+                        enabled = editState.isValid
 
                     ) {
                         Text(text = "Save")
@@ -156,10 +158,9 @@ fun ContactEditScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 ContactEditBody(
-                    pageState = pageState,
+                    editState = editState,
                     onEvent = onEvent,
                 )
             }
@@ -169,7 +170,7 @@ fun ContactEditScaffold(
 
 @Composable
 fun ContactEditBody(
-    pageState: ContactEditViewModel.ContactEditPageState,
+    editState: ContactEditViewModel.EditState,
     onEvent: (ContactEditPageEvent) -> Unit,
 ){
     Column(
@@ -180,7 +181,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "First Name",
-            value = pageState.nameFirst?:"" ,
+            value = editState.nameFirst?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.NameFirstChanged(it))},
             type = TextFieldType.WORD)
@@ -189,7 +190,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Last Name",
-            value = pageState.nameLast?:"" ,
+            value = editState.nameLast?:"" ,
             onValueChanged = {
                 if(it.length <= TITLE_LENGTH_CONTACT)
                 onEvent(ContactEditPageEvent.NameLastChanged(it))},
@@ -199,7 +200,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Job Title",
-            value = pageState.jobTitle?:"" ,
+            value = editState.jobTitle?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.JobTitleChanged(it))},
             type = TextFieldType.WORD)
@@ -208,7 +209,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Company",
-            value = pageState.company?:"" ,
+            value = editState.company?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.CompanyChanged(it))},
             type = TextFieldType.WORD)
@@ -217,7 +218,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Main Phone",
-            value = pageState.phoneMain?:"" ,
+            value = editState.phoneMain?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.PhoneMainChanged(it))},
             type = TextFieldType.PHONE)
@@ -226,7 +227,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Mobile Phone",
-            value = pageState.phoneMobile?:"" ,
+            value = editState.phoneMobile?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.PhoneMobileChanged(it))},
             type = TextFieldType.PHONE)
@@ -235,7 +236,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Home Phone",
-            value = pageState.phoneHome?:"" ,
+            value = editState.phoneHome?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.PhoneHomeChanged(it))},
             type = TextFieldType.PHONE)
@@ -244,7 +245,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Work Phone",
-            value = pageState.phoneWork?:"" ,
+            value = editState.phoneWork?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.PhoneWorkChanged(it))},
             type = TextFieldType.PHONE)
@@ -253,7 +254,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Main Email",
-            value = pageState.emailMain?:"" ,
+            value = editState.emailMain?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.EmailMainChanged(it))},
             type = TextFieldType.EMAIL)
@@ -262,7 +263,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Mobile Email",
-            value = pageState.emailMobile?:"" ,
+            value = editState.emailMobile?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.EmailMobileChanged(it))},
             type = TextFieldType.EMAIL)
@@ -271,7 +272,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Home Email",
-            value = pageState.emailHome?:"" ,
+            value = editState.emailHome?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.EmailHomeChanged(it))},
             type = TextFieldType.EMAIL)
@@ -280,7 +281,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Work Email",
-            value = pageState.emailWork?:"" ,
+            value = editState.emailWork?:"" ,
             onValueChanged = {
                 onEvent(ContactEditPageEvent.EmailWorkChanged(it))},
             type = TextFieldType.EMAIL)
@@ -292,7 +293,7 @@ fun ContactEditBody(
                 .fillMaxWidth()
                 .fillMaxHeight(),
             label = {Text(text="Note Text")},
-            value = pageState.comments?:"",
+            value = editState.comments?:"",
             onValueChange = {
                 onEvent(ContactEditPageEvent.CommentsChanged(it))
             },
@@ -357,7 +358,11 @@ fun ContactEditPagePreview()
     GnoseisTheme {
         Surface {
             ContactEditScaffold(
-                pageState = ContactEditViewModel.ContactEditPageState(
+                pageState = ContactEditViewModel.PageState(
+                    isNew = true,
+                    pageMode = ContactEditPageMode.NEW,
+                ),
+                editState = ContactEditViewModel.EditState(
                     isValid = false,
                     nameLast = "Smith"
                 ),

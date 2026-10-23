@@ -3,19 +3,31 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlinx.kover")
 
 }
 
+// Release signing values come from ~/.gradle/gradle.properties or, failing that, environment
+// variables. They are never committed. See RELEASING.md.
+fun signingValue(name: String): String? =
+    providers.gradleProperty(name).orNull ?: providers.environmentVariable(name).orNull
+
+val githubSigningRequired = listOf(
+    "GNOSEIS_GITHUB_STORE_FILE",
+    "GNOSEIS_GITHUB_STORE_PASSWORD",
+    "GNOSEIS_GITHUB_KEY_ALIAS",
+)
+
 android {
     namespace = "org.gnoseis"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "org.gnoseis"
         minSdk = 29
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        targetSdk = 35
+        versionCode = 20_599
+        versionName = "0.2.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,8 +35,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("github") {
+            signingValue("GNOSEIS_GITHUB_STORE_FILE")?.let { storeFile = file(it) }
+            storePassword = signingValue("GNOSEIS_GITHUB_STORE_PASSWORD")
+            keyAlias = signingValue("GNOSEIS_GITHUB_KEY_ALIAS")
+            // PKCS12 keystores use the store password for the key
+            keyPassword = signingValue("GNOSEIS_GITHUB_KEY_PASSWORD") ?: storePassword
+        }
+    }
+
     buildTypes {
+        debug {
+            // Installs next to a release build instead of replacing it
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
+            signingConfig = signingConfigs.getByName("github")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -41,9 +69,21 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            // Exported Room schemas, read by MigrationTest
+            all { it.systemProperty("room.schemaLocation", "$projectDir/schemas") }
+        }
+    }
+    sourceSets {
+        // Exported Room schemas, used by MigrationTestHelper in instrumented tests
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
     packaging {
         resources {
@@ -52,14 +92,23 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.02.01"))
+    // Specify the Compose BOM with a version definition
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+    testImplementation(composeBom)
+    androidTestImplementation(composeBom)
 
     implementation("com.google.devtools.ksp:symbol-processing-api:1.9.22-1.0.17")
 
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -69,7 +118,7 @@ dependencies {
 
     // Navigation
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("androidx.navigation:navigation-compose:2.8.4")
+    implementation("androidx.navigation:navigation-compose:2.8.5")
 
     // Room
     implementation("androidx.room:room-common:2.6.1")
@@ -78,13 +127,48 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.2")
+    implementation("androidx.compose.material:material-icons-extended-android:1.7.6")
 
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.01"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("androidx.room:room-testing:2.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+kover {
+    reports {
+        filters {
+            excludes {
+                // Generated code: Room DAO/DB implementations, serializers, Compose singletons
+                classes(
+                    "*_Impl",
+                    "*_Impl\$*",
+                    "*\$\$serializer",
+                    "*ComposableSingletons*",
+                    "*.BuildConfig",
+                )
+            }
+        }
+    }
+}
+
+// Stop a release build with a clear message instead of AGP's generic signing error
+tasks.matching { it.name in setOf("packageRelease", "signReleaseBundle") }.configureEach {
+    doFirst {
+        val missing = githubSigningRequired.filter { signingValue(it).isNullOrBlank() }
+        if (missing.isNotEmpty()) {
+            throw GradleException(
+                "Release signing is not set up. Missing: ${missing.joinToString()}. " +
+                    "Set them in ~/.gradle/gradle.properties or as environment variables; see RELEASING.md."
+            )
+        }
+    }
 }

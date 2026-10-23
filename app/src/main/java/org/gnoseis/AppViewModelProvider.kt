@@ -51,9 +51,15 @@ import org.gnoseis.ui.organization.OrganizationDetailsViewModel
 import org.gnoseis.ui.organization.OrganizationEditViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
 import org.gnoseis.ui.search.SearchPageViewModel
+import org.gnoseis.ui.settings.BackupSettingsViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
+        initializer {
+            BackupSettingsViewModel(
+                gnoseisApplication().container.databaseRepository
+            )
+        }
         initializer {
             CategoryListViewModel(
                 gnoseisApplication().container.categoryRepository
@@ -69,8 +75,9 @@ object AppViewModelProvider {
         initializer {
             CategoryEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.categoryRepository
-            )
+                gnoseisApplication().container.categoryRepository,
+                gnoseisApplication().container.linkedRecordRepository,
+                )
         }
         initializer {
             ContactListViewModel(
@@ -87,7 +94,8 @@ object AppViewModelProvider {
         initializer {
             ContactEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.contactRepository
+                gnoseisApplication().container.contactRepository,
+                gnoseisApplication().container.linkedRecordRepository,
             )
         }
         initializer {
@@ -105,7 +113,8 @@ object AppViewModelProvider {
         initializer {
             ItemEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.itemRepository
+                gnoseisApplication().container.itemRepository,
+                gnoseisApplication().container.linkedRecordRepository
             )
         }
         initializer {
@@ -142,7 +151,8 @@ object AppViewModelProvider {
         initializer {
             OrganizationEditViewModel(
                 this.createSavedStateHandle(),
-                gnoseisApplication().container.organizationRepository
+                gnoseisApplication().container.organizationRepository,
+                gnoseisApplication().container.linkedRecordRepository
             )
         }
 

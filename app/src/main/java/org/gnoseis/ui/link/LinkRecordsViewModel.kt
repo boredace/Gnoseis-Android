@@ -32,14 +32,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.sync.Mutex
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.data.repository.LinkedRecordRepository
@@ -52,11 +53,10 @@ class LinkRecordsViewModel(
 ) : ViewModel(){
     var currentQuery = MutableStateFlow("")
 
-    private val _sourceRecordId : String = checkNotNull(savedStateHandle[LinkRecordsDestination.sourceRecordIdArg])
-    private val _sourceRecordTypeId : Int = checkNotNull(savedStateHandle[LinkRecordsDestination.sourceRecordTypeIdArg])
+    private val route = savedStateHandle.toRoute<LinkRecordsRoute>()
 
-    val sourceRecordId = MutableStateFlow(_sourceRecordId)
-    val sourceRecordTypeId = MutableStateFlow(_sourceRecordTypeId)
+    val sourceRecordId = MutableStateFlow(route.sourceRecordId)
+    val sourceRecordTypeId = MutableStateFlow(route.sourceRecordType.recordTypeId)
 
     private var alreadyLinked : StateFlow<List<String>> =
         linkedRecordRepository.getRecordIdsLinkedToRecordId(sourceRecordId.value)
@@ -76,14 +76,11 @@ class LinkRecordsViewModel(
             .combine(sourceRecordId) {list, source ->
                 list.filterNot { it.recordId.contains(source) || it.recordTypeId == sourceRecordTypeId.value}
             }
-            .map {searchResults ->
-                searchResults.map {
-                   if (alreadyLinked.value.any { existing -> existing.equals(it.recordId) }) {
-                       it.isLinked = true
-                   }
-                   it
+            .combine(alreadyLinked) { searchResults, linkedIds ->
+                // Combined (not read once) so the flags stay correct whichever loads first
+                searchResults.onEach {
+                    if (linkedIds.contains(it.recordId)) it.isLinked = true
                 }
-                searchResults
             }
             .stateIn(
                 viewModelScope,
@@ -110,19 +107,30 @@ class LinkRecordsViewModel(
         selectedCount.intValue =  searchResults.value.count { it.isSelected == true}
     }
 
+    private val linkMutex = Mutex()
+
     suspend fun linkSelectedResults() {
-        searchResults.value
-            .filter { it.isSelected == true}
-            .forEach {
-                linkedRecordRepository.addLinkedRecord(
-                    LinkedRecord(
-                        ownerDbId = "db1",
-                        record1Id = sourceRecordId.value,
-                        record2Id = it.recordId,
-                        record1TypeId = sourceRecordTypeId.value,
-                        record2TypeId = it.recordTypeId
+        // Ignore a second tap on "Link" while the first one is still saving
+        if (!linkMutex.tryLock()) return
+        try {
+            searchResults.value
+                .filter { it.isSelected == true && it.isLinked != true }
+                .forEach {
+                    linkedRecordRepository.addLinkedRecord(
+                        LinkedRecord(
+                            ownerDbId = "db1",
+                            record1Id = sourceRecordId.value,
+                            record2Id = it.recordId,
+                            record1TypeId = sourceRecordTypeId.value,
+                            record2TypeId = it.recordTypeId
+                        )
                     )
-                )
-            }
+                    it.isSelected = false
+                    it.isLinked = true
+                }
+            selectedCount.intValue = 0
+        } finally {
+            linkMutex.unlock()
+        }
     }
 }

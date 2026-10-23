@@ -48,32 +48,30 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.category.Category
-import org.gnoseis.ui.navigation.NavigationDestination
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.NoRecordsToDisplay
 import org.gnoseis.ui.theme.GnoseisTheme
 
-object CategoryListPageDestination : NavigationDestination {
-    override val route = "category_list_page"
-    override val titleRes = -9
-}
+@Serializable
+data class CategoryListRoute(
+    val dummy: Boolean? = false
+)
 
 @Composable
 fun CategoryListPage(
     pageViewModel: CategoryListViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     navMenuClick: () -> Unit
 ){
@@ -88,25 +86,16 @@ fun CategoryListPage(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryListPageScaffold(
     pageState: CategoryListViewModel.CategoryListPageState,
     navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToCategoryEditPage: (String) -> Unit,
+    navigateToCategoryEditPage: (String?) -> Unit,
     navigateToSearchPage: () -> Unit,
     onNavMenuclick: () -> Unit,
 
     ){
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            // TODO: Do something
-            delay(1500)
-            pullRefreshState.endRefresh()
-        }
-    }
     Scaffold(
         topBar = {
 
@@ -136,7 +125,7 @@ fun CategoryListPageScaffold(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navigateToCategoryEditPage("new") }
+                onClick = { navigateToCategoryEditPage(null) }
             ) {
                 Icon(Icons.Filled.Add, "Add Category")
                 Spacer(modifier = Modifier.width(15.dp))
@@ -147,7 +136,6 @@ fun CategoryListPageScaffold(
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .nestedScroll(pullRefreshState.nestedScrollConnection)
             ) {
                 CategoryPageBody(
                     pageState = pageState,
@@ -163,16 +151,16 @@ fun CategoryPageBody(
     pageState: CategoryListViewModel.CategoryListPageState,
     navigateToCategoryDetailsPage: (String) -> Unit
 ){
-    CategoryList(
-        categories = pageState.categories,
-        navigateToCategoryDetailsPage = navigateToCategoryDetailsPage
-    )
+    if(pageState.categories.isNotEmpty()) {
+        CategoryList(
+            categories = pageState.categories,
+            navigateToCategoryDetailsPage = navigateToCategoryDetailsPage
+            )
+    } else {
+        NoRecordsToDisplay(RecordType.Category)
+    }
+
 }
-
-
-
-
-
 
 
 @Preview

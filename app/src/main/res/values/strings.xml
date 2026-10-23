@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Gnoseis</string>
+    <string name="app_tagline">Local-first knowledge\nmanager and CRM</string>
+    <!-- Distribution channel shown on the splash screen; channel flavors override this -->
+    <string name="app_channel">GitHub Channel Release</string>
 </resources>
