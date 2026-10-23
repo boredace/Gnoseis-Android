@@ -53,9 +53,9 @@ class BackupSettingsViewModel(
     val importFailed: State<Boolean> = _importFailed
 
 
-    fun exportDatabase(path: String): Boolean {
+    fun exportDatabase(destination: Uri): Boolean {
         viewModelScope.launch {
-            databaseRepository.exportDatabase(path).let{
+            databaseRepository.exportDatabase(destination).let{
                 _exportSuccess.value = it
                 _exportFailed.value = !it
             }

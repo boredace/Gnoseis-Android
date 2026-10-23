@@ -88,9 +88,20 @@ abstract class GnoseisDatabase : RoomDatabase() {
          * #23: before #13, the same two records could be linked more than once, in either
          * direction. Keeps the first link of each unordered pair and deletes the rest.
          * The schema itself is unchanged.
+         *
+         * #31: databases from builds before the public repository also have indexes no
+         * entity declares, such as idx_LinkedRecord. Room rejects any table whose indexes
+         * differ from the entities, so those databases crashed on upgrade and their backups
+         * could not be imported. No schema version declares an index, so every index that
+         * SQLite did not create itself (those have no sql) is dropped.
          */
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                val extraIndexes = db.query(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
+                ).use { buildList { while (it.moveToNext()) add(it.getString(0)) } }
+                extraIndexes.forEach { db.execSQL("DROP INDEX `$it`") }
+
                 db.execSQL(
                     "DELETE FROM LinkedRecord WHERE rowid NOT IN (" +
                             "SELECT MIN(rowid) FROM LinkedRecord " +
