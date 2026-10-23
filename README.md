@@ -11,7 +11,7 @@ List of features will go here
 Signed APKs are attached to each [GitHub release](https://github.com/boredace/Gnoseis-Android/releases). To check that an APK is genuine, compare its signing certificate with this SHA-256 fingerprint:
 
 ```
-SHA-256: 4D:5E:B2:A6:56:4D:92:7E:92:77:6D:EA:E9:4B:6A:8E:A8:2C:F0:2A:38:AC:A7:C9:C0:6F:D7:32:14:97:4A:8A
+SHA-256: FA:F6:85:2E:31:BF:F2:DA:5C:1E:92:85:55:E7:71:F5:D4:C1:34:0E:C5:6D:E1:E9:6B:C3:44:53:11:E4:05:4C
 ```
 
 You can read it with `apksigner verify --print-certs <apk>`.
