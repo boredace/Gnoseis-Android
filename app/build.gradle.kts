@@ -7,6 +7,17 @@ plugins {
 
 }
 
+// Release signing values come from ~/.gradle/gradle.properties or, failing that, environment
+// variables. They are never committed. See RELEASING.md.
+fun signingValue(name: String): String? =
+    providers.gradleProperty(name).orNull ?: providers.environmentVariable(name).orNull
+
+val githubSigningRequired = listOf(
+    "GNOSEIS_GITHUB_STORE_FILE",
+    "GNOSEIS_GITHUB_STORE_PASSWORD",
+    "GNOSEIS_GITHUB_KEY_ALIAS",
+)
+
 android {
     namespace = "org.gnoseis"
     compileSdk = 35
@@ -24,8 +35,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("github") {
+            signingValue("GNOSEIS_GITHUB_STORE_FILE")?.let { storeFile = file(it) }
+            storePassword = signingValue("GNOSEIS_GITHUB_STORE_PASSWORD")
+            keyAlias = signingValue("GNOSEIS_GITHUB_KEY_ALIAS")
+            // PKCS12 keystores use the store password for the key
+            keyPassword = signingValue("GNOSEIS_GITHUB_KEY_PASSWORD") ?: storePassword
+        }
+    }
+
     buildTypes {
+        debug {
+            // Installs next to a release build instead of replacing it
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
+            signingConfig = signingConfigs.getByName("github")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -129,6 +156,19 @@ kover {
                     "*.BuildConfig",
                 )
             }
+        }
+    }
+}
+
+// Stop a release build with a clear message instead of AGP's generic signing error
+tasks.matching { it.name in setOf("packageRelease", "signReleaseBundle") }.configureEach {
+    doFirst {
+        val missing = githubSigningRequired.filter { signingValue(it).isNullOrBlank() }
+        if (missing.isNotEmpty()) {
+            throw GradleException(
+                "Release signing is not set up. Missing: ${missing.joinToString()}. " +
+                    "Set them in ~/.gradle/gradle.properties or as environment variables; see RELEASING.md."
+            )
         }
     }
 }
