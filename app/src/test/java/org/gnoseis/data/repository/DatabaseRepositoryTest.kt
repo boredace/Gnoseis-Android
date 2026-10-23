@@ -98,7 +98,7 @@ class DatabaseRepositoryTest {
     fun export_writesACompleteCopyOfTheDatabase() = runTest {
         db().noteDao().addNote(Note(title = "A"))
 
-        assertTrue(repository.exportDatabase(backup.path))
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), titlesInFile(backup))
     }
@@ -106,9 +106,9 @@ class DatabaseRepositoryTest {
     @Test
     fun export_toUnwritablePath_returnsFalse() = runTest {
         db().noteDao().addNote(Note(title = "A"))
-        val path = File(context.cacheDir, "missing-dir/x.backup").path
+        val path = File(context.cacheDir, "missing-dir/x.backup")
 
-        assertFalse(repository.exportDatabase(path))
+        assertFalse(repository.exportDatabase(Uri.fromFile(path)))
     }
 
     /** #14: export closes the singleton database that the repositories keep using. */
@@ -117,7 +117,7 @@ class DatabaseRepositoryTest {
         val noteDao = db().noteDao() // AppDataContainer holds DAOs from this instance
         noteDao.addNote(Note(title = "A"))
 
-        repository.exportDatabase(backup.path)
+        repository.exportDatabase(Uri.fromFile(backup))
         noteDao.addNote(Note(title = "B"))
 
         assertEquals(setOf("A", "B"), noteDao.getNotes().first().userTitles())
@@ -131,7 +131,7 @@ class DatabaseRepositoryTest {
 
         noteDao.getNotes().test {
             assertEquals(setOf("A"), awaitItem().userTitles())
-            repository.exportDatabase(backup.path)
+            repository.exportDatabase(Uri.fromFile(backup))
             noteDao.addNote(Note(title = "B"))
             var titles = awaitItem().userTitles()
             while (titles != setOf("A", "B")) titles = awaitItem().userTitles()
@@ -139,12 +139,37 @@ class DatabaseRepositoryTest {
         }
     }
 
+    /** #32: exporting over an existing, longer file leaves only the new backup. */
+    @Test
+    fun export_overExistingFile_replacesItCompletely() = runTest {
+        backup.writeBytes(ByteArray(10_000_000) { 1 })
+        db().noteDao().addNote(Note(title = "A"))
+
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+
+        assertTrue(backup.length() < 10_000_000)
+        assertEquals(setOf("A"), titlesInFile(backup))
+    }
+
+    @Test
+    fun deleteLeftoverTempFiles_removesOnlyBackupTempCopies() {
+        val leftovers = listOf("gnoseis_export123.db", "gnoseis_import456.db", "gnoseis_import456.db-journal")
+            .map { File(context.cacheDir, it).apply { writeText("data") } }
+        val other = File(context.cacheDir, "unrelated.tmp").apply { writeText("keep") }
+
+        repository.deleteLeftoverTempFiles()
+
+        assertTrue(leftovers.none { it.exists() })
+        assertTrue(other.exists())
+        other.delete()
+    }
+
     // ---------- Import ----------
 
     /** Backup contains note A; the live database then gets note B. */
     private suspend fun backupWithAThenAddB() {
         db().noteDao().addNote(Note(title = "A"))
-        assertTrue(repository.exportDatabase(backup.path))
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
         db().noteDao().addNote(Note(title = "B"))
         assertEquals(setOf("A", "B"), db().userTitles())
     }
@@ -218,6 +243,79 @@ class DatabaseRepositoryTest {
         assertFalse(repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A", "B"), db().userTitles())
+    }
+
+    /** Turns the exported [backup] into the backup the app made at database version 1. */
+    private fun downgradeBackupToVersion1(addLinks: SQLiteDatabase.() -> Unit = {}) =
+        SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { raw ->
+            // v1 and v2 have the same schema and identity hash; only MIGRATION_1_2 differs
+            raw.addLinks()
+            raw.version = 1
+        }
+
+    private fun SQLiteDatabase.link(id: String, record1Id: String, record2Id: String) = execSQL(
+        "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
+                "VALUES (?, 'db1', ?, ?, 2, 1)",
+        arrayOf(id, record1Id, record2Id),
+    )
+
+    private fun liveLinkIds(): List<String> =
+        db().openHelper.writableDatabase.query("SELECT id FROM LinkedRecord ORDER BY id").use {
+            buildList { while (it.moveToNext()) add(it.getString(0)) }
+        }
+
+    /** #31: a backup made at version 1 is migrated, and its duplicate links removed (#23). */
+    @Test
+    fun import_backupFromOlderVersion_isMigrated_andRestored() = runTest {
+        backupWithAThenAddB()
+        downgradeBackupToVersion1 {
+            link("first", "contact", "note")
+            link("reversed", "note", "contact")
+        }
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
+        assertEquals(listOf("first"), liveLinkIds())
+        assertEquals(2, db().openHelper.writableDatabase.version)
+    }
+
+    /** #31: only the temporary copy is migrated, never the file the user picked. */
+    @Test
+    fun import_backupFromOlderVersion_leavesSelectedFileUnchanged() = runTest {
+        backupWithAThenAddB()
+        downgradeBackupToVersion1 { link("first", "contact", "note"); link("same", "contact", "note") }
+        val before = backup.readBytes()
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertTrue(before.contentEquals(backup.readBytes()))
+    }
+
+    /** #31: a backup from a newer version than the app is still refused. */
+    @Test
+    fun import_backupFromNewerVersion_isRejected_andDataKept() = runTest {
+        backupWithAThenAddB()
+        val newer = db().openHelper.writableDatabase.version + 1
+        SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = newer }
+
+        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A", "B"), db().userTitles())
+    }
+
+    /** #31: an SQLite file that Room did not create is not "migrated" into an empty database. */
+    @Test
+    fun import_sqliteFileFromAnotherApp_isRejected_andDataKept() = runTest {
+        db().noteDao().addNote(Note(title = "A"))
+        SQLiteDatabase.openOrCreateDatabase(backup, null).use {
+            it.execSQL("CREATE TABLE Other (x TEXT)")
+            it.version = 1
+        }
+
+        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
     }
 
     @Test

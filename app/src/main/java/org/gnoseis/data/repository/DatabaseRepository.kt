@@ -33,12 +33,14 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.gnoseis.data.database.GnoseisDatabase
 import java.io.File
-import java.io.FileOutputStream
+import java.io.FileNotFoundException
 
 /**
  * Backs up and restores the app database while it stays open, so the DAOs and screens that
@@ -48,11 +50,12 @@ class DatabaseRepository (
     private val context: Context,
 ){
     /**
-     * Writes a self-contained copy of the database to [destinationPath]. The copy is made in a
-     * single transaction, so it is consistent even if the app saves something at the same time.
+     * Writes a self-contained copy of the database to [destination], a file the user chose with
+     * the system file picker (#32). The copy is made in a single transaction, so it is consistent
+     * even if the app saves something at the same time.
      */
-    suspend fun exportDatabase(destinationPath: String) : Boolean = withContext(Dispatchers.IO) {
-        val temp = File.createTempFile("gnoseis_export", ".db", context.cacheDir)
+    suspend fun exportDatabase(destination: Uri) : Boolean = withContext(Dispatchers.IO) {
+        val temp = File.createTempFile(EXPORT_TEMP_PREFIX, ".db", context.cacheDir)
         try {
             temp.delete() // SQLite creates the file itself
             val db = GnoseisDatabase.getDatabase(context)
@@ -71,8 +74,10 @@ class DatabaseRepository (
                     backup.version = live.version
                 }
             }
-            // Plain streams, not File.copyTo, which would create missing folders
-            temp.inputStream().use { input -> FileOutputStream(destinationPath).use { input.copyTo(it) } }
+            // "wt" truncates, so overwriting a longer file leaves no trailing bytes
+            val output = context.contentResolver.openOutputStream(destination, "wt")
+                ?: throw FileNotFoundException("Cannot write to $destination")
+            temp.inputStream().use { input -> output.use { input.copyTo(it) } }
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -83,18 +88,29 @@ class DatabaseRepository (
     }
 
     /**
-     * Replaces all data with the backup in [selectedFile]. The file is checked first; if it
-     * cannot be read, is not a valid Gnoseis backup, or comes from a different database
-     * version, nothing is changed and false is returned.
+     * Replaces all data with the backup in [selectedFile]. A backup from an older database
+     * version is migrated first, on a temporary copy. If the file cannot be read, is not a valid
+     * Gnoseis backup, cannot be migrated, or comes from a newer database version, nothing is
+     * changed and false is returned. The selected file itself is never modified.
      */
     suspend fun importDatabase(selectedFile: Uri) : Boolean = withContext(Dispatchers.IO) {
-        val temp = File.createTempFile("gnoseis_import", ".db", context.cacheDir)
+        val temp = File.createTempFile(IMPORT_TEMP_PREFIX, ".db", context.cacheDir)
         try {
             val input = context.contentResolver.openInputStream(selectedFile)
                 ?: return@withContext false
             input.use { source -> temp.outputStream().use { source.copyTo(it) } }
 
             val db = GnoseisDatabase.getDatabase(context)
+            val liveVersion = db.openHelper.writableDatabase.version
+            val backupVersion = SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { backup ->
+                if (!isIntactRoomDatabase(backup)) return@withContext false
+                backup.version
+            }
+            // #31: bring an older backup up to date with the migrations the app runs at startup.
+            // Only the temporary copy is changed; a newer backup cannot be migrated down.
+            if (backupVersion < 1 || backupVersion > liveVersion) return@withContext false
+            if (backupVersion < liveVersion) migrateBackup(temp)
+
             SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { backup ->
                 if (!isCompatibleBackup(backup, db.openHelper.writableDatabase)) {
                     return@withContext false
@@ -118,12 +134,50 @@ class DatabaseRepository (
         }
     }
 
-    /** True if [backup] is an intact SQLite file with exactly the schema of [live]. */
-    private fun isCompatibleBackup(backup: SQLiteDatabase, live: SupportSQLiteDatabase): Boolean {
+    /**
+     * Deletes temporary copies left in the private cache folder when the app was stopped in the
+     * middle of an export or import, so a full copy of the user's data doesn't stay behind.
+     * Call only at startup, before any export or import can be running.
+     */
+    fun deleteLeftoverTempFiles() {
+        context.cacheDir.listFiles()
+            ?.filter { it.name.startsWith(EXPORT_TEMP_PREFIX) || it.name.startsWith(IMPORT_TEMP_PREFIX) }
+            ?.forEach { it.delete() }
+    }
+
+    /** True if [backup] is an intact SQLite file that was created by Room. */
+    private fun isIntactRoomDatabase(backup: SQLiteDatabase): Boolean {
         val intact = backup.rawQuery("PRAGMA integrity_check", null).use {
             it.moveToFirst() && it.getString(0) == "ok"
         }
-        if (!intact || backup.version != live.version) return false
+        return intact && backup.rawQuery(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", arrayOf(ROOM_MASTER_TABLE)
+        ).use { it.moveToFirst() }
+    }
+
+    /**
+     * Runs [GnoseisDatabase.MIGRATIONS] on the backup copy in [file]. There is no destructive
+     * fallback and no seed-note callback: if no migration path exists, or the migrated tables
+     * don't match the app's entities, Room throws and the import is abandoned.
+     */
+    private fun migrateBackup(file: File) {
+        // An absolute path as the name makes Room open that file instead of one in databases/
+        Room.databaseBuilder(context, GnoseisDatabase::class.java, file.absolutePath)
+            .addMigrations(*GnoseisDatabase.MIGRATIONS)
+            .setJournalMode(RoomDatabase.JournalMode.TRUNCATE)
+            .build()
+            .run {
+                try {
+                    openHelper.writableDatabase // runs the migrations, then validates the schema
+                } finally {
+                    close()
+                }
+            }
+    }
+
+    /** True if [backup] has exactly the version and schema of [live]. */
+    private fun isCompatibleBackup(backup: SQLiteDatabase, live: SupportSQLiteDatabase): Boolean {
+        if (backup.version != live.version) return false
         val backupHash = backup.rawQuery("SELECT identity_hash FROM $ROOM_MASTER_TABLE", null).use {
             if (it.moveToFirst()) it.getString(0) else null
         }
@@ -176,5 +230,7 @@ class DatabaseRepository (
 
     private companion object {
         const val ROOM_MASTER_TABLE = "room_master_table"
+        const val EXPORT_TEMP_PREFIX = "gnoseis_export"
+        const val IMPORT_TEMP_PREFIX = "gnoseis_import"
     }
 }

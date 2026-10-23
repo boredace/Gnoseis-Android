@@ -89,7 +89,7 @@ class BackupSettingsViewModelTest {
     @Test
     fun export_returnValueIsAlwaysFalse_butStateReportsSuccess() = runTest {
         // Documented: the Boolean return value is not the result; exportuccess is.
-        assertFalse(vm.exportDatabase(backup.path))
+        assertFalse(vm.exportDatabase(Uri.fromFile(backup)))
 
         waitFor { vm.exportuccess.value }
         assertTrue(backup.length() > 0)
@@ -97,14 +97,14 @@ class BackupSettingsViewModelTest {
 
     @Test
     fun export_failure_reportsFailure() = runTest {
-        vm.exportDatabase(File(context.cacheDir, "missing-dir/x.backup").path)
+        vm.exportDatabase(Uri.fromFile(File(context.cacheDir, "missing-dir/x.backup")))
         waitFor { vm.exportFailed.value }
         assertFalse(vm.exportuccess.value)
     }
 
     @Test
     fun import_reportsSuccess() = runTest {
-        vm.exportDatabase(backup.path)
+        vm.exportDatabase(Uri.fromFile(backup))
         waitFor { vm.exportuccess.value }
 
         assertFalse(vm.importDatabase(Uri.fromFile(backup)))

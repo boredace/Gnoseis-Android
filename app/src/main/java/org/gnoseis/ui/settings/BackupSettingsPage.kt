@@ -84,6 +84,14 @@ fun BackupSettingsPage(
     val exportFailed = pageViewModel.exportFailed.value
     val importFailed = pageViewModel.importFailed.value
 
+    // #32: the user chooses the folder and file name of the backup
+    val exportLocationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        // uri is null when the user closes the file picker without choosing a location
+        uri?.let { pageViewModel.exportDatabase(it) }
+    }
+
     // Create a file picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -97,7 +105,7 @@ fun BackupSettingsPage(
         onExportClicked = {
             val dateStamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
                 .format((Date()))
-            pageViewModel.exportDatabase("/storage/emulated/0/Download/gnoseis_data_${dateStamp}.backup")
+            exportLocationLauncher.launch("gnoseis_data_${dateStamp}.backup")
         },
         onImportClicked = {
             filePickerLauncher.launch(arrayOf("*/*")) // Use a MIME type like "image/*" for specific files
@@ -177,7 +185,7 @@ fun BackupSettingsBody(
     if(exportFailed) {
         BackupFailedDialog(
             title = "Export Failed",
-            message = "The backup file could not be written to your Downloads folder.",
+            message = "The backup file could not be written to the selected location.",
             onConfirm = onResultConfirm,
         )
     }
@@ -185,7 +193,7 @@ fun BackupSettingsBody(
         BackupFailedDialog(
             title = "Import Failed",
             message = "The selected file could not be read, is not a Gnoseis backup, or comes " +
-                    "from a different version of the app. Your existing data was not changed.",
+                    "from a newer version of the app. Your existing data was not changed.",
             onConfirm = onResultConfirm,
         )
     }
@@ -204,7 +212,7 @@ fun BackupSettingsBody(
             modifier = Modifier
                 .padding(bottom = 12.dp)
         ) {
-            Text(text = "Pressing Export will create a copy of the current SQLite application database in your Documents folder. Currently backup file is not encrypted.")
+            Text(text = "Pressing Export will let you choose where to save a copy of the current SQLite application database. Currently backup file is not encrypted, so anyone with access to that location can read your data.")
         }
 
 
@@ -263,7 +271,7 @@ fun ExportCompleteDialog(
         text = {
             Column(){
                 Row(){
-                    Text(text = "Database file exported successfully to your Downloads folder.")
+                    Text(text = "Database file exported successfully to the selected location.")
                 }
             }
         },
