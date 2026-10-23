@@ -31,6 +31,8 @@ package org.gnoseis.data.repository
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -302,6 +304,36 @@ class DatabaseRepositoryTest {
         assertFalse(repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A", "B"), db().userTitles())
+    }
+
+    /**
+     * A backup written by 0.2.3 and earlier: the app closed its version 1 database and copied
+     * the raw file, which is still marked as a write-ahead-log database.
+     */
+    private fun writeOldStyleBackup(vararg titles: String) {
+        val old = File(context.cacheDir, "old_app/gnoseis_data").apply { parentFile!!.mkdirs() }
+        Room.databaseBuilder(context, GnoseisDatabase::class.java, old.absolutePath)
+            .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+            .build()
+            .apply {
+                runBlocking { titles.forEach { noteDao().addNote(Note(title = it)) } }
+                openHelper.writableDatabase.version = 1
+                close()
+            }
+        old.copyTo(backup, overwrite = true)
+        old.parentFile!!.deleteRecursively()
+        assertEquals("backup is in WAL format", 2, backup.readBytes()[18].toInt())
+    }
+
+    /** #31: a backup exported by the old app is migrated and restored. */
+    @Test
+    fun import_backupExportedByOldApp_isRestored() = runTest {
+        db().noteDao().addNote(Note(title = "B"))
+        writeOldStyleBackup("A")
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
     }
 
     /** #31: an SQLite file that Room did not create is not "migrated" into an empty database. */
