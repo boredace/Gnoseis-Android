@@ -55,7 +55,7 @@ fun DrawerContent(navController: NavHostController, drawerState: DrawerState) {
 
     ModalDrawerSheet {
         Spacer(Modifier.height(26.dp))
-        Text(text = "Gnoseis 0.2.4-beta.3", Modifier.padding(horizontal = 28.dp))
+        Text(text = "Gnoseis 0.2.4", Modifier.padding(horizontal = 28.dp))
         Spacer(Modifier.height(18.dp))
 
         NavigationDrawerItems(navController, drawerState)
