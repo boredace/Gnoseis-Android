@@ -117,6 +117,27 @@ class MigrationTest {
         assertEquals(listOf("first", "other-pair"), remaining)
     }
 
+    /** #31: a database from a build before the public repository has an undeclared index. */
+    @Test
+    fun migration1To2_dropsIndexesNoEntityDeclares() {
+        val path = context.getDatabasePath(dbName(1)).apply { parentFile!!.mkdirs() }
+        createFromSchema(path, 1)
+        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("CREATE INDEX idx_LinkedRecord ON LinkedRecord (id, record1Id, record2Id)")
+        }
+
+        val db = Room.databaseBuilder(context, GnoseisDatabase::class.java, dbName(1))
+            .addMigrations(*GnoseisDatabase.MIGRATIONS)
+            .build()
+        val indexes = db.openHelper.writableDatabase // runs migrations, then validates
+            .query("SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL").use {
+                buildList { while (it.moveToNext()) add(it.getString(0)) }
+            }
+        db.close()
+
+        assertEquals(emptyList<String>(), indexes)
+    }
+
     private fun dbName(version: Int) = "migration-from-$version"
 
     /** Creates a database exactly as Room would have created it at [version]. */

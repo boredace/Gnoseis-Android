@@ -336,6 +336,20 @@ class DatabaseRepositoryTest {
         assertEquals(setOf("A"), db().userTitles())
     }
 
+    /** #31: backups from builds before the public repository have an undeclared index. */
+    @Test
+    fun import_backupWithUndeclaredIndex_isRestored() = runTest {
+        db().noteDao().addNote(Note(title = "B"))
+        writeOldStyleBackup("A")
+        SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use {
+            it.execSQL("CREATE INDEX idx_LinkedRecord ON LinkedRecord (id, record1Id, record2Id)")
+        }
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
+    }
+
     /** #31: an SQLite file that Room did not create is not "migrated" into an empty database. */
     @Test
     fun import_sqliteFileFromAnotherApp_isRejected_andDataKept() = runTest {
