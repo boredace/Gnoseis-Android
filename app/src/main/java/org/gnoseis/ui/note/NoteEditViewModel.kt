@@ -167,11 +167,13 @@ class NoteEditViewModel(
             _editState.value.isValid &&
             !_pageState.value.isNew
         ) {
-            noteRepository.updateNote(_pageState.value.note!!.copy(
+            val note = _pageState.value.note!!
+            noteRepository.updateNote(note.copy(
                 title = _editState.value.editTitle,
                 textContents = _editState.value.editTextContent,
-                createDate = _editState.value.editDate,
-                createDateTime = _editState.value.editDate,
+                // keep the stored dates unless the user picked a new one
+                createDate = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDate,
+                createDateTime = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDateTime,
             ))
             return null
         } else {
@@ -180,7 +182,8 @@ class NoteEditViewModel(
     }
     fun updateDate(it: Long) {
         _editState.value = _editState.value.copy(
-        editDate = it
+        editDate = it,
+        isDateChanged = true,
         )
         //        dateTimeHolder.value.dateString = Instant.ofEpochMilli(it).toString()
     }
@@ -242,6 +245,7 @@ class NoteEditViewModel(
         val editTitle: String? = null,
         val editTextContent: String? = null,
         val editDate: Long = 0L,
+        val isDateChanged: Boolean = false,
 //        val selectedDate: Long? = 0L,
 //        val selectedTime: Long? = 0L,
     )
