@@ -26,8 +26,8 @@ android {
         applicationId = "org.gnoseis"
         minSdk = 29
         targetSdk = 35
-        versionCode = 20_599
-        versionName = "0.2.5"
+        versionCode = 30_001
+        versionName = "0.3.0-dev.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

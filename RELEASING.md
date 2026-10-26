@@ -2,19 +2,20 @@
 
 ## Version numbers
 
-`versionName` follows `MAJOR.MINOR.PATCH`, with `-beta.N` for betas. `versionCode` is derived from it:
+`versionName` follows `MAJOR.MINOR.PATCH`, with `-dev.N` for dev builds and `-beta.N` for betas. `versionCode` is derived from it:
 
 ```
 versionCode = MAJOR × 1,000,000 + MINOR × 10,000 + PATCH × 100 + NN
 ```
 
-NN is the beta number (01–98). **99** means the final release, so every final release is above its betas.
+NN counts the pre-releases of a version (01–98), dev builds and betas together: each new dev build or beta takes the next free NN. **99** means the final release, so every final release is above its pre-releases.
 
 | Version | versionCode |
 |---|---|
 | 0.2.4-beta.3 | 20_403 |
 | 0.2.4 | 20_499 |
-| 0.3.0-beta.1 | 30_001 |
+| 0.3.0-dev.1 | 30_001 |
+| 0.3.0-beta.1 (after dev.1 and dev.2) | 30_003 |
 | 1.2.3 | 1_020_399 |
 
 Android only accepts updates with a higher versionCode, so each release must use a larger number than the one before.
@@ -45,6 +46,14 @@ Remove-Variable pw
 Debug builds and unit tests don't need any of this. A release build that is missing a value stops and names the missing value.
 
 Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis Debug", so they install next to a release build.
+
+## Dev builds
+
+Dev builds are debug builds for testing work toward the next milestone. They are signed with the debug key and are never published as GitHub releases.
+
+1. On a `release/<version>` branch from `develop`, set `versionName` to `<next version>-dev.N` and `versionCode` to the next free NN, then update the drawer label in `NavigationDrawerContent.kt`.
+2. Run the unit tests, then open a pull request named `Version <version>` into `develop` and merge it. Don't tag it.
+3. Build with `./gradlew assembleDebug` and keep the APK as `Gnoseis-v<version>.apk`.
 
 ## Making a release
 
