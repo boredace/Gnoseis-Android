@@ -63,6 +63,8 @@ import org.gnoseis.ui.contact.ContactEditPage
 import org.gnoseis.ui.contact.ContactEditRoute
 import org.gnoseis.ui.contact.ContactListPage
 import org.gnoseis.ui.contact.ContactListRoute
+import org.gnoseis.ui.home.HomePage
+import org.gnoseis.ui.home.HomeRoute
 import org.gnoseis.ui.item.ItemDetailsPage
 import org.gnoseis.ui.item.ItemDetailsRoute
 import org.gnoseis.ui.item.ItemEditPage
@@ -125,7 +127,51 @@ fun NavigationPage(
         drawerState = drawerState
     ) {
         Box(/*modifier = Modifier.padding(it)*/) {
-            NavHost(navController = navController, startDestination = NoteListRoute) {
+            NavHost(navController = navController, startDestination = HomeRoute) {
+
+                // #############################################################
+                // ######################    HOME    ###########################
+                // #############################################################
+
+                composable<HomeRoute> {
+                    HomePage(
+                        navMenuClick = { navMenuClick() },
+                        navigateToSettingsPage = { navController.navigate(SettingsPageRoute()) },
+                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToRecordDetailsPage = { type, id ->
+                            when (type) {
+                                RecordType.Category -> navController.navigate(CategoryDetailsRoute(id))
+                                RecordType.Contact -> navController.navigate(ContactDetailsRoute(id))
+                                RecordType.Item -> navController.navigate(ItemDetailsRoute(id))
+                                RecordType.Note -> navController.navigate(NoteDetailsRoute(id))
+                                RecordType.Organization -> navController.navigate(OrganizationDetailsRoute(id))
+                                RecordType.LinkedRecord -> Unit
+                            }
+                        },
+                        navigateToNewRecordPage = { type ->
+                            when (type) {
+                                RecordType.Category -> navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEW))
+                                RecordType.Contact -> navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEW))
+                                RecordType.Item -> navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEW))
+                                RecordType.Note -> navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEW))
+                                RecordType.Organization -> navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEW))
+                                RecordType.LinkedRecord -> Unit
+                            }
+                        },
+                        navigateToRecordListPage = { type ->
+                            when (type) {
+                                RecordType.Category -> navController.navigate(CategoryListRoute())
+                                RecordType.Contact -> navController.navigate(ContactListRoute())
+                                RecordType.Item -> navController.navigate(ItemListRoute())
+                                RecordType.Note -> navController.navigate(NoteListRoute)
+                                RecordType.Organization -> navController.navigate(OrganizationListRoute())
+                                RecordType.LinkedRecord -> Unit
+                            }
+                        },
+                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Note)) },
+                        navigateToBackupSettingsPage = { navController.navigate(BackupSettingsPageRoute()) },
+                    )
+                }
 
                 // #############################################################
                 // ####################  CATEGORY   ############################

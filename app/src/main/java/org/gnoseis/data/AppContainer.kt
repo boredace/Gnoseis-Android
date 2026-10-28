@@ -33,6 +33,7 @@ import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.ContactRepository
 import org.gnoseis.data.repository.DatabaseRepository
+import org.gnoseis.data.repository.HomeRepository
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
@@ -50,6 +51,7 @@ interface  AppContainer {
     val linkedRecordRepository: LinkedRecordRepository
     val searchRepository: SearchRepository
     val settingsRepository: SettingsRepository
+    val homeRepository: HomeRepository
 }
 
 class AppDataContainer(
@@ -110,6 +112,11 @@ class AppDataContainer(
         SettingsRepository(
             database(),
             now,
+        )
+    }
+    override val homeRepository: HomeRepository by lazy {
+        HomeRepository(
+            database().homeDao()
         )
     }
 }

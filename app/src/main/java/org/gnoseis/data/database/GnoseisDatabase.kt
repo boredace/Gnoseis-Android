@@ -42,6 +42,7 @@ import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.category.CategoryDao
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.contact.ContactDao
+import org.gnoseis.data.entity.home.HomeDao
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.item.ItemDao
 import org.gnoseis.data.entity.links.LinkedRecord
@@ -82,6 +83,7 @@ abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun linkedRecordDao(): LinkedRecordDao
     abstract fun searchDao(): SearchDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun homeDao(): HomeDao
     fun closeDatabase() {
         this.close()
     }
