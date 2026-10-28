@@ -174,7 +174,7 @@ class LinkedRecordDaoTest {
     @Test
     fun addLinkedRecordIfAbsent_insertsNewLink_butSkipsExistingPairInEitherDirection() = runTest {
         suspend fun addIfAbsent(l: LinkedRecord) = dao.addLinkedRecordIfAbsent(
-            l.id, l.ownerDbId, l.record1Id, l.record2Id, l.record1TypeId, l.record2TypeId,
+            l.id, l.ownerDbId, l.record1Id, l.record2Id, l.record1TypeId, l.record2TypeId, l.createdAt,
         )
         val first = link("a", RecordType.Note, "b", RecordType.Contact)
 
@@ -214,8 +214,8 @@ class LinkedRecordDaoTest {
             assertEquals(emptyList<Note>(), awaitItem())
             dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
             assertEquals(listOf(note), awaitItem())
-            db.noteDao().updateNote(note.copy(title = "renamed"))
-            assertEquals(listOf(note.copy(title = "renamed")), awaitItem())
+            db.noteDao().updateNote(note.id, "renamed", note.textContents, note.createDate, note.createDateTime, now = 5)
+            assertEquals(listOf(note.copy(title = "renamed", updatedAt = 5)), awaitItem())
             dao.deleteLinksToRecordID(note.id)
             assertEquals(emptyList<Note>(), awaitItem())
         }

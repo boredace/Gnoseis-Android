@@ -232,8 +232,8 @@ interface LinkedRecordDao {
      * Inserts the link only if the two records are not linked yet, in either direction.
      */
     @Query(
-        "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
-                "SELECT :id, :ownerDbId, :record1Id, :record2Id, :record1TypeId, :record2TypeId " +
+        "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId, createdAt) " +
+                "SELECT :id, :ownerDbId, :record1Id, :record2Id, :record1TypeId, :record2TypeId, :createdAt " +
                 "WHERE NOT EXISTS (" +
                 "SELECT 1 FROM LinkedRecord " +
                 "WHERE (record1Id = :record1Id AND record2Id = :record2Id) " +
@@ -245,6 +245,7 @@ interface LinkedRecordDao {
         record2Id: String,
         record1TypeId: Int,
         record2TypeId: Int,
+        createdAt: Long?,
     )
 }
 

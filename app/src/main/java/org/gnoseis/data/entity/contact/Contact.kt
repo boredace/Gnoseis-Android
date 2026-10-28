@@ -49,5 +49,7 @@ data class Contact(
     val emailMobile: String? = null,
     val emailHome: String? = null,
     val emailWork: String? = null,
-    val comments: String? = null
+    val comments: String? = null,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
     )

@@ -55,7 +55,7 @@ class OrganizationDaoTest {
         assertEquals(org, dao.getOrganization(org.id))
         assertEquals(org, dao.getOrganizationByRowId(rowId))
 
-        dao.updateOrganization(org.copy(organizationName = "Acme Inc"))
+        dao.updateOrganization(org.id, organizationName = "Acme Inc", comments = org.comments, now = 5)
         assertEquals("Acme Inc", dao.getOrganizationFlow(org.id).first().organizationName)
 
         dao.deleteOrganizationById(org.id)

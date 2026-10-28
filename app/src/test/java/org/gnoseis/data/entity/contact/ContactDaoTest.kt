@@ -73,8 +73,13 @@ class ContactDaoTest {
     @Test
     fun update_andDelete() = runTest {
         dao.addContact(fullContact)
-        dao.update(fullContact.copy(nameFirst = null, phoneMain = null))
-        assertEquals(fullContact.copy(nameFirst = null, phoneMain = null), dao.getContact(fullContact.id))
+        with(fullContact) {
+            dao.update(
+                id, nameLast, nameFirst = null, jobTitle, company, phoneMain = null, phoneMobile,
+                phoneHome, phoneWork, emailMain, emailMobile, emailHome, emailWork, comments, now = 5,
+            )
+        }
+        assertEquals(fullContact.copy(nameFirst = null, phoneMain = null, updatedAt = 5), dao.getContact(fullContact.id))
 
         dao.deleteById(fullContact.id)
         assertEquals(emptyList<Contact>(), dao.getContactsFlow().first())

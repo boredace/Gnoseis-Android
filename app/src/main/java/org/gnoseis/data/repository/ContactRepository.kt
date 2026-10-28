@@ -32,15 +32,37 @@ import kotlinx.coroutines.flow.Flow
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.contact.ContactDao
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on inserts and updates (#50).
+ */
 class ContactRepository(
-    private val contactDao: ContactDao
+    private val contactDao: ContactDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun getContact(id: String): Contact = contactDao.getContact(id)
     fun getContactStream(id: String): Flow<Contact> = contactDao.getContactFlow(id)
     fun getContactsStream(): Flow<List<Contact>> = contactDao.getContactsFlow()
     suspend fun getContactByRowId(id: Long) : Contact = contactDao.getContactByRowId(id)
-    suspend fun addContact(contact: Contact): Long = contactDao.addContact(contact)
-    suspend fun updateContact(contact: Contact) = contactDao.update(contact)
+    suspend fun addContact(contact: Contact): Long =
+        now().let { contactDao.addContact(contact.copy(createdAt = it, updatedAt = it)) }
+    /** Saves the contact's editable fields. Returns false if nothing changed. */
+    suspend fun updateContact(contact: Contact): Boolean = contactDao.update(
+        id = contact.id,
+        nameLast = contact.nameLast,
+        nameFirst = contact.nameFirst,
+        jobTitle = contact.jobTitle,
+        company = contact.company,
+        phoneMain = contact.phoneMain,
+        phoneMobile = contact.phoneMobile,
+        phoneHome = contact.phoneHome,
+        phoneWork = contact.phoneWork,
+        emailMain = contact.emailMain,
+        emailMobile = contact.emailMobile,
+        emailHome = contact.emailHome,
+        emailWork = contact.emailWork,
+        comments = contact.comments,
+        now = now(),
+    ) > 0
     suspend fun deleteContactById(recordId: String)  = contactDao.deleteById(recordId)
 
 }

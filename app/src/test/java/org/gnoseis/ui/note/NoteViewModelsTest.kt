@@ -45,6 +45,7 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -89,8 +90,8 @@ class NoteViewModelsTest {
         val vm = mainDispatcherRule.viewModel { NoteListViewModel(c.noteRepository) }
         vm.notePageState.test {
             assertEquals(emptyList<Note>(), awaitItem().notes)
-            val old = Note(title = "old", createDateTime = 1)
-            val new = Note(title = "new", createDateTime = 2)
+            val old = Note(title = "old", createDateTime = 1).stamped()
+            val new = Note(title = "new", createDateTime = 2).stamped()
             c.noteRepository.addNote(old)
             c.noteRepository.addNote(new)
             var notes = awaitItem().notes
@@ -101,9 +102,9 @@ class NoteViewModelsTest {
 
     @Test
     fun details_loadsLinkedRecords_andDeleteCleansUp() = runTest {
-        val note = Note(title = "n")
-        val contact = Contact(nameLast = "Doe")
-        val org = Organization(organizationName = "Acme")
+        val note = Note(title = "n").stamped()
+        val contact = Contact(nameLast = "Doe").stamped()
+        val org = Organization(organizationName = "Acme").stamped()
         c.noteRepository.addNote(note)
         c.contactRepository.addContact(contact)
         c.organizationRepository.addOrganization(org)
@@ -176,7 +177,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_newLinkMode_savesAndLinks() = runTest {
-        val contact = Contact(nameLast = "Doe")
+        val contact = Contact(nameLast = "Doe").stamped()
         c.contactRepository.addContact(contact)
         val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, contact.id)
         vm.updateTitle("call notes")
@@ -189,7 +190,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
-        val note = Note(title = "Old", textContents = "body", createDateTime = 5_000, createDate = 0)
+        val note = Note(title = "Old", textContents = "body", createDateTime = 5_000, createDate = 0).stamped()
         c.noteRepository.addNote(note)
         val vm = editVm(note.id, NoteEditPageMode.EDIT)
 
@@ -213,7 +214,7 @@ class NoteViewModelsTest {
     fun edit_editMode_savingWithoutChangingDate_keepsCreateDate() = runTest {
         val createDateTime = 1_700_000_123_456L
         val createDate = 1_699_920_000_000L
-        val note = Note(title = "Old", createDateTime = createDateTime, createDate = createDate)
+        val note = Note(title = "Old", createDateTime = createDateTime, createDate = createDate).stamped()
         c.noteRepository.addNote(note)
         val vm = editVm(note.id, NoteEditPageMode.EDIT)
         waitFor { !vm.pageState.value.isNew }
@@ -229,7 +230,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_editMode_savingAfterPickingDate_updatesCreateDate() = runTest {
-        val note = Note(title = "Old", createDateTime = 1_700_000_123_456L, createDate = 1_699_920_000_000L)
+        val note = Note(title = "Old", createDateTime = 1_700_000_123_456L, createDate = 1_699_920_000_000L).stamped()
         c.noteRepository.addNote(note)
         val vm = editVm(note.id, NoteEditPageMode.EDIT)
         waitFor { !vm.pageState.value.isNew }

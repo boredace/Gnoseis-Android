@@ -46,12 +46,13 @@ fun inMemoryDatabase(
         .build()
 
 /**
- * [AppContainer] wired exactly like production, but backed by an in-memory database.
+ * [AppContainer] wired exactly like production, but backed by an in-memory database and a
+ * clock fixed at [TEST_NOW], so records saved through it get predictable timestamps.
  * Call [close] in @After.
  */
 class TestAppContainer(
     context: Context = ApplicationProvider.getApplicationContext(),
     val database: GnoseisDatabase = inMemoryDatabase(context),
-) : AppContainer by AppDataContainer(context, { database }) {
+) : AppContainer by AppDataContainer(context, { database }, { TEST_NOW }) {
     fun close() = database.close()
 }

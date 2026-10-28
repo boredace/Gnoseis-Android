@@ -32,15 +32,27 @@ import kotlinx.coroutines.flow.Flow
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.entity.organization.OrganizationDao
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on inserts and updates (#50).
+ */
 class OrganizationRepository(
-    private val organizationDao: OrganizationDao
+    private val organizationDao: OrganizationDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun getOrganization(id: String): Organization = organizationDao.getOrganization(id)
     fun getOrganizationStream(id: String): Flow<Organization> = organizationDao.getOrganizationFlow(id)
     fun getOrganizationsStream(): Flow<List<Organization>> = organizationDao.getOrganizationsFlow()
     suspend fun getOrganizationByRowId(id: Long) : Organization = organizationDao.getOrganizationByRowId(id)
-    suspend fun addOrganization(organization: Organization) : Long = organizationDao.addOrganization(organization)
-    suspend fun  updateOrganization(organization: Organization) = organizationDao.updateOrganization(organization)
+    suspend fun addOrganization(organization: Organization) : Long =
+        now().let { organizationDao.addOrganization(organization.copy(createdAt = it, updatedAt = it)) }
+    /** Saves the organization's editable fields. Returns false if nothing changed. */
+    suspend fun updateOrganization(organization: Organization): Boolean =
+        organizationDao.updateOrganization(
+            id = organization.id,
+            organizationName = organization.organizationName,
+            comments = organization.comments,
+            now = now(),
+        ) > 0
     suspend fun deleteOrganizationById(recordId: String) = organizationDao.deleteOrganizationById(recordId)
 
 }

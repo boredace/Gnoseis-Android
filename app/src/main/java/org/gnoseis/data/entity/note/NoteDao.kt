@@ -31,7 +31,6 @@ package org.gnoseis.data.entity.note
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -46,8 +45,25 @@ interface NoteDao{
     fun getNotes(): Flow<List<Note>>
     @Insert
     suspend fun addNote(note: Note) : Long
-    @Update
-    suspend fun updateNote(note: Note)
+    /**
+     * Writes only the user-editable columns, and only when one of them changed, so saving
+     * an unchanged note doesn't move updatedAt. Never writes id, ownerDbId or createdAt.
+     * Returns the number of rows changed (0 or 1).
+     */
+    @Query(
+        "UPDATE Note SET title = :title, textContents = :textContents, " +
+                "createDate = :createDate, createDateTime = :createDateTime, updatedAt = :now " +
+                "WHERE id = :id AND (title IS NOT :title OR textContents IS NOT :textContents " +
+                "OR createDate IS NOT :createDate OR createDateTime IS NOT :createDateTime)"
+    )
+    suspend fun updateNote(
+        id: String,
+        title: String?,
+        textContents: String?,
+        createDate: Long,
+        createDateTime: Long,
+        now: Long,
+    ): Int
     @Query (
         "DELETE FROM Note WHERE id = :noteId"
     )

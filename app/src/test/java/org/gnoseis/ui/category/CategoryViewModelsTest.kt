@@ -45,6 +45,7 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -96,7 +97,7 @@ class CategoryViewModelsTest {
         val vm = mainDispatcherRule.viewModel { CategoryListViewModel(c.categoryRepository) }
         vm.categoryListPageState.test {
             assertEquals(emptyList<Category>(), awaitItem().categories)
-            val cat = Category(categoryName = "Work")
+            val cat = Category(categoryName = "Work").stamped()
             c.categoryRepository.addCategory(cat)
             assertEquals(listOf(cat), awaitItem().categories)
         }
@@ -106,9 +107,9 @@ class CategoryViewModelsTest {
 
     @Test
     fun details_loadsCategoryLinkedRecordsAndTabs() = runTest {
-        val cat = Category(categoryName = "Work")
-        val contact = Contact(nameLast = "Doe")
-        val note = Note(title = "n")
+        val cat = Category(categoryName = "Work").stamped()
+        val contact = Contact(nameLast = "Doe").stamped()
+        val note = Note(title = "n").stamped()
         c.categoryRepository.addCategory(cat)
         c.contactRepository.addContact(contact)
         c.noteRepository.addNote(note)
@@ -134,8 +135,8 @@ class CategoryViewModelsTest {
 
     @Test
     fun details_delete_removesCategoryAndLinks_andStateBecomesNull() = runTest {
-        val cat = Category(categoryName = "Work")
-        val contact = Contact(nameLast = "Doe")
+        val cat = Category(categoryName = "Work").stamped()
+        val contact = Contact(nameLast = "Doe").stamped()
         c.categoryRepository.addCategory(cat)
         c.contactRepository.addContact(contact)
         c.linkedRecordRepository.addLinkedRecord(link(cat.id, RecordType.Category, contact.id, RecordType.Contact))
@@ -218,7 +219,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_newLinkMode_saveAlsoLinksToSourceRecord() = runTest {
-        val note = Note(title = "n")
+        val note = Note(title = "n").stamped()
         c.noteRepository.addNote(note)
         val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Note, note.id)
         vm.updateCategoryName("Linked")
@@ -232,7 +233,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_editMode_loadsExistingAndSaveUpdates() = runTest {
-        val cat = Category(categoryName = "Old", comments = "c")
+        val cat = Category(categoryName = "Old", comments = "c").stamped()
         c.categoryRepository.addCategory(cat)
         val vm = editVm(cat.id, CategoryEditPageMode.EDIT)
 

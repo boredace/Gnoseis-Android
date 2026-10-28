@@ -40,5 +40,6 @@ data class LinkedRecord(
     val record1Id: String,
     val record2Id: String,
     val record1TypeId: Int,
-    val record2TypeId: Int
+    val record2TypeId: Int,
+    val createdAt: Long? = null,
 )

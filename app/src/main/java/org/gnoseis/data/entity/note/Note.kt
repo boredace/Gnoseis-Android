@@ -56,5 +56,8 @@ data class Note (
             .withZoneSameInstant(
                 ZoneOffset.UTC)
             .toInstant()
-            .toEpochMilli()
+            .toEpochMilli(),
+    /** System times (UTC epoch ms), set by the repository. Not the note date above. */
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
 )

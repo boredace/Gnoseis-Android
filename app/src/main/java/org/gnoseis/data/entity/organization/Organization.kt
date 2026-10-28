@@ -38,5 +38,7 @@ data class Organization(
     val id : String = UUID.randomUUID().toString(),
     val ownerDbId: String = "db1",
     val organizationName: String = "",
-    val comments: String? = null
+    val comments: String? = null,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
     )

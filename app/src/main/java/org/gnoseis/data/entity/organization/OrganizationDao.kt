@@ -31,7 +31,6 @@ package org.gnoseis.data.entity.organization
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -50,8 +49,23 @@ interface OrganizationDao {
     @Insert
     suspend fun addOrganization(organization: Organization): Long
 
-    @Update
-    suspend fun updateOrganization(organization: Organization)
+    /**
+     * Writes only the user-editable columns, and only when one of them changed, so saving
+     * an unchanged organization doesn't move updatedAt. Never writes id, ownerDbId or
+     * createdAt. Returns the number of rows changed (0 or 1).
+     */
+    @Query(
+        "UPDATE Organization SET organizationName = :organizationName, comments = :comments, " +
+                "updatedAt = :now " +
+                "WHERE id = :id AND (organizationName IS NOT :organizationName " +
+                "OR comments IS NOT :comments)"
+    )
+    suspend fun updateOrganization(
+        id: String,
+        organizationName: String,
+        comments: String?,
+        now: Long,
+    ): Int
     @Query (
         "DELETE FROM Organization WHERE id = :recordId"
     )

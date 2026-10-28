@@ -45,6 +45,7 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,7 +83,7 @@ class OrganizationViewModelsTest {
         val vm = mainDispatcherRule.viewModel { OrganizationListViewModel(c.organizationRepository) }
         vm.organizationListPageState.test {
             assertEquals(emptyList<Organization>(), awaitItem().organizations)
-            val org = Organization(organizationName = "Acme")
+            val org = Organization(organizationName = "Acme").stamped()
             c.organizationRepository.addOrganization(org)
             assertEquals(listOf(org), awaitItem().organizations)
         }
@@ -90,9 +91,9 @@ class OrganizationViewModelsTest {
 
     @Test
     fun details_loadsLinkedNotesAndContacts_andDeleteCleansUp() = runTest {
-        val org = Organization(organizationName = "Acme")
-        val contact = Contact(nameLast = "Doe")
-        val note = Note(title = "meeting")
+        val org = Organization(organizationName = "Acme").stamped()
+        val contact = Contact(nameLast = "Doe").stamped()
+        val note = Note(title = "meeting").stamped()
         c.organizationRepository.addOrganization(org)
         c.contactRepository.addContact(contact)
         c.noteRepository.addNote(note)
@@ -136,7 +137,7 @@ class OrganizationViewModelsTest {
 
     @Test
     fun edit_newLinkMode_savesAndLinks() = runTest {
-        val contact = Contact(nameLast = "Doe")
+        val contact = Contact(nameLast = "Doe").stamped()
         c.contactRepository.addContact(contact)
         val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Contact, contact.id)
         vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
@@ -154,7 +155,7 @@ class OrganizationViewModelsTest {
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
-        val org = Organization(organizationName = "Old", comments = "c")
+        val org = Organization(organizationName = "Old", comments = "c").stamped()
         c.organizationRepository.addOrganization(org)
         val vm = editVm(org.id, OrganizationEditPageMode.EDIT)
 

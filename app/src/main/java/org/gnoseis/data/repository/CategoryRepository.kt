@@ -32,14 +32,25 @@ import kotlinx.coroutines.flow.Flow
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.category.CategoryDao
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on inserts and updates (#50).
+ */
 class CategoryRepository(
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun getCategory(id: String): Category = categoryDao.getCategory(id)
     fun getCategoryStream(id: String): Flow<Category> = categoryDao.getCategoryFlow(id)
     fun getCategoriesStream(): Flow<List<Category>> = categoryDao.getCategoriesFlow()
     suspend fun getCategoryByRowId (rowId: Long) : Category = categoryDao.getCategoryByRowId(rowId)
-    suspend fun addCategory(category: Category): Long = categoryDao.addCategory(category)
-    suspend fun  updateCategory(category: Category) = categoryDao.updateCategory(category)
+    suspend fun addCategory(category: Category): Long =
+        now().let { categoryDao.addCategory(category.copy(createdAt = it, updatedAt = it)) }
+    /** Saves the category's editable fields. Returns false if nothing changed. */
+    suspend fun updateCategory(category: Category): Boolean = categoryDao.updateCategory(
+        id = category.id,
+        categoryName = category.categoryName,
+        comments = category.comments,
+        now = now(),
+    ) > 0
     suspend fun deleteCategoryById(categoryId: String) = categoryDao.deleteCategoryById(categoryId)
 }

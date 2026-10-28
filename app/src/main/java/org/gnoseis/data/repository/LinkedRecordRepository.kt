@@ -38,9 +38,12 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on new links (#50).
+ */
 class LinkedRecordRepository(
-    private val linkedRecordDao: LinkedRecordDao
-
+    private val linkedRecordDao: LinkedRecordDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
 
     // ********** Linked Categories **********
@@ -137,6 +140,7 @@ class LinkedRecordRepository(
             record2Id = linkedRecord.record2Id,
             record1TypeId = linkedRecord.record1TypeId,
             record2TypeId = linkedRecord.record2TypeId,
+            createdAt = now(),
         )
 
 

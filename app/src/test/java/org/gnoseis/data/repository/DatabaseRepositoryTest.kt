@@ -41,6 +41,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.note.Note
+import org.gnoseis.data.enums.RecordType
+import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -247,12 +249,24 @@ class DatabaseRepositoryTest {
         assertEquals(setOf("A", "B"), db().userTitles())
     }
 
-    /** Turns the exported [backup] into the backup the app made at database version 1. */
-    private fun downgradeBackupToVersion1(addLinks: SQLiteDatabase.() -> Unit = {}) =
+    /**
+     * Removes the columns v3 added (#50), so a database created by this build has the v1/v2
+     * schema again. v1 and v2 have the same schema; only MIGRATION_1_2 differs.
+     */
+    private fun dropV3Columns(execSQL: (String) -> Unit) {
+        listOf("Note", "Contact", "Organization", "Category", "Item").forEach {
+            execSQL("ALTER TABLE `$it` DROP COLUMN `createdAt`")
+            execSQL("ALTER TABLE `$it` DROP COLUMN `updatedAt`")
+        }
+        execSQL("ALTER TABLE `LinkedRecord` DROP COLUMN `createdAt`")
+    }
+
+    /** Turns the exported [backup] into the backup the app made at database [version] (1 or 2). */
+    private fun downgradeBackup(version: Int = 1, addLinks: SQLiteDatabase.() -> Unit = {}) =
         SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { raw ->
-            // v1 and v2 have the same schema and identity hash; only MIGRATION_1_2 differs
+            dropV3Columns(raw::execSQL)
             raw.addLinks()
-            raw.version = 1
+            raw.version = version
         }
 
     private fun SQLiteDatabase.link(id: String, record1Id: String, record2Id: String) = execSQL(
@@ -270,7 +284,7 @@ class DatabaseRepositoryTest {
     @Test
     fun import_backupFromOlderVersion_isMigrated_andRestored() = runTest {
         backupWithAThenAddB()
-        downgradeBackupToVersion1 {
+        downgradeBackup {
             link("first", "contact", "note")
             link("reversed", "note", "contact")
         }
@@ -279,19 +293,56 @@ class DatabaseRepositoryTest {
 
         assertEquals(setOf("A"), db().userTitles())
         assertEquals(listOf("first"), liveLinkIds())
-        assertEquals(2, db().openHelper.writableDatabase.version)
+        assertEquals(3, db().openHelper.writableDatabase.version)
     }
 
     /** #31: only the temporary copy is migrated, never the file the user picked. */
     @Test
     fun import_backupFromOlderVersion_leavesSelectedFileUnchanged() = runTest {
         backupWithAThenAddB()
-        downgradeBackupToVersion1 { link("first", "contact", "note"); link("same", "contact", "note") }
+        downgradeBackup { link("first", "contact", "note"); link("same", "contact", "note") }
         val before = backup.readBytes()
 
         assertTrue(repository.importDatabase(Uri.fromFile(backup)))
 
         assertTrue(before.contentEquals(backup.readBytes()))
+    }
+
+    private fun timestamps(sql: String): List<Long?> =
+        db().openHelper.writableDatabase.query(sql).use { c ->
+            c.moveToFirst()
+            List(c.columnCount) { if (c.isNull(it)) null else c.getLong(it) }
+        }
+
+    /** #50: a v2 backup has no timestamps; its rows import with NULL and nothing is stamped. */
+    @Test
+    fun import_v2Backup_restoresRowsWithNullTimestamps() = runTest {
+        backupWithAThenAddB()
+        downgradeBackup(version = 2) { link("l", "contact", "note") }
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
+        assertEquals(
+            listOf(null, null),
+            timestamps("SELECT createdAt, updatedAt FROM Note WHERE title = 'A'"),
+        )
+        assertEquals(listOf(null), timestamps("SELECT createdAt FROM LinkedRecord WHERE id = 'l'"))
+    }
+
+    /** #50: export then import keeps every stored timestamp exactly. */
+    @Test
+    fun exportThenImport_keepsTimestamps() = runTest {
+        db().noteDao().addNote(Note(title = "A", createdAt = 111, updatedAt = 222))
+        db().linkedRecordDao().addLinkedRecord(link("contact", RecordType.Contact, "note", RecordType.Note).copy(id = "l", createdAt = 333))
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        db().noteDao().addNote(Note(title = "B", createdAt = 999, updatedAt = 999))
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(setOf("A"), db().userTitles())
+        assertEquals(listOf(111L, 222L), timestamps("SELECT createdAt, updatedAt FROM Note WHERE title = 'A'"))
+        assertEquals(listOf(333L), timestamps("SELECT createdAt FROM LinkedRecord WHERE id = 'l'"))
     }
 
     /** #31: a backup from a newer version than the app is still refused. */
@@ -317,6 +368,7 @@ class DatabaseRepositoryTest {
             .build()
             .apply {
                 runBlocking { titles.forEach { noteDao().addNote(Note(title = it)) } }
+                dropV3Columns(openHelper.writableDatabase::execSQL)
                 openHelper.writableDatabase.version = 1
                 close()
             }

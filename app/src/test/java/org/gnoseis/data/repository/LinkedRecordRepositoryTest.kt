@@ -38,6 +38,7 @@ import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -56,10 +57,10 @@ class LinkedRecordRepositoryTest {
 
     @Test
     fun linkedNotesByOrganizationId_returnsNotesLinkedToThatOrganization() = runTest {
-        val org = Organization(organizationName = "Acme")
-        val item = Item(itemName = "Laptop")
-        val orgNote = Note(title = "org note")
-        val itemNote = Note(title = "item note")
+        val org = Organization(organizationName = "Acme").stamped()
+        val item = Item(itemName = "Laptop").stamped()
+        val orgNote = Note(title = "org note").stamped()
+        val itemNote = Note(title = "item note").stamped()
         c.organizationRepository.addOrganization(org)
         c.itemRepository.addItem(item)
         c.noteRepository.addNote(orgNote)
@@ -73,8 +74,8 @@ class LinkedRecordRepositoryTest {
 
     @Test
     fun addLinkedRecord_ignoresDuplicates_inBothDirections() = runTest {
-        val org = Organization(organizationName = "Acme")
-        val note = Note(title = "n")
+        val org = Organization(organizationName = "Acme").stamped()
+        val note = Note(title = "n").stamped()
         c.organizationRepository.addOrganization(org)
         c.noteRepository.addNote(note)
 

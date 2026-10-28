@@ -39,5 +39,7 @@ data class Category (
     val ownerDbId: String = "db1",
     val parentId: String? = null,
     val categoryName: String = "New Category",
-    val comments: String? = null
+    val comments: String? = null,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
 )

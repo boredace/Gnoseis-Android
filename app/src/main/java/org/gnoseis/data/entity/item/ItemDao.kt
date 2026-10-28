@@ -31,7 +31,6 @@ package org.gnoseis.data.entity.item
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -50,8 +49,21 @@ interface ItemDao {
 
     @Insert
     suspend fun addItem(item: Item): Long
-    @Update
-    suspend fun updateItem(item: Item)
+    /**
+     * Writes only the user-editable columns, and only when one of them changed, so saving
+     * an unchanged item doesn't move updatedAt. Never writes id, ownerDbId, parentId or
+     * createdAt. Returns the number of rows changed (0 or 1).
+     */
+    @Query(
+        "UPDATE Item SET itemName = :itemName, comments = :comments, updatedAt = :now " +
+                "WHERE id = :id AND (itemName IS NOT :itemName OR comments IS NOT :comments)"
+    )
+    suspend fun updateItem(
+        id: String,
+        itemName: String,
+        comments: String?,
+        now: Long,
+    ): Int
     @Query (
         "DELETE FROM Item WHERE id = :recordId"
     )

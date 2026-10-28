@@ -55,7 +55,7 @@ class ItemDaoTest {
         assertEquals(item, dao.getItem(item.id))
         assertEquals(item, dao.getItemByRowId(rowId))
 
-        dao.updateItem(item.copy(itemName = "Desktop"))
+        dao.updateItem(item.id, itemName = "Desktop", comments = item.comments, now = 5)
         assertEquals("Desktop", dao.getItemFlow(item.id).first().itemName)
 
         dao.deleteItemById(item.id)

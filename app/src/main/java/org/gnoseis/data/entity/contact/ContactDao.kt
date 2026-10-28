@@ -31,7 +31,6 @@ package org.gnoseis.data.entity.contact
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -46,8 +45,44 @@ interface ContactDao {
     suspend fun getContactByRowId(rowId: Long) : Contact
     @Insert
     suspend fun addContact(item: Contact) : Long
-    @Update
-    suspend fun update(contact:Contact)
+    /**
+     * Writes only the user-editable columns, and only when one of them changed, so saving
+     * an unchanged contact doesn't move updatedAt. Never writes id, ownerDbId or createdAt.
+     * Returns the number of rows changed (0 or 1).
+     */
+    @Query(
+        "UPDATE Contact SET nameLast = :nameLast, nameFirst = :nameFirst, " +
+                "jobTitle = :jobTitle, company = :company, " +
+                "phoneMain = :phoneMain, phoneMobile = :phoneMobile, " +
+                "phoneHome = :phoneHome, phoneWork = :phoneWork, " +
+                "emailMain = :emailMain, emailMobile = :emailMobile, " +
+                "emailHome = :emailHome, emailWork = :emailWork, " +
+                "comments = :comments, updatedAt = :now " +
+                "WHERE id = :id AND (nameLast IS NOT :nameLast OR nameFirst IS NOT :nameFirst " +
+                "OR jobTitle IS NOT :jobTitle OR company IS NOT :company " +
+                "OR phoneMain IS NOT :phoneMain OR phoneMobile IS NOT :phoneMobile " +
+                "OR phoneHome IS NOT :phoneHome OR phoneWork IS NOT :phoneWork " +
+                "OR emailMain IS NOT :emailMain OR emailMobile IS NOT :emailMobile " +
+                "OR emailHome IS NOT :emailHome OR emailWork IS NOT :emailWork " +
+                "OR comments IS NOT :comments)"
+    )
+    suspend fun update(
+        id: String,
+        nameLast: String,
+        nameFirst: String?,
+        jobTitle: String?,
+        company: String?,
+        phoneMain: String?,
+        phoneMobile: String?,
+        phoneHome: String?,
+        phoneWork: String?,
+        emailMain: String?,
+        emailMobile: String?,
+        emailHome: String?,
+        emailWork: String?,
+        comments: String?,
+        now: Long,
+    ): Int
     @Query (
         "DELETE FROM Contact WHERE id = :recordId"
     )
