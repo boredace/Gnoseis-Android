@@ -52,6 +52,8 @@ import org.gnoseis.data.entity.note.NoteDao
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.entity.organization.OrganizationDao
 import org.gnoseis.data.entity.search.SearchDao
+import org.gnoseis.data.entity.settings.Settings
+import org.gnoseis.data.entity.settings.SettingsDao
 import org.gnoseis.data.entity.sharing.Incoming
 import org.gnoseis.data.entity.sharing.SharedRecord
 
@@ -65,6 +67,7 @@ import org.gnoseis.data.entity.sharing.SharedRecord
         LinkedRecord::class,
         Note::class,
         Organization::class,
+        Settings::class,
         SharedRecord::class
     ],
     version = 3
@@ -78,6 +81,7 @@ abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun noteItemDao(): NoteItemDao
     abstract fun linkedRecordDao(): LinkedRecordDao
     abstract fun searchDao(): SearchDao
+    abstract fun settingsDao(): SettingsDao
     fun closeDatabase() {
         this.close()
     }
@@ -113,6 +117,7 @@ abstract class GnoseisDatabase : RoomDatabase() {
         /**
          * #50: system times (UTC epoch ms) for when a record was created and last changed,
          * and when a link was created. Existing rows keep NULL: their times are unknown.
+         * #51: the Settings table for settings that belong to the database.
          */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -121,6 +126,12 @@ abstract class GnoseisDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE `$table` ADD COLUMN `updatedAt` INTEGER")
                 }
                 db.execSQL("ALTER TABLE `LinkedRecord` ADD COLUMN `createdAt` INTEGER")
+                // Created empty: a missing row means "never"
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `Settings` (`settingId` INTEGER NOT NULL, " +
+                            "`settingName` TEXT NOT NULL, `valueInt` INTEGER, `valueText` TEXT, " +
+                            "PRIMARY KEY(`settingId`))"
+                )
             }
         }
 

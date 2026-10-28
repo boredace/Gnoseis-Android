@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "23845e2d62b64b7d13c1804f909305db",
+    "identityHash": "d4a4ee67bfc185f77bdb2d64f54028c7",
     "entities": [
       {
         "tableName": "Category",
@@ -495,6 +495,44 @@
         "foreignKeys": []
       },
       {
+        "tableName": "Settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`settingId` INTEGER NOT NULL, `settingName` TEXT NOT NULL, `valueInt` INTEGER, `valueText` TEXT, PRIMARY KEY(`settingId`))",
+        "fields": [
+          {
+            "fieldPath": "settingId",
+            "columnName": "settingId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "settingName",
+            "columnName": "settingName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valueInt",
+            "columnName": "valueInt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "valueText",
+            "columnName": "valueText",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "settingId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
         "tableName": "SharedRecord",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sharedWithDbId` TEXT NOT NULL, `shareOwnerDbId` TEXT NOT NULL, `recordId` TEXT NOT NULL, `recordTypeId` INTEGER NOT NULL, `explicitShare` INTEGER NOT NULL, `alsoShareLinked` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
@@ -554,7 +592,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '23845e2d62b64b7d13c1804f909305db')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd4a4ee67bfc185f77bdb2d64f54028c7')"
     ]
   }
 }

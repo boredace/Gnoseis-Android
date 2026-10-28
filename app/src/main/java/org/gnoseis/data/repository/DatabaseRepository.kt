@@ -39,23 +39,30 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.gnoseis.data.database.GnoseisDatabase
+import org.gnoseis.data.entity.settings.SettingKey
 import java.io.File
 import java.io.FileNotFoundException
 
 /**
  * Backs up and restores the app database while it stays open, so the DAOs and screens that
  * hold the [GnoseisDatabase] instance keep working and no restart is needed.
+ * [now] gives the system time (UTC epoch ms) saved as lastBackupAt (#51).
  */
 class DatabaseRepository (
     private val context: Context,
+    private val now: () -> Long = System::currentTimeMillis,
 ){
     /**
      * Writes a self-contained copy of the database to [destination], a file the user chose with
      * the system file picker (#32). The copy is made in a single transaction, so it is consistent
      * even if the app saves something at the same time.
+     *
+     * #51: the copy holds lastBackupAt = the time of this export. The live database gets the
+     * same time only once the copy is written, so a failed export changes nothing.
      */
     suspend fun exportDatabase(destination: Uri) : Boolean = withContext(Dispatchers.IO) {
         val temp = File.createTempFile(EXPORT_TEMP_PREFIX, ".db", context.cacheDir)
+        val lastBackup = SettingKey.LAST_BACKUP_AT.row(now())
         try {
             temp.delete() // SQLite creates the file itself
             val db = GnoseisDatabase.getDatabase(context)
@@ -73,11 +80,22 @@ class DatabaseRepository (
                     }
                     backup.version = live.version
                 }
+                backup.insertWithOnConflict(
+                    SETTINGS_TABLE,
+                    null,
+                    ContentValues().apply {
+                        put("settingId", lastBackup.settingId)
+                        put("settingName", lastBackup.settingName)
+                        put("valueInt", lastBackup.valueInt)
+                    },
+                    SQLiteDatabase.CONFLICT_REPLACE,
+                )
             }
             // "wt" truncates, so overwriting a longer file leaves no trailing bytes
             val output = context.contentResolver.openOutputStream(destination, "wt")
                 ?: throw FileNotFoundException("Cannot write to $destination")
             temp.inputStream().use { input -> output.use { input.copyTo(it) } }
+            db.settingsDao().upsert(lastBackup)
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -230,6 +248,7 @@ class DatabaseRepository (
 
     private companion object {
         const val ROOM_MASTER_TABLE = "room_master_table"
+        const val SETTINGS_TABLE = "Settings"
         const val EXPORT_TEMP_PREFIX = "gnoseis_export"
         const val IMPORT_TEMP_PREFIX = "gnoseis_import"
     }

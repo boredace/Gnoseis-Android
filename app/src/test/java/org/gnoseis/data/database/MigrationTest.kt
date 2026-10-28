@@ -138,7 +138,10 @@ class MigrationTest {
         assertEquals(emptyList<String>(), indexes)
     }
 
-    /** #50: rows from before v3 keep their data and get NULL timestamps, from v1 and from v2. */
+    /**
+     * #50: rows from before v3 keep their data and get NULL timestamps, from v1 and from v2.
+     * #51: the Settings table is created empty.
+     */
     @Test
     fun migrationTo3_keepsRows_withNullTimestamps() {
         for (version in listOf(1, 2)) {
@@ -165,6 +168,7 @@ class MigrationTest {
                     it.moveToFirst(); it.getInt(0)
                 }
             val title = sql.query("SELECT title FROM Note WHERE id = 'n'").use { it.moveToFirst(); it.getString(0) }
+            val settingsRows = sql.query("SELECT COUNT(*) FROM Settings").use { it.moveToFirst(); it.getInt(0) }
             val counts = listOf("Note", "Contact", "Organization", "Category", "Item")
                 .map { nonNullTimestamps(it, "createdAt, updatedAt") } +
                     nonNullTimestamps("LinkedRecord", "createdAt, NULL")
@@ -172,6 +176,7 @@ class MigrationTest {
 
             assertEquals("from v$version", "kept", title)
             assertEquals("from v$version", List(6) { 0 }, counts)
+            assertEquals("from v$version", 0, settingsRows)
         }
     }
 

@@ -37,6 +37,7 @@ import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.testutil.TEST_NOW
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.junit.After
@@ -61,6 +62,7 @@ class DeleteRecordUseCaseTest {
         noteRepository = c.noteRepository,
         organizationRepository = c.organizationRepository,
         linkedRecordRepository = c.linkedRecordRepository,
+        settingsRepository = c.settingsRepository,
     )
 
     @Test
@@ -122,6 +124,7 @@ class DeleteRecordUseCaseTest {
         DeleteRecordUseCase(
             contactRepository = c.contactRepository,
             linkedRecordRepository = c.linkedRecordRepository,
+            settingsRepository = c.settingsRepository,
         )(note.id)
 
         assertNotNull(c.noteRepository.getNoteStream(note.id).first())
@@ -137,5 +140,17 @@ class DeleteRecordUseCaseTest {
 
         assertEquals(1, c.noteRepository.getNotesStream().first().size)
         assertNull(c.categoryRepository.getCategoryStream("does-not-exist").first())
+    }
+
+    /** #51: every delete saves lastDeletionAt, for the Home backup reminder. */
+    @Test
+    fun delete_savesLastDeletionAt() = runTest {
+        val note = Note(title = "n")
+        c.noteRepository.addNote(note)
+        assertNull(c.settingsRepository.getLastDeletionAtStream().first())
+
+        useCase()(note.id)
+
+        assertEquals(TEST_NOW, c.settingsRepository.getLastDeletionAtStream().first())
     }
 }

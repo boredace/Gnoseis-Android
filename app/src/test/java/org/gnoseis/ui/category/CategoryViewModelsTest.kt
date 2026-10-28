@@ -116,7 +116,7 @@ class CategoryViewModelsTest {
         c.linkedRecordRepository.addLinkedRecord(link(cat.id, RecordType.Category, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, cat.id, RecordType.Category))
 
-        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository) }
+        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.categoryDetailsPageState.test {
             var state = awaitItem()
@@ -140,13 +140,15 @@ class CategoryViewModelsTest {
         c.categoryRepository.addCategory(cat)
         c.contactRepository.addContact(contact)
         c.linkedRecordRepository.addLinkedRecord(link(cat.id, RecordType.Category, contact.id, RecordType.Contact))
-        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository) }
+        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.categoryDetailsPageState.test {
             var state = awaitItem()
             while (state.category != cat) state = awaitItem()
             vm.deleteCategory()
             while (state.category != null) state = awaitItem()
+            // The delete is one transaction (#51), so the tabs may update after the category is gone
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(c.categoryRepository.getCategoriesStream().first().isEmpty())
         assertTrue(c.linkedRecordRepository.getRecordIdsLinkedToRecordId(contact.id).first().isEmpty())

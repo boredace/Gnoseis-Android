@@ -44,20 +44,21 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class OrganizationDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val organizationRepository: OrganizationRepository,
-    private var linkedRecordRepository: LinkedRecordRepository
-
-
+    private var linkedRecordRepository: LinkedRecordRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel(){
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             organizationRepository = organizationRepository,
             linkedRecordRepository = linkedRecordRepository,
+            settingsRepository = settingsRepository,
         )
     private var organizationId : String = checkNotNull(savedStateHandle.toRoute<OrganizationDetailsRoute>().organizationId)
 

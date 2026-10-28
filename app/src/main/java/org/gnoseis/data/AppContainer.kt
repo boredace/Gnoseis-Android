@@ -38,6 +38,7 @@ import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.data.repository.SearchRepository
+import org.gnoseis.data.repository.SettingsRepository
 
 interface  AppContainer {
     val databaseRepository: DatabaseRepository
@@ -48,6 +49,7 @@ interface  AppContainer {
     val organizationRepository: OrganizationRepository
     val linkedRecordRepository: LinkedRecordRepository
     val searchRepository: SearchRepository
+    val settingsRepository: SettingsRepository
 }
 
 class AppDataContainer(
@@ -59,7 +61,8 @@ class AppDataContainer(
 
     override val databaseRepository: DatabaseRepository by lazy {
         DatabaseRepository(
-            context
+            context,
+            now,
         )
     }
     override val categoryRepository: CategoryRepository by lazy{
@@ -101,6 +104,12 @@ class AppDataContainer(
     override val searchRepository: SearchRepository by lazy {
         SearchRepository(
             database().searchDao()
+        )
+    }
+    override val settingsRepository: SettingsRepository by lazy {
+        SettingsRepository(
+            database(),
+            now,
         )
     }
 }

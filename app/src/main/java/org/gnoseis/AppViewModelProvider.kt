@@ -69,7 +69,8 @@ object AppViewModelProvider {
             CategoryDetailsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.categoryRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {
@@ -88,7 +89,8 @@ object AppViewModelProvider {
             ContactDetailsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.contactRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {
@@ -107,7 +109,8 @@ object AppViewModelProvider {
             ItemDetailsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.itemRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {
@@ -126,7 +129,8 @@ object AppViewModelProvider {
             NoteDetailsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.noteRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {
@@ -145,7 +149,8 @@ object AppViewModelProvider {
             OrganizationDetailsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.organizationRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {
