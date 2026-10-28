@@ -43,7 +43,6 @@ import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
-import org.gnoseis.testutil.knownBug
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
 import org.junit.After
@@ -212,24 +211,35 @@ class NoteViewModelsTest {
      */
     @Test
     fun edit_editMode_savingWithoutChangingDate_keepsCreateDate() = runTest {
-        knownBug(
-            issue = 21,
-            "editing a note overwrites its creation day. NoteEditViewModel.onSave() sets createDate = editDate, which holds the full createDateTime timestamp. Fix: only change the dates when the user picks a new date.",
-        ) {
-            val createDateTime = 1_700_000_123_456L
-            val createDate = 1_699_920_000_000L
-            val note = Note(title = "Old", createDateTime = createDateTime, createDate = createDate)
-            c.noteRepository.addNote(note)
-            val vm = editVm(note.id, NoteEditPageMode.EDIT)
-            waitFor { !vm.pageState.value.isNew }
+        val createDateTime = 1_700_000_123_456L
+        val createDate = 1_699_920_000_000L
+        val note = Note(title = "Old", createDateTime = createDateTime, createDate = createDate)
+        c.noteRepository.addNote(note)
+        val vm = editVm(note.id, NoteEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
 
-            vm.updateTitle("New")
-            advanceTimeBy(501); runCurrent()
-            vm.onSave()
+        vm.updateTitle("New")
+        advanceTimeBy(501); runCurrent()
+        vm.onSave()
 
-            val saved = c.noteRepository.getNote(note.id)
-            assertEquals(createDateTime, saved.createDateTime)
-            assertEquals(createDate, saved.createDate)
-        }
+        val saved = c.noteRepository.getNote(note.id)
+        assertEquals(createDateTime, saved.createDateTime)
+        assertEquals(createDate, saved.createDate)
+    }
+
+    @Test
+    fun edit_editMode_savingAfterPickingDate_updatesCreateDate() = runTest {
+        val note = Note(title = "Old", createDateTime = 1_700_000_123_456L, createDate = 1_699_920_000_000L)
+        c.noteRepository.addNote(note)
+        val vm = editVm(note.id, NoteEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        val picked = 1_710_000_000_000L
+        vm.updateDate(picked)
+        vm.onSave()
+
+        val saved = c.noteRepository.getNote(note.id)
+        assertEquals(picked, saved.createDateTime)
+        assertEquals(picked, saved.createDate)
     }
 }

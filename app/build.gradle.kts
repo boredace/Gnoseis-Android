@@ -18,6 +18,22 @@ val githubSigningRequired = listOf(
     "GNOSEIS_GITHUB_KEY_ALIAS",
 )
 
+// Debug builds carry where they were built from: commits since the last release tag, the
+// commit, and ".dirty" for uncommitted changes, e.g. 0.3.0-debug.12+a1b2c3d. Without git (or
+// without a tag) the suffix is plain "-debug". See RELEASING.md.
+fun debugVersionNameSuffix(): String {
+    val described = runCatching {
+        providers.exec {
+            commandLine("git", "describe", "--tags", "--match", "v*", "--long", "--dirty")
+            isIgnoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }.getOrNull()
+    val match = described?.let { Regex("""-(\d+)-g([0-9a-f]+)(-dirty)?$""").find(it) }
+        ?: return "-debug"
+    val (commits, commit, dirty) = match.destructured
+    return "-debug.$commits+$commit" + if (dirty.isEmpty()) "" else ".dirty"
+}
+
 android {
     namespace = "org.gnoseis"
     compileSdk = 35
@@ -26,8 +42,8 @@ android {
         applicationId = "org.gnoseis"
         minSdk = 29
         targetSdk = 35
-        versionCode = 20_599
-        versionName = "0.2.5"
+        versionCode = 30_000
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -49,7 +65,7 @@ android {
         debug {
             // Installs next to a release build instead of replacing it
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            versionNameSuffix = debugVersionNameSuffix()
         }
         release {
             signingConfig = signingConfigs.getByName("github")

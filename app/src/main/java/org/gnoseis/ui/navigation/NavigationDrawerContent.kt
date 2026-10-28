@@ -44,6 +44,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navOptions
 import kotlinx.coroutines.launch
+import org.gnoseis.BuildConfig
 import org.gnoseis.ui.icons.SettingsIcon
 import org.gnoseis.ui.settings.SettingsPageRoute
 
@@ -55,7 +56,7 @@ fun DrawerContent(navController: NavHostController, drawerState: DrawerState) {
 
     ModalDrawerSheet {
         Spacer(Modifier.height(26.dp))
-        Text(text = "Gnoseis 0.2.5", Modifier.padding(horizontal = 28.dp))
+        Text(text = "Gnoseis ${BuildConfig.VERSION_NAME}", Modifier.padding(horizontal = 28.dp))
         Spacer(Modifier.height(18.dp))
 
         NavigationDrawerItems(navController, drawerState)

@@ -59,7 +59,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -170,15 +169,14 @@ fun LinkRecordsBody(
 ){
     var searchBoxValue = MutableStateFlow("")
 
-    val showKeyboard = remember { mutableStateOf(true) }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
+    var textTitle by remember { mutableStateOf("") }
 
-    // LaunchedEffect prevents endless focus request
-    LaunchedEffect(focusRequester) {
-        if (showKeyboard.equals(true)) {
+    // focus the search box and open the keyboard when the page opens empty
+    LaunchedEffect(Unit) {
+        if (textTitle.isEmpty()) {
             focusRequester.requestFocus()
-            delay(100) // Make sure you have delay here
             keyboard?.show()
         }
     }
@@ -186,7 +184,6 @@ fun LinkRecordsBody(
     Column(
         modifier = Modifier.padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
     ){
-        var textTitle by remember { mutableStateOf("") }
 
         Text(text="Results: ${results.size}  Selected $selectedCount")
         OutlinedTextField(
