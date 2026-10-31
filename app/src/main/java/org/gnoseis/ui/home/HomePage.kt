@@ -304,40 +304,40 @@ private fun MostLinked(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            return@Column
-        }
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = filterTypeId == null,
-                onClick = { filterTypeId = null },
-                label = { Text("All") },
-            )
-            BUBBLE_TYPES.forEach { type ->
-                val colors = recordTypeColors(type)
+        } else {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 FilterChip(
-                    selected = filterTypeId == type.recordTypeId,
-                    onClick = { filterTypeId = type.recordTypeId },
-                    label = { Text(pluralName(type)) },
-                    leadingIcon = {
-                        Box(
-                            Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(colors.outline)
-                        )
-                    },
+                    selected = filterTypeId == null,
+                    onClick = { filterTypeId = null },
+                    label = { Text("All") },
                 )
+                BUBBLE_TYPES.forEach { type ->
+                    val colors = recordTypeColors(type)
+                    FilterChip(
+                        selected = filterTypeId == type.recordTypeId,
+                        onClick = { filterTypeId = type.recordTypeId },
+                        label = { Text(pluralName(type)) },
+                        leadingIcon = {
+                            Box(
+                                Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.outline)
+                            )
+                        },
+                    )
+                }
             }
+            BubbleCluster(
+                records = pageState.mostLinked,
+                links = pageState.mostLinkedLinks,
+                filterTypeId = filterTypeId,
+                onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
+            )
         }
-        BubbleCluster(
-            records = pageState.mostLinked,
-            links = pageState.mostLinkedLinks,
-            filterTypeId = filterTypeId,
-            onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
-        )
     }
 }
 
