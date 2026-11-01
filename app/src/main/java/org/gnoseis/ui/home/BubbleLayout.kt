@@ -43,8 +43,9 @@ data class PlacedBubble(val x: Float, val y: Float, val diameter: Float)
  * Places the Most linked bubbles (#45). Sizes are relative: the most linked record gets the
  * largest bubble, bigger when there are fewer bubbles, and each other bubble's area is its
  * share of the top link count. The largest goes in the middle, and each next one at the free
- * spot nearest the middle, touching one already placed. The same counts and area always give
- * the same layout. If they don't fit, every bubble shrinks until they do.
+ * spot nearest the middle, touching one already placed. Then the whole group is moved so it's
+ * centred in the area. The same counts and area always give the same layout. If they don't
+ * fit, every bubble shrinks until they do.
  */
 object BubbleLayout {
     /** Diameters for [linkCounts], in the same order, before fitting. */
@@ -66,11 +67,22 @@ object BubbleLayout {
         val area = wanted.sumOf { (PI * it * it / 4).toDouble() }.toFloat()
         var scale = min(1f, sqrt(FILL * width * height / area))
         repeat(MAX_ATTEMPTS) {
-            pack(wanted.map { it * scale }, width, height)?.let { return it }
+            pack(wanted.map { it * scale }, width, height)?.let { return centred(it, width, height) }
             scale *= SHRINK
         }
         // Not reached for 10 bubbles in a usable area; overlap rather than leave one out.
         return wanted.map { PlacedBubble(width / 2, height / 2, it * scale) }
+    }
+
+    /** Moves [bubbles] so their bounds are centred. They already fit, so they still do. */
+    private fun centred(bubbles: List<PlacedBubble>, width: Float, height: Float): List<PlacedBubble> {
+        val left = bubbles.minOf { it.x - it.diameter / 2 }
+        val right = bubbles.maxOf { it.x + it.diameter / 2 }
+        val top = bubbles.minOf { it.y - it.diameter / 2 }
+        val bottom = bubbles.maxOf { it.y + it.diameter / 2 }
+        val dx = width / 2 - (left + right) / 2
+        val dy = height / 2 - (top + bottom) / 2
+        return bubbles.map { it.copy(x = it.x + dx, y = it.y + dy) }
     }
 
     private fun pack(diameters: List<Float>, width: Float, height: Float): List<PlacedBubble>? {

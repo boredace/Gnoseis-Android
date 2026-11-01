@@ -51,12 +51,23 @@ class BubbleLayoutTest {
         assertEquals(emptyList<PlacedBubble>(), BubbleLayout.layout(emptyList(), 358f, 360f))
     }
 
+    private fun assertCentred(bubbles: List<PlacedBubble>, width: Float, height: Float) {
+        assertEquals(width / 2, (bubbles.minOf { it.x - it.diameter / 2 } + bubbles.maxOf { it.x + it.diameter / 2 }) / 2, 0.01f)
+        assertEquals(height / 2, (bubbles.minOf { it.y - it.diameter / 2 } + bubbles.maxOf { it.y + it.diameter / 2 }) / 2, 0.01f)
+    }
+
     @Test
-    fun largestGoesInTheMiddle_andSizesFollowTheCounts() {
+    fun oneBubble_isInTheMiddle() {
+        val bubble = BubbleLayout.layout(listOf(3), 358f, 360f).single()
+        assertEquals(179f, bubble.x, 0.01f)
+        assertEquals(180f, bubble.y, 0.01f)
+    }
+
+    @Test
+    fun groupIsCentred_andSizesFollowTheCounts() {
         val bubbles = BubbleLayout.layout(listOf(3, 8, 1), 358f, 360f)
 
-        assertEquals(179f, bubbles[1].x, 0.01f)
-        assertEquals(180f, bubbles[1].y, 0.01f)
+        assertCentred(bubbles, 358f, 360f)
         assertTrue(bubbles[1].diameter > bubbles[0].diameter && bubbles[0].diameter > bubbles[2].diameter)
         assertEquals(0.48f * 358f, bubbles[1].diameter, 0.01f) // small counts aren't shrunk
     }
@@ -65,6 +76,7 @@ class BubbleLayoutTest {
     fun fewBubbles_areLarge_whateverTheCounts() {
         assertEquals(0.62f * 358f, BubbleLayout.layout(listOf(1), 358f, 360f)[0].diameter, 0.01f)
         val two = BubbleLayout.layout(listOf(1, 4), 358f, 360f)
+        assertCentred(two, 358f, 360f)
         assertEquals(0.52f * 358f, two[1].diameter, 0.01f)
         assertEquals(two[1].diameter / 2, two[0].diameter, 0.01f) // a quarter of the links, a quarter of the area
     }
@@ -87,6 +99,7 @@ class BubbleLayoutTest {
                 val bubbles = BubbleLayout.layout(counts, width, height)
                 assertEquals(counts.size, bubbles.size)
                 assertFitsWithoutOverlap(bubbles, width, height)
+                assertCentred(bubbles, width, height)
             }
         }
     }
