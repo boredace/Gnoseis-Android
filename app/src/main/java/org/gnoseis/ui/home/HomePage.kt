@@ -75,13 +75,9 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
@@ -145,6 +141,7 @@ fun HomePage(
     val pageState by pageViewModel.homePageState.collectAsState()
     HomePageScaffold(
         pageState = pageState,
+        setMostLinkedTypeId = pageViewModel::setMostLinkedTypeId,
         navMenuClick = navMenuClick,
         navigateToSettingsPage = navigateToSettingsPage,
         navigateToSearchPage = navigateToSearchPage,
@@ -160,6 +157,7 @@ fun HomePage(
 @Composable
 fun HomePageScaffold(
     pageState: HomePageState,
+    setMostLinkedTypeId: (Int?) -> Unit = {},
     navMenuClick: () -> Unit = {},
     navigateToSettingsPage: () -> Unit = {},
     navigateToSearchPage: () -> Unit = {},
@@ -202,7 +200,7 @@ fun HomePageScaffold(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             DateAndSearch(pageState.today, navigateToSearchPage)
-            MostLinked(pageState, navigateToRecordDetailsPage)
+            MostLinked(pageState, setMostLinkedTypeId, navigateToRecordDetailsPage)
             AddNew(navigateToNewRecordPage)
             RecentNotes(
                 notes = pageState.recentNotes,
@@ -277,9 +275,10 @@ private fun DateAndSearch(today: LocalDate, navigateToSearchPage: () -> Unit) {
 @Composable
 private fun MostLinked(
     pageState: HomePageState,
+    setMostLinkedTypeId: (Int?) -> Unit,
     navigateToRecordDetailsPage: (RecordType, String) -> Unit,
 ) {
-    var filterTypeId by rememberSaveable { mutableStateOf<Int?>(null) }
+    val filterTypeId = pageState.mostLinkedTypeId
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(text = "Most linked", style = MaterialTheme.typography.titleLarge)
@@ -289,21 +288,8 @@ private fun MostLinked(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (pageState.isLoaded && pageState.mostLinked.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(CLUSTER_HEIGHT)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Link records to see them here",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        if (pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId == null) {
+            EmptyCluster("Link records to see them here")
         } else {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -311,14 +297,14 @@ private fun MostLinked(
             ) {
                 FilterChip(
                     selected = filterTypeId == null,
-                    onClick = { filterTypeId = null },
+                    onClick = { setMostLinkedTypeId(null) },
                     label = { Text("All") },
                 )
                 BUBBLE_TYPES.forEach { type ->
                     val colors = recordTypeColors(type)
                     FilterChip(
                         selected = filterTypeId == type.recordTypeId,
-                        onClick = { filterTypeId = type.recordTypeId },
+                        onClick = { setMostLinkedTypeId(type.recordTypeId) },
                         label = { Text(pluralName(type)) },
                         leadingIcon = {
                             Box(
@@ -331,12 +317,41 @@ private fun MostLinked(
                     )
                 }
             }
-            BubbleCluster(
-                records = pageState.mostLinked,
-                links = pageState.mostLinkedLinks,
-                filterTypeId = filterTypeId,
-                onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
-            )
+            if (pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId != null) {
+                EmptyCluster(
+                    text = "No linked ${pluralName(RecordType.from(filterTypeId)).lowercase()} yet",
+                    showAllTypes = { setMostLinkedTypeId(null) },
+                )
+            } else {
+                BubbleCluster(
+                    records = pageState.mostLinked,
+                    links = pageState.mostLinkedLinks,
+                    onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
+                )
+            }
+        }
+    }
+}
+
+/** The Most linked area with [text] instead of bubbles, and a link back to all types if [showAllTypes] is set. */
+@Composable
+private fun EmptyCluster(text: String, showAllTypes: (() -> Unit)? = null) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CLUSTER_HEIGHT)
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (showAllTypes != null) {
+            TextButton(onClick = showAllTypes) { Text("Show all types") }
         }
     }
 }
@@ -345,7 +360,6 @@ private fun MostLinked(
 private fun BubbleCluster(
     records: List<LinkedRecordCount>,
     links: List<LinkEnds>,
-    filterTypeId: Int?,
     onClick: (LinkedRecordCount) -> Unit,
 ) {
     BoxWithConstraints(
@@ -378,14 +392,11 @@ private fun BubbleCluster(
         }
         records.forEachIndexed { index, record ->
             val bubble = bubbles[index]
-            val visible = filterTypeId == null || filterTypeId == record.recordTypeId
             Bubble(
                 record = record,
                 type = RecordType.from(record.recordTypeId),
                 diameter = bubble.diameter.dp,
-                modifier = Modifier
-                    .offset((bubble.x - bubble.diameter / 2).dp, (bubble.y - bubble.diameter / 2).dp)
-                    .alpha(if (visible) 1f else 0.2f),
+                modifier = Modifier.offset((bubble.x - bubble.diameter / 2).dp, (bubble.y - bubble.diameter / 2).dp),
                 onClick = { onClick(record) },
             )
         }

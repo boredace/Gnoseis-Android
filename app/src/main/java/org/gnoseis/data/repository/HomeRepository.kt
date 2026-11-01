@@ -41,7 +41,8 @@ class HomeRepository(
     private val homeDao: HomeDao,
 ) {
     fun getRecordCountsStream(): Flow<RecordCounts> = homeDao.getRecordCounts()
-    fun getMostLinkedStream(limit: Int): Flow<List<LinkedRecordCount>> = homeDao.getMostLinked(limit)
+    fun getMostLinkedStream(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>> =
+        homeDao.getMostLinked(limit, recordTypeId)
     fun getLinksAmongStream(recordIds: List<String>): Flow<List<LinkEnds>> =
         if (recordIds.isEmpty()) flowOf(emptyList()) else homeDao.getLinksAmong(recordIds)
     fun getRecentNotesStream(limit: Int): Flow<List<NoteSummary>> = homeDao.getRecentNotes(limit)

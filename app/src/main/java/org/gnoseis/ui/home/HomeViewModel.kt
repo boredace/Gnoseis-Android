@@ -32,6 +32,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -60,10 +61,19 @@ class HomeViewModel(
 ) : ViewModel() {
     private val todayDate = today()
 
+    /** The record type the Most linked filter chips picked, or null for all types. */
+    private val mostLinkedTypeId = MutableStateFlow<Int?>(null)
+
     private val mostLinked: Flow<MostLinked> =
-        homeRepository.getMostLinkedStream(MOST_LINKED_COUNT).flatMapLatest { records ->
-            homeRepository.getLinksAmongStream(records.map { it.id }).map { MostLinked(records, it) }
+        mostLinkedTypeId.flatMapLatest { typeId ->
+            homeRepository.getMostLinkedStream(MOST_LINKED_COUNT, typeId).flatMapLatest { records ->
+                homeRepository.getLinksAmongStream(records.map { it.id }).map { MostLinked(typeId, records, it) }
+            }
         }
+
+    fun setMostLinkedTypeId(typeId: Int?) {
+        mostLinkedTypeId.value = typeId
+    }
 
     private val notesPerDay: Flow<List<DayCount>> = run {
         val toDay = todayDate.toEpochDay()
@@ -108,6 +118,7 @@ class HomeViewModel(
             HomePageState(
                 today = todayDate,
                 counts = counts,
+                mostLinkedTypeId = mostLinked.typeId,
                 mostLinked = mostLinked.records,
                 mostLinkedLinks = mostLinked.links,
                 recentNotes = recentNotes,
@@ -124,7 +135,7 @@ class HomeViewModel(
                 HomePageState(today = todayDate),
             )
 
-    private data class MostLinked(val records: List<LinkedRecordCount>, val links: List<LinkEnds>)
+    private data class MostLinked(val typeId: Int?, val records: List<LinkedRecordCount>, val links: List<LinkEnds>)
 
     companion object {
         private const val TIMEOUT_MILLIS = 5_000L
@@ -138,6 +149,8 @@ class HomeViewModel(
 data class HomePageState(
     val today: LocalDate,
     val counts: RecordCounts = RecordCounts(),
+    /** The record type [mostLinked] is filtered to, or null for all types. */
+    val mostLinkedTypeId: Int? = null,
     /** Most linked first, at most [HomeViewModel.MOST_LINKED_COUNT]. */
     val mostLinked: List<LinkedRecordCount> = emptyList(),
     /** Links between two of [mostLinked]. */

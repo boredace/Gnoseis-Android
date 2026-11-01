@@ -242,6 +242,31 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun mostLinkedFilter_showsTheTopRecordsOfThatType_andAllAgain() = runTest {
+        val contact = Contact(nameLast = "Doe")
+        val org = Organization(organizationName = "Acme")
+        val note = Note(title = "n")
+        c.contactRepository.addContact(contact)
+        c.organizationRepository.addOrganization(org)
+        c.noteRepository.addNote(note)
+        c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, org.id, RecordType.Organization))
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
+        val vm = vm()
+        vm.awaitState { it.mostLinked.size == 2 }
+
+        vm.setMostLinkedTypeId(RecordType.Organization.recordTypeId)
+        val orgs = vm.awaitState { it.mostLinkedTypeId == RecordType.Organization.recordTypeId }
+        assertEquals(listOf(org.id), orgs.mostLinked.map { it.id })
+        assertEquals(emptyList<Any>(), orgs.mostLinkedLinks)
+
+        vm.setMostLinkedTypeId(RecordType.Item.recordTypeId)
+        assertEquals(emptyList<Any>(), vm.awaitState { it.mostLinkedTypeId == RecordType.Item.recordTypeId }.mostLinked)
+
+        vm.setMostLinkedTypeId(null)
+        assertEquals(listOf(contact.id, org.id), vm.awaitState { it.mostLinkedTypeId == null && it.mostLinked.size == 2 }.mostLinked.map { it.id })
+    }
+
+    @Test
     fun noLinks_noMostLinked() = runTest {
         c.contactRepository.addContact(Contact(nameLast = "Doe"))
 

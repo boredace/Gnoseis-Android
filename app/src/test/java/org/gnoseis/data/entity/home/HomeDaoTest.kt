@@ -96,9 +96,28 @@ class HomeDaoTest {
                 LinkedRecordCount("g", "Work", RecordType.Category.recordTypeId, 2),
                 LinkedRecordCount("i", "Laptop", RecordType.Item.recordTypeId, 1),
             ),
-            dao.getMostLinked(10).first(),
+            dao.getMostLinked(10, null).first(),
         )
-        assertEquals(listOf("c", "o"), dao.getMostLinked(2).first().map { it.id })
+        assertEquals(listOf("c", "o"), dao.getMostLinked(2, null).first().map { it.id })
+    }
+
+    @Test
+    fun mostLinked_ofOneType_onlyHasThatType() = runTest {
+        db.contactDao().addContact(Contact(id = "c", nameLast = "Doe"))
+        db.categoryDao().addCategory(Category(id = "g1", categoryName = "Work"))
+        db.categoryDao().addCategory(Category(id = "g2", categoryName = "Home"))
+        db.categoryDao().addCategory(Category(id = "unlinked", categoryName = "Spare"))
+        note("n1"); note("n2"); note("n3")
+        addLink("c", RecordType.Contact, "n1", RecordType.Note)
+        addLink("c", RecordType.Contact, "n2", RecordType.Note)
+        addLink("c", RecordType.Contact, "n3", RecordType.Note)
+        addLink("g1", RecordType.Category, "n1", RecordType.Note)
+        addLink("g2", RecordType.Category, "n1", RecordType.Note)
+        addLink("g2", RecordType.Category, "c", RecordType.Contact)
+
+        assertEquals(listOf("g2", "g1"), dao.getMostLinked(10, RecordType.Category.recordTypeId).first().map { it.id })
+        assertEquals(listOf("g2"), dao.getMostLinked(1, RecordType.Category.recordTypeId).first().map { it.id })
+        assertEquals(emptyList<LinkedRecordCount>(), dao.getMostLinked(10, RecordType.Item.recordTypeId).first())
     }
 
     @Test
@@ -107,7 +126,7 @@ class HomeDaoTest {
         note("n")
         addLink("c", RecordType.Contact, "n", RecordType.Note)
 
-        assertEquals("Doe", dao.getMostLinked(10).first().single().name)
+        assertEquals("Doe", dao.getMostLinked(10, null).first().single().name)
     }
 
     @Test
@@ -186,7 +205,7 @@ class HomeDaoTest {
         db.contactDao().addContact(Contact(id = "c", nameLast = "Doe"))
         note("n")
 
-        dao.getMostLinked(10).test {
+        dao.getMostLinked(10, null).test {
             assertEquals(emptyList<LinkedRecordCount>(), awaitItem())
             addLink("c", RecordType.Contact, "n", RecordType.Note)
             assertEquals(listOf("c"), awaitItem().map { it.id })

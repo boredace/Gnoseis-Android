@@ -48,6 +48,7 @@ interface HomeDao {
     /**
      * Contacts, organizations, categories and items with the most links, counting links in
      * either direction (links from notes too). Notes are never included. Ties go by name.
+     * With a [recordTypeId], only records of that type.
      */
     @Query(
         "SELECT r.id, r.name, r.recordTypeId, COUNT(*) AS linkCount FROM (" +
@@ -56,9 +57,10 @@ interface HomeDao {
                 "UNION ALL SELECT id, COALESCE(categoryName, ''), 4 FROM Category " +
                 "UNION ALL SELECT id, COALESCE(itemName, ''), 5 FROM Item" +
                 ") AS r JOIN LinkedRecord AS l ON l.record1Id = r.id OR l.record2Id = r.id " +
+                "WHERE :recordTypeId IS NULL OR r.recordTypeId = :recordTypeId " +
                 "GROUP BY r.id ORDER BY linkCount DESC, r.name COLLATE NOCASE, r.id LIMIT :limit"
     )
-    fun getMostLinked(limit: Int): Flow<List<LinkedRecordCount>>
+    fun getMostLinked(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>>
 
     /** The links whose both ends are in [recordIds]. */
     @Query(
