@@ -58,7 +58,21 @@ class BubbleLayoutTest {
         assertEquals(179f, bubbles[1].x, 0.01f)
         assertEquals(180f, bubbles[1].y, 0.01f)
         assertTrue(bubbles[1].diameter > bubbles[0].diameter && bubbles[0].diameter > bubbles[2].diameter)
-        assertEquals(BubbleLayout.diameterFor(8), bubbles[1].diameter, 0.01f) // small counts aren't shrunk
+        assertEquals(0.48f * 358f, bubbles[1].diameter, 0.01f) // small counts aren't shrunk
+    }
+
+    @Test
+    fun fewBubbles_areLarge_whateverTheCounts() {
+        assertEquals(0.62f * 358f, BubbleLayout.layout(listOf(1), 358f, 360f)[0].diameter, 0.01f)
+        val two = BubbleLayout.layout(listOf(1, 4), 358f, 360f)
+        assertEquals(0.52f * 358f, two[1].diameter, 0.01f)
+        assertEquals(two[1].diameter / 2, two[0].diameter, 0.01f) // a quarter of the links, a quarter of the area
+    }
+
+    @Test
+    fun smallestBubble_isAtLeastAThirdOfTheLargest() {
+        val diameters = BubbleLayout.diametersFor(listOf(1000, 1), 358f, 360f)
+        assertEquals(0.36f * diameters[0], diameters[1], 0.01f)
     }
 
     @Test

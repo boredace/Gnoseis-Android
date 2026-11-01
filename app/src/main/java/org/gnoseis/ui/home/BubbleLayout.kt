@@ -31,6 +31,7 @@ package org.gnoseis.ui.home
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -39,19 +40,29 @@ import kotlin.math.sqrt
 data class PlacedBubble(val x: Float, val y: Float, val diameter: Float)
 
 /**
- * Places the Most linked bubbles (#45). The largest goes in the middle, and each next one at
- * the free spot nearest the middle, touching one already placed. The same counts and area
- * always give the same layout. If they don't fit, every bubble shrinks until they do.
+ * Places the Most linked bubbles (#45). Sizes are relative: the most linked record gets the
+ * largest bubble, bigger when there are fewer bubbles, and each other bubble's area is its
+ * share of the top link count. The largest goes in the middle, and each next one at the free
+ * spot nearest the middle, touching one already placed. The same counts and area always give
+ * the same layout. If they don't fit, every bubble shrinks until they do.
  */
 object BubbleLayout {
-    /** Diameter for a record with [links] links, before fitting. */
-    fun diameterFor(links: Int): Float = MIN_DIAMETER + 4f * links
+    /** Diameters for [linkCounts], in the same order, before fitting. */
+    fun diametersFor(linkCounts: List<Int>, width: Float, height: Float): List<Float> {
+        val share = when (linkCounts.size) {
+            1 -> ONE_SHARE
+            2 -> TWO_SHARE
+            else -> MANY_SHARE
+        }
+        val largest = share * min(width, height)
+        val top = (linkCounts.maxOrNull() ?: 0).coerceAtLeast(1)
+        return linkCounts.map { max(MIN_OF_LARGEST * largest, largest * sqrt(it.toFloat() / top)) }
+    }
 
     /** Returns one bubble per entry of [linkCounts], in the same order. */
     fun layout(linkCounts: List<Int>, width: Float, height: Float): List<PlacedBubble> {
         if (linkCounts.isEmpty()) return emptyList()
-        val maxDiameter = MAX_SHARE * min(width, height)
-        val wanted = linkCounts.map { min(diameterFor(it), maxDiameter) }
+        val wanted = diametersFor(linkCounts, width, height)
         val area = wanted.sumOf { (PI * it * it / 4).toDouble() }.toFloat()
         var scale = min(1f, sqrt(FILL * width * height / area))
         repeat(MAX_ATTEMPTS) {
@@ -98,9 +109,13 @@ object BubbleLayout {
         return placed.map { it!! }
     }
 
-    const val MIN_DIAMETER = 52f
+    // Largest bubble's diameter as a share of the shorter side, for 1, 2 and more bubbles
+    private const val ONE_SHARE = 0.62f
+    private const val TWO_SHARE = 0.52f
+    private const val MANY_SHARE = 0.48f
+    /** Smallest bubble's diameter as a share of the largest, so names stay readable. */
+    private const val MIN_OF_LARGEST = 0.36f
     private const val GAP = 4f
-    private const val MAX_SHARE = 0.48f
     private const val FILL = 0.5f
     private const val SHRINK = 0.92f
     private const val MAX_ATTEMPTS = 30
