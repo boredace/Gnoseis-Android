@@ -345,6 +345,9 @@ private fun TypePicker(
     setMostLinkedTypeId: (Int?) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // The selection the menu shows. Set when it opens and left alone while it closes, so the menu
+    // doesn't change (or widen for the check column) during its exit animation.
+    var menuTypeId by remember { mutableStateOf(filterTypeId) }
     val filterType = filterTypeId?.let { RecordType.from(it) }
     val current = filterType?.let { pluralName(it) } ?: "All types"
     Box {
@@ -354,7 +357,10 @@ private fun TypePicker(
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             FilterChip(
                 selected = filterType != null,
-                onClick = { expanded = true },
+                onClick = {
+                    menuTypeId = filterTypeId
+                    expanded = true
+                },
                 label = { Text(current) },
                 leadingIcon = filterType?.let { type ->
                     { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), FilterChipDefaults.IconSize) }
@@ -373,19 +379,31 @@ private fun TypePicker(
                     setMostLinkedTypeId(null)
                 },
                 leadingIcon = { Icon(Icons.Outlined.BubbleChart, contentDescription = null) },
-                trailingIcon = { CurrentCheck(filterTypeId == null) },
+                trailingIcon = if (menuTypeId == null) {
+                    { Icon(Icons.Filled.Check, contentDescription = "Selected") }
+                } else null,
             )
             HorizontalDivider()
             types.forEach { typeCount ->
                 val type = RecordType.from(typeCount.recordTypeId)
                 DropdownMenuItem(
                     text = {
+                        // Menu rows are at most 280 dp wide. The count is measured first and never
+                        // wraps; at very large font sizes the name gets an ellipsis instead.
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = pluralName(type), modifier = Modifier.padding(end = 24.dp))
-                            Spacer(Modifier.weight(1f))
+                            Text(
+                                text = pluralName(type),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 12.dp),
+                            )
                             Text(
                                 text = linkCountText(typeCount.linkCount),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     },
@@ -394,14 +412,18 @@ private fun TypePicker(
                         setMostLinkedTypeId(typeCount.recordTypeId)
                     },
                     leadingIcon = { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), 24.dp) },
-                    trailingIcon = { CurrentCheck(filterTypeId == typeCount.recordTypeId) },
+                    // The check column is only kept while a type is picked, so with All types picked
+                    // the counts end at the menu's edge instead of before an empty column.
+                    trailingIcon = if (menuTypeId != null) {
+                        { CurrentCheck(menuTypeId == typeCount.recordTypeId) }
+                    } else null,
                 )
             }
         }
     }
 }
 
-/** The check on the current row of the type picker menu; keeps its space on the other rows so they line up. */
+/** The check on the picked type's row of the type picker menu; keeps its space on the other type rows so their counts line up. */
 @Composable
 private fun CurrentCheck(current: Boolean) {
     if (current) {
