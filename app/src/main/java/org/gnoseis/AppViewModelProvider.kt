@@ -40,6 +40,7 @@ import org.gnoseis.ui.category.CategoryListViewModel
 import org.gnoseis.ui.contact.ContactDetailsViewModel
 import org.gnoseis.ui.contact.ContactEditViewModel
 import org.gnoseis.ui.contact.ContactListViewModel
+import org.gnoseis.ui.home.HomeViewModel
 import org.gnoseis.ui.item.ItemDetailsViewModel
 import org.gnoseis.ui.item.ItemEditViewModel
 import org.gnoseis.ui.item.ItemListViewModel
@@ -98,6 +99,12 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.contactRepository,
                 gnoseisApplication().container.linkedRecordRepository,
+            )
+        }
+        initializer {
+            HomeViewModel(
+                gnoseisApplication().container.homeRepository,
+                gnoseisApplication().container.settingsRepository,
             )
         }
         initializer {

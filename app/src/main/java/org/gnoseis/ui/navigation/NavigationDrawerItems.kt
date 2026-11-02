@@ -29,18 +29,24 @@
 package org.gnoseis.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.DrawerState
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import kotlinx.coroutines.launch
 import org.gnoseis.ui.category.CategoryListRoute
 import org.gnoseis.ui.contact.ContactListRoute
+import org.gnoseis.ui.home.HomeRoute
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
 import org.gnoseis.ui.icons.ItemIcon
@@ -59,6 +65,22 @@ fun NavigationDrawerItems(
     var scope = rememberCoroutineScope()
     var currentBackStackEntryAsState = navController.currentBackStackEntryAsState()
     var destination = currentBackStackEntryAsState.value?.destination
+
+    NavigationDrawerItem(
+        icon = { Icon(Icons.Outlined.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        label = { Text(text = "Home") },
+        selected = destination?.hasRoute<HomeRoute>() == true,
+        onClick = {
+            navController.navigate(HomeRoute) {
+                this.launchSingleTop = true
+                this.restoreState = true
+            }
+            scope.launch {
+                drawerState.close()
+            }
+
+        }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
 
     NavigationDrawerItem(
         icon = { ContactIcon() },

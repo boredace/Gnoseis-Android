@@ -36,6 +36,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.ui.category.CategoryListViewModel
 import org.gnoseis.ui.contact.ContactListViewModel
+import org.gnoseis.ui.home.HomeViewModel
 import org.gnoseis.ui.item.ItemListViewModel
 import org.gnoseis.ui.note.NoteListViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
@@ -66,6 +67,7 @@ class AppViewModelProviderTest {
             BackupSettingsViewModel::class.java,
             CategoryListViewModel::class.java,
             ContactListViewModel::class.java,
+            HomeViewModel::class.java,
             ItemListViewModel::class.java,
             NoteListViewModel::class.java,
             OrganizationListViewModel::class.java,
