@@ -67,6 +67,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,6 +81,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -220,11 +222,7 @@ fun HomePageScaffold(
                 navigateToNoteDetailsPage = { navigateToRecordDetailsPage(RecordType.Note, it) },
                 navigateToNoteListPage = { navigateToRecordListPage(RecordType.Note) },
             )
-            Text(
-                text = "Overview",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            SectionTitle("Overview", Modifier.padding(top = 12.dp))
             RecordCountTiles(pageState.counts, navigateToRecordListPage)
             NotesChart(pageState.notesPerDay)
             if (pageState.unlinkedNoteCount > 0) {
@@ -301,9 +299,8 @@ private fun MostLinked(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
+                SectionTitle(
                     text = "Most linked",
-                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .padding(end = 8.dp),
@@ -351,18 +348,23 @@ private fun TypePicker(
     val filterType = filterTypeId?.let { RecordType.from(it) }
     val current = filterType?.let { pluralName(it) } ?: "All types"
     Box {
-        FilterChip(
-            selected = filterType != null,
-            onClick = { expanded = true },
-            label = { Text(current) },
-            leadingIcon = filterType?.let { type ->
-                { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), FilterChipDefaults.IconSize) }
-            },
-            trailingIcon = {
-                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
-            },
-            modifier = Modifier.semantics { contentDescription = "Filter by record type, $current selected" },
-        )
+        // Laid out at its visible height, so the header row doesn't get the 48 dp touch-target padding
+        // and leave a gap above the subtitle. Taps near the chip still reach it: Compose extends the
+        // touch area of small clickable elements to the minimum touch target size.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            FilterChip(
+                selected = filterType != null,
+                onClick = { expanded = true },
+                label = { Text(current) },
+                leadingIcon = filterType?.let { type ->
+                    { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), FilterChipDefaults.IconSize) }
+                },
+                trailingIcon = {
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
+                },
+                modifier = Modifier.semantics { contentDescription = "Filter by record type, $current selected" },
+            )
+        }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text("All types") },
@@ -555,7 +557,7 @@ private fun Bubble(
 @Composable
 private fun AddNew(navigateToNewRecordPage: (RecordType) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel("Add new")
+        SectionTitle("Add new")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
                 RecordType.Note to "Note",
@@ -607,7 +609,7 @@ private fun RecentNotes(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SectionLabel("Recent notes")
+            SectionTitle("Recent notes")
             TextButton(onClick = navigateToNoteListPage) { Text("See all") }
         }
         if (isLoaded && notes.isEmpty()) {
@@ -886,12 +888,13 @@ private fun BackupCard(backup: BackupState, today: LocalDate, navigateToBackupSe
 
 // ---------- Helpers ----------
 
+/** The heading of a Home section (Most linked, Add new, Recent notes, Overview). Cards inside a section use titleMedium. */
 @Composable
-private fun SectionLabel(text: String) {
+private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.titleLarge,
+        modifier = modifier,
     )
 }
 
