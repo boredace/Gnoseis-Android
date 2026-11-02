@@ -39,6 +39,7 @@ import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -78,6 +79,7 @@ class ContactViewModelsTest {
             ),
             c.contactRepository,
             c.linkedRecordRepository,
+            c.getLinkSourceUseCase(),
         )
     }
 
@@ -253,5 +255,43 @@ class ContactViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(contact.copy(nameFirst = "John"), c.contactRepository.getContact(contact.id))
+    }
+
+    // ---------- Edit: link source (#7) ----------
+
+    @Test
+    fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
+        val source = Organization(organizationName = "Northwind Traders")
+        c.organizationRepository.addOrganization(source)
+        val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, source.id)
+
+        waitFor { vm.pageState.value.linkSource != null }
+        assertEquals(LinkSource(RecordType.Organization, "Northwind Traders"), vm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newAndEditMode_haveNoLinkSource() = runTest {
+        val source = Organization(organizationName = "Northwind Traders")
+        val record = Contact(nameLast = "Old")
+        c.organizationRepository.addOrganization(source)
+        c.contactRepository.addContact(record)
+
+        val newVm = editVm(null, ContactEditPageMode.NEW, RecordType.Organization, source.id)
+        val editVm = editVm(record.id, ContactEditPageMode.EDIT, RecordType.Organization, source.id)
+        waitFor { editVm.pageState.value.contact != null }
+
+        assertNull(newVm.pageState.value.linkSource)
+        assertNull(editVm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
+        val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, "missing-id")
+        vm.onEvent(ContactEditPageEvent.NameLastChanged("Doe"))
+
+        val id = vm.onSave()!!
+
+        assertNull(vm.pageState.value.linkSource)
+        assertEquals("Doe", c.contactRepository.getContact(id).nameLast)
     }
 }

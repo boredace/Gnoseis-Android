@@ -45,11 +45,14 @@ import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
 
 class CategoryEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val categoryRepository: CategoryRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
 
@@ -73,6 +76,13 @@ class CategoryEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val linkFromType = _pageState.value.linkFromType
+        val linkFromId = _pageState.value.linkFromId
+        if (_pageState.value.pageMode == CategoryEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+            viewModelScope.launch {
+                _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
+            }
+        }
         if (!categoryId.isNullOrEmpty()) {
             viewModelScope.launch {
                 categoryRepository.getCategory(categoryId).let {
@@ -184,6 +194,7 @@ class CategoryEditViewModel(
         val categoryId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
+        val linkSource: LinkSource? = null,
         val category: Category? = Category(),
     )
 

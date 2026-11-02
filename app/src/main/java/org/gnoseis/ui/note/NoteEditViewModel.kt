@@ -52,6 +52,8 @@ import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -62,6 +64,7 @@ class NoteEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val noteRepository: NoteRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
 
@@ -104,6 +107,13 @@ class NoteEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val linkFromType = _pageState.value.linkFromType
+        val linkFromId = _pageState.value.linkFromId
+        if (_pageState.value.pageMode == NoteEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+            viewModelScope.launch {
+                _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
+            }
+        }
         if (!noteId.isNullOrEmpty()) {
             viewModelScope.launch {
                 noteRepository.getNote(noteId).let {
@@ -237,6 +247,7 @@ class NoteEditViewModel(
         val noteId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
+        val linkSource: LinkSource? = null,
         val note: Note? = Note(),
     )
 

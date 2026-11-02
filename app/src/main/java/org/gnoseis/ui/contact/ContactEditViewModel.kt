@@ -43,6 +43,8 @@ import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ContactRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.domain.usecase.ValidateEmail
 import org.gnoseis.domain.usecase.ValidatePhone
 import org.gnoseis.domain.usecase.ValidationResult
@@ -51,6 +53,7 @@ class ContactEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val contactRepository: ContactRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
     private val contactId : String? = savedStateHandle.toRoute<ContactEditRoute>().contactId
@@ -82,6 +85,13 @@ class ContactEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val linkFromType = _pageState.value.linkFromType
+        val linkFromId = _pageState.value.linkFromId
+        if (_pageState.value.pageMode == ContactEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+            viewModelScope.launch {
+                _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
+            }
+        }
         if (!contactId.isNullOrEmpty()) {
             viewModelScope.launch {
                 contactRepository.getContact(contactId).let {
@@ -239,6 +249,7 @@ class ContactEditViewModel(
         val contactId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
+        val linkSource: LinkSource? = null,
         val contact: Contact? = Contact(),
     )
 

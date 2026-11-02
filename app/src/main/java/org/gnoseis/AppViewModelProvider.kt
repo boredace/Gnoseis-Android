@@ -34,6 +34,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.ui.category.CategoryDetailsViewModel
 import org.gnoseis.ui.category.CategoryEditViewModel
 import org.gnoseis.ui.category.CategoryListViewModel
@@ -79,6 +80,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.categoryRepository,
                 gnoseisApplication().container.linkedRecordRepository,
+                getLinkSourceUseCase(),
                 )
         }
         initializer {
@@ -99,6 +101,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.contactRepository,
                 gnoseisApplication().container.linkedRecordRepository,
+                getLinkSourceUseCase(),
             )
         }
         initializer {
@@ -124,7 +127,8 @@ object AppViewModelProvider {
             ItemEditViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.itemRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                getLinkSourceUseCase(),
             )
         }
         initializer {
@@ -145,6 +149,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.noteRepository,
                 gnoseisApplication().container.linkedRecordRepository,
+                getLinkSourceUseCase(),
             )
         }
         initializer {
@@ -164,7 +169,8 @@ object AppViewModelProvider {
             OrganizationEditViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.organizationRepository,
-                gnoseisApplication().container.linkedRecordRepository
+                gnoseisApplication().container.linkedRecordRepository,
+                getLinkSourceUseCase(),
             )
         }
 
@@ -192,3 +198,15 @@ object AppViewModelProvider {
 
 fun CreationExtras.gnoseisApplication(): GnoseisApplication =
     (this[AndroidViewModelFactory.APPLICATION_KEY] as GnoseisApplication)
+
+/** The use case the edit pages use to name the record a new record will be linked to (#7). */
+private fun CreationExtras.getLinkSourceUseCase(): GetLinkSourceUseCase =
+    gnoseisApplication().container.let {
+        GetLinkSourceUseCase(
+            categoryRepository = it.categoryRepository,
+            contactRepository = it.contactRepository,
+            itemRepository = it.itemRepository,
+            noteRepository = it.noteRepository,
+            organizationRepository = it.organizationRepository,
+        )
+    }
