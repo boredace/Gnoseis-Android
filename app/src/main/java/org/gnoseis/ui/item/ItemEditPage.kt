@@ -67,6 +67,7 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ITEM
 import org.gnoseis.data.enums.ItemEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -153,10 +154,11 @@ fun ItemEditScaffold(
         },
         floatingActionButton = {},
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(innerPadding)
             ) {
+                pageState.linkSource?.let { LinkSourceCard(it) }
                 ItemEditBody(
                     editState = editState,
                     onEvent = onEvent,
