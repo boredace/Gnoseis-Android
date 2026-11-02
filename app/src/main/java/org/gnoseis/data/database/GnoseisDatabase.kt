@@ -67,7 +67,7 @@ import org.gnoseis.data.entity.sharing.SharedRecord
         Organization::class,
         SharedRecord::class
     ],
-    version = 2
+    version = 3
 )
 abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
@@ -111,12 +111,27 @@ abstract class GnoseisDatabase : RoomDatabase() {
         }
 
         /**
+         * #50: system times (UTC epoch ms) for when a record was created and last changed,
+         * and when a link was created. Existing rows keep NULL: their times are unknown.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf("Note", "Contact", "Organization", "Category", "Item").forEach { table ->
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `createdAt` INTEGER")
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `updatedAt` INTEGER")
+                }
+                db.execSQL("ALTER TABLE `LinkedRecord` ADD COLUMN `createdAt` INTEGER")
+            }
+        }
+
+        /**
          * Every schema change must bump `version` and add a Migration here. Each version's
          * schema is exported to app/schemas and MigrationTest opens every one of them.
          * Declared after the migrations it lists, which are initialized in order.
          */
         internal val MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2,
+            MIGRATION_2_3,
         )
 
         @Volatile
@@ -136,11 +151,14 @@ abstract class GnoseisDatabase : RoomDatabase() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             CoroutineScope(Dispatchers.IO).launch {
+                                val now = System.currentTimeMillis()
                                 Instance?.noteDao()?.addNote(
                                     Note(
                                     ownerDbId = "yyy",
                                     title = "This is a default note",
                                     textContents = "This note is created when application was initialized. Feel free to delete or edit it as you please.",
+                                    createdAt = now,
+                                    updatedAt = now,
                                     )
                                 )
                             }

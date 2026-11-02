@@ -45,6 +45,7 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,7 +83,7 @@ class ItemViewModelsTest {
         val vm = mainDispatcherRule.viewModel { ItemListViewModel(c.itemRepository) }
         vm.itemListPageState.test {
             assertEquals(emptyList<Item>(), awaitItem().items)
-            val item = Item(itemName = "Laptop")
+            val item = Item(itemName = "Laptop").stamped()
             c.itemRepository.addItem(item)
             assertEquals(listOf(item), awaitItem().items)
         }
@@ -90,9 +91,9 @@ class ItemViewModelsTest {
 
     @Test
     fun details_loadsLinkedRecords_andDeleteCleansUp() = runTest {
-        val item = Item(itemName = "Laptop")
-        val cat = Category(categoryName = "Hardware")
-        val note = Note(title = "warranty")
+        val item = Item(itemName = "Laptop").stamped()
+        val cat = Category(categoryName = "Hardware").stamped()
+        val note = Note(title = "warranty").stamped()
         c.itemRepository.addItem(item)
         c.categoryRepository.addCategory(cat)
         c.noteRepository.addNote(note)
@@ -136,7 +137,7 @@ class ItemViewModelsTest {
 
     @Test
     fun edit_newLinkMode_savesAndLinks() = runTest {
-        val cat = Category(categoryName = "Hardware")
+        val cat = Category(categoryName = "Hardware").stamped()
         c.categoryRepository.addCategory(cat)
         val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, cat.id)
         vm.onEvent(ItemEditPageEvent.ItemNameChanged("Laptop"))
@@ -154,7 +155,7 @@ class ItemViewModelsTest {
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
-        val item = Item(itemName = "Old", comments = "c")
+        val item = Item(itemName = "Old", comments = "c").stamped()
         c.itemRepository.addItem(item)
         val vm = editVm(item.id, ItemEditPageMode.EDIT)
 

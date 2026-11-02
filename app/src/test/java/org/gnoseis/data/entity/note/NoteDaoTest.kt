@@ -55,8 +55,8 @@ class NoteDaoTest {
         assertEquals(note, dao.getNote(note.id))
         assertEquals(note, dao.getNoteByRowId(rowId))
 
-        dao.updateNote(note.copy(title = null, textContents = "changed"))
-        assertEquals(note.copy(title = null, textContents = "changed"), dao.getNoteStream(note.id).first())
+        dao.updateNote(note.id, title = null, textContents = "changed", note.createDate, note.createDateTime, now = 5)
+        assertEquals(note.copy(title = null, textContents = "changed", updatedAt = 5), dao.getNoteStream(note.id).first())
 
         dao.deleteNoteById(note.id)
         val deleted: Note? = dao.getNote(note.id)

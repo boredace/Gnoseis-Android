@@ -46,6 +46,7 @@ import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -67,12 +68,12 @@ class LinkRecordsViewModelTest {
         c.close()
     }
 
-    private val note = Note(title = "Source note")
-    private val otherNote = Note(title = "Other note")
-    private val contact = Contact(nameLast = "Doe", nameFirst = "Jane")
-    private val org = Organization(organizationName = "Acme")
-    private val item = Item(itemName = "Laptop")
-    private val category = Category(categoryName = "Work")
+    private val note = Note(title = "Source note").stamped()
+    private val otherNote = Note(title = "Other note").stamped()
+    private val contact = Contact(nameLast = "Doe", nameFirst = "Jane").stamped()
+    private val org = Organization(organizationName = "Acme").stamped()
+    private val item = Item(itemName = "Laptop").stamped()
+    private val category = Category(categoryName = "Work").stamped()
 
     private suspend fun seed() {
         c.noteRepository.addNote(note)
@@ -215,7 +216,7 @@ class LinkRecordsViewModelTest {
     @Test
     fun contactWithoutFirstName_appearsInResults() = runTest {
         seed()
-        val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
+        val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null).stamped()
         c.contactRepository.addContact(lastNameOnly)
 
         vm().searchResults.test {

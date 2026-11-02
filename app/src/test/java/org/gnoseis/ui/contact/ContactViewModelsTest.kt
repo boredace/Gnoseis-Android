@@ -43,6 +43,7 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.stamped
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -87,7 +88,7 @@ class ContactViewModelsTest {
         val vm = mainDispatcherRule.viewModel { ContactListViewModel(c.contactRepository) }
         vm.contactListPageState.test {
             assertEquals(emptyList<Contact>(), awaitItem().contacts)
-            val contact = Contact(nameLast = "Doe")
+            val contact = Contact(nameLast = "Doe").stamped()
             c.contactRepository.addContact(contact)
             assertEquals(listOf(contact), awaitItem().contacts)
         }
@@ -97,9 +98,9 @@ class ContactViewModelsTest {
 
     @Test
     fun details_loadsContactAndLinkedRecords_andDeleteCleansUp() = runTest {
-        val contact = Contact(nameLast = "Doe")
-        val org = Organization(organizationName = "Acme")
-        val item = Item(itemName = "Laptop")
+        val contact = Contact(nameLast = "Doe").stamped()
+        val org = Organization(organizationName = "Acme").stamped()
+        val item = Item(itemName = "Laptop").stamped()
         c.contactRepository.addContact(contact)
         c.organizationRepository.addOrganization(org)
         c.itemRepository.addItem(item)
@@ -217,14 +218,14 @@ class ContactViewModelsTest {
                 phoneMain = "1111", phoneMobile = "2222", phoneHome = "3333", phoneWork = "4444",
                 emailMain = "a@x.io", emailMobile = "b@x.io", emailHome = "c@x.io", emailWork = "d@x.io",
                 comments = "hi",
-            ),
+            ).stamped(),
             c.contactRepository.getContact(id),
         )
     }
 
     @Test
     fun edit_newLinkMode_linksToSource() = runTest {
-        val org = Organization(organizationName = "Acme")
+        val org = Organization(organizationName = "Acme").stamped()
         c.organizationRepository.addOrganization(org)
         val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, org.id)
         vm.onEvent(ContactEditPageEvent.NameLastChanged("Doe"))
@@ -236,7 +237,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
-        val contact = Contact(nameLast = "Doe", nameFirst = "Jane", emailMain = "a@x.io")
+        val contact = Contact(nameLast = "Doe", nameFirst = "Jane", emailMain = "a@x.io").stamped()
         c.contactRepository.addContact(contact)
         val vm = editVm(contact.id, ContactEditPageMode.EDIT)
 

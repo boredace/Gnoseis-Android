@@ -83,14 +83,14 @@ class CategoryDaoTest {
         val category = Category(categoryName = "old")
         dao.addCategory(category)
 
-        dao.updateCategory(category.copy(categoryName = "new", comments = "x"))
+        dao.updateCategory(category.id, categoryName = "new", comments = "x", now = 5)
 
-        assertEquals(category.copy(categoryName = "new", comments = "x"), dao.getCategory(category.id))
+        assertEquals(category.copy(categoryName = "new", comments = "x", updatedAt = 5), dao.getCategory(category.id))
     }
 
     @Test
     fun update_unknownRecord_isNoOp() = runTest {
-        dao.updateCategory(Category(categoryName = "ghost"))
+        assertEquals(0, dao.updateCategory("ghost", categoryName = "ghost", comments = null, now = 5))
         assertEquals(emptyList<Category>(), dao.getCategoriesFlow().first())
     }
 
@@ -123,8 +123,8 @@ class CategoryDaoTest {
             assertEquals(emptyList<Category>(), awaitItem())
             dao.addCategory(category)
             assertEquals(listOf(category), awaitItem())
-            dao.updateCategory(category.copy(categoryName = "b"))
-            assertEquals(listOf(category.copy(categoryName = "b")), awaitItem())
+            dao.updateCategory(category.id, categoryName = "b", comments = null, now = 5)
+            assertEquals(listOf(category.copy(categoryName = "b", updatedAt = 5)), awaitItem())
             dao.deleteCategoryById(category.id)
             assertEquals(emptyList<Category>(), awaitItem())
         }

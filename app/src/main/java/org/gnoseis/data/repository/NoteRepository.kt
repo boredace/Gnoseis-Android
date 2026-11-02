@@ -32,15 +32,28 @@ import kotlinx.coroutines.flow.Flow
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.note.NoteDao
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on inserts and updates (#50).
+ */
 class NoteRepository(
     private val noteDao: NoteDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun getNote(id: String) : Note = noteDao.getNote(id)
     fun getNoteStream(id: String) : Flow<Note> = noteDao.getNoteStream(id)
     fun getNotesStream(): Flow<List<Note>> = noteDao.getNotes()
     suspend fun getNoteByRowId (id: Long) : Note = noteDao.getNoteByRowId(id)
-    suspend fun addNote(note: Note) : Long = noteDao.addNote(note)
-    suspend fun updateNote(note: Note)  = noteDao.updateNote(note)
+    suspend fun addNote(note: Note) : Long =
+        now().let { noteDao.addNote(note.copy(createdAt = it, updatedAt = it)) }
+    /** Saves the note's editable fields. Returns false if nothing changed. */
+    suspend fun updateNote(note: Note): Boolean = noteDao.updateNote(
+        id = note.id,
+        title = note.title,
+        textContents = note.textContents,
+        createDate = note.createDate,
+        createDateTime = note.createDateTime,
+        now = now(),
+    ) > 0
     suspend fun deleteNoteById(noteId: String)  = noteDao.deleteNoteById(noteId)
 
 

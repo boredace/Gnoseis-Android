@@ -53,6 +53,8 @@ interface  AppContainer {
 class AppDataContainer(
     private val context: Context,
     private val database: () -> GnoseisDatabase = { GnoseisDatabase.getDatabase(context) },
+    /** System time (UTC epoch ms) the repositories stamp on records and links (#50). */
+    private val now: () -> Long = System::currentTimeMillis,
 ) : AppContainer {
 
     override val databaseRepository: DatabaseRepository by lazy {
@@ -62,32 +64,38 @@ class AppDataContainer(
     }
     override val categoryRepository: CategoryRepository by lazy{
         CategoryRepository(
-            database().categoryDao()
+            database().categoryDao(),
+            now,
         )
     }
     override val contactRepository: ContactRepository by lazy{
         ContactRepository(
-            database().contactDao()
+            database().contactDao(),
+            now,
         )
     }
     override val itemRepository: ItemRepository by lazy {
         ItemRepository(
-            database().itemDao()
+            database().itemDao(),
+            now,
         )
     }
     override val noteRepository: NoteRepository by lazy {
         NoteRepository(
-            database().noteDao()
+            database().noteDao(),
+            now,
         )
     }
     override val organizationRepository: OrganizationRepository by lazy {
         OrganizationRepository(
-            database().organizationDao()
+            database().organizationDao(),
+            now,
         )
     }
     override val linkedRecordRepository: LinkedRecordRepository by lazy {
         LinkedRecordRepository(
-            database().linkedRecordDao()
+            database().linkedRecordDao(),
+            now,
         )
     }
     override val searchRepository: SearchRepository by lazy {

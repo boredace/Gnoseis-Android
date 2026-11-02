@@ -31,7 +31,6 @@ package org.gnoseis.data.entity.category
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -46,8 +45,23 @@ interface CategoryDao {
     suspend fun getCategoryByRowId(rowId: Long) : Category
     @Insert
     suspend fun addCategory(item: Category): Long
-    @Update
-    suspend fun updateCategory(category: Category)
+    /**
+     * Writes only the user-editable columns, and only when one of them changed, so saving
+     * an unchanged category doesn't move updatedAt. Never writes id, ownerDbId, parentId
+     * or createdAt. Returns the number of rows changed (0 or 1).
+     */
+    @Query(
+        "UPDATE Category SET categoryName = :categoryName, comments = :comments, " +
+                "updatedAt = :now " +
+                "WHERE id = :id AND (categoryName IS NOT :categoryName " +
+                "OR comments IS NOT :comments)"
+    )
+    suspend fun updateCategory(
+        id: String,
+        categoryName: String,
+        comments: String?,
+        now: Long,
+    ): Int
     @Query (
         "DELETE FROM Category WHERE id = :categoryId"
     )

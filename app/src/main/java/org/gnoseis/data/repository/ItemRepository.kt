@@ -32,15 +32,26 @@ import kotlinx.coroutines.flow.Flow
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.item.ItemDao
 
+/**
+ * [now] gives the system time (UTC epoch ms) stamped on inserts and updates (#50).
+ */
 class ItemRepository(
-    private val itemDao: ItemDao
+    private val itemDao: ItemDao,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun getItem(id: String): Item = itemDao.getItem(id)
     fun getItemStream(id: String): Flow<Item> = itemDao.getItemFlow(id)
     fun getItemsStream(): Flow<List<Item>> = itemDao.getItemsFlow()
     suspend fun getItemByRowId(id: Long) : Item = itemDao.getItemByRowId(id)
 
-    suspend fun updateItem(item: Item) = itemDao.updateItem(item)
-    suspend fun addItem(item: Item): Long = itemDao.addItem(item)
+    /** Saves the item's editable fields. Returns false if nothing changed. */
+    suspend fun updateItem(item: Item): Boolean = itemDao.updateItem(
+        id = item.id,
+        itemName = item.itemName,
+        comments = item.comments,
+        now = now(),
+    ) > 0
+    suspend fun addItem(item: Item): Long =
+        now().let { itemDao.addItem(item.copy(createdAt = it, updatedAt = it)) }
     suspend fun deleteItemById(recordId: String) = itemDao.deleteItemById(recordId)
 }

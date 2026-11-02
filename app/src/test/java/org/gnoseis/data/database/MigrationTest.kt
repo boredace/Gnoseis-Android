@@ -138,6 +138,43 @@ class MigrationTest {
         assertEquals(emptyList<String>(), indexes)
     }
 
+    /** #50: rows from before v3 keep their data and get NULL timestamps, from v1 and from v2. */
+    @Test
+    fun migrationTo3_keepsRows_withNullTimestamps() {
+        for (version in listOf(1, 2)) {
+            val path = context.getDatabasePath(dbName(version)).apply { parentFile!!.mkdirs() }
+            createFromSchema(path, version)
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO Note (id, ownerDbId, title, createDateTime, createDate) VALUES ('n', 'db1', 'kept', 7, 0)")
+                db.execSQL("INSERT INTO Contact (id, ownerDbId, nameLast) VALUES ('c', 'db1', 'Doe')")
+                db.execSQL("INSERT INTO Organization (id, ownerDbId, organizationName) VALUES ('o', 'db1', 'Acme')")
+                db.execSQL("INSERT INTO Category (id, ownerDbId, categoryName) VALUES ('g', 'db1', 'Work')")
+                db.execSQL("INSERT INTO Item (id, ownerDbId, itemName) VALUES ('i', 'db1', 'Laptop')")
+                db.execSQL(
+                    "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
+                            "VALUES ('l', 'db1', 'c', 'n', 2, 1)"
+                )
+            }
+
+            val db = Room.databaseBuilder(context, GnoseisDatabase::class.java, dbName(version))
+                .addMigrations(*GnoseisDatabase.MIGRATIONS)
+                .build()
+            val sql = db.openHelper.writableDatabase
+            fun nonNullTimestamps(table: String, columns: String) =
+                sql.query("SELECT COUNT(*) FROM $table WHERE COALESCE($columns) IS NOT NULL").use {
+                    it.moveToFirst(); it.getInt(0)
+                }
+            val title = sql.query("SELECT title FROM Note WHERE id = 'n'").use { it.moveToFirst(); it.getString(0) }
+            val counts = listOf("Note", "Contact", "Organization", "Category", "Item")
+                .map { nonNullTimestamps(it, "createdAt, updatedAt") } +
+                    nonNullTimestamps("LinkedRecord", "createdAt, NULL")
+            db.close()
+
+            assertEquals("from v$version", "kept", title)
+            assertEquals("from v$version", List(6) { 0 }, counts)
+        }
+    }
+
     private fun dbName(version: Int) = "migration-from-$version"
 
     /** Creates a database exactly as Room would have created it at [version]. */
