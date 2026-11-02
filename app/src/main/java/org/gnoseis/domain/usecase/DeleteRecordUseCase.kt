@@ -34,6 +34,7 @@ import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.data.repository.OrganizationRepository
+import org.gnoseis.data.repository.SettingsRepository
 
 class DeleteRecordUseCase(
     private val categoryRepository: CategoryRepository? = null,
@@ -42,8 +43,10 @@ class DeleteRecordUseCase(
     private val noteRepository: NoteRepository? = null,
     private val organizationRepository: OrganizationRepository? = null,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val settingsRepository: SettingsRepository,
 ) {
-    suspend operator fun invoke(recordId: String) {
+    /** Deletes the record and its links, and saves lastDeletionAt, in one transaction (#51). */
+    suspend operator fun invoke(recordId: String) = settingsRepository.recordingDeletion {
         val deletedLinkedRecordCount = linkedRecordRepository.deleteLinksToRecordID(recordId)
 
         contactRepository?.deleteContactById(recordId)

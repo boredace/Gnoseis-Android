@@ -106,7 +106,7 @@ class ContactViewModelsTest {
         c.itemRepository.addItem(item)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, item.id, RecordType.Item))
-        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository) }
+        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
@@ -120,6 +120,8 @@ class ContactViewModelsTest {
             assertEquals(2, state.linkedRecordTabs.size)
             vm.deleteContact()
             while (state.contact != null) state = awaitItem()
+            // The delete is one transaction (#51), so the tabs may update after the contact is gone
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(c.linkedRecordRepository.getRecordIdsLinkedToRecordId(org.id).first().isEmpty())
         assertTrue(c.linkedRecordRepository.getRecordIdsLinkedToRecordId(item.id).first().isEmpty())

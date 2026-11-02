@@ -45,20 +45,21 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class CategoryDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val categoryRepository: CategoryRepository,
-    private var linkedRecordRepository: LinkedRecordRepository
-
-
+    private var linkedRecordRepository: LinkedRecordRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel(){
 
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             categoryRepository = categoryRepository,
             linkedRecordRepository = linkedRecordRepository,
+            settingsRepository = settingsRepository,
         )
 
     private var categoryId : String = checkNotNull(savedStateHandle.toRoute<CategoryDetailsRoute>().categoryId)

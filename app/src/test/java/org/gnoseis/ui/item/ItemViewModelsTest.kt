@@ -99,7 +99,7 @@ class ItemViewModelsTest {
         c.noteRepository.addNote(note)
         c.linkedRecordRepository.addLinkedRecord(link(item.id, RecordType.Item, cat.id, RecordType.Category))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, item.id, RecordType.Item))
-        val vm = mainDispatcherRule.viewModel { ItemDetailsViewModel(SavedStateHandle(mapOf("itemId" to item.id)), c.itemRepository, c.linkedRecordRepository) }
+        val vm = mainDispatcherRule.viewModel { ItemDetailsViewModel(SavedStateHandle(mapOf("itemId" to item.id)), c.itemRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
@@ -112,6 +112,8 @@ class ItemViewModelsTest {
             while (state.item != item) state = awaitItem()
             vm.deleteItem()
             while (state.item != null) state = awaitItem()
+            // The delete is one transaction (#51), so the tabs may update after the item is gone
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(c.linkedRecordRepository.getRecordIdsLinkedToRecordId(cat.id).first().isEmpty())
     }

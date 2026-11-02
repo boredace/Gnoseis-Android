@@ -41,12 +41,14 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.note.Note
+import org.gnoseis.data.entity.settings.SettingKey
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -59,7 +61,7 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class DatabaseRepositoryTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val repository = DatabaseRepository(context)
+    private val repository = DatabaseRepository(context, now = { EXPORT_TIME })
     private val backup = File(context.cacheDir, "gnoseis_test.backup")
 
     @Before
@@ -153,6 +155,40 @@ class DatabaseRepositoryTest {
 
         assertTrue(backup.length() < 10_000_000)
         assertEquals(setOf("A"), titlesInFile(backup))
+    }
+
+    private suspend fun liveSetting(key: SettingKey): Long? = db().settingsDao().getValueInt(key.id)
+
+    private fun settingsInFile(file: File): Map<Int, Long?> =
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { raw ->
+            raw.rawQuery("SELECT settingId, valueInt FROM Settings", null).use { c ->
+                buildMap { while (c.moveToNext()) put(c.getInt(0), if (c.isNull(1)) null else c.getLong(1)) }
+            }
+        }
+
+    /** #51: the backup and the live database both hold the time of the export. */
+    @Test
+    fun export_savesLastBackupAt_inTheCopyAndTheLiveDatabase() = runTest {
+        db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(500))
+
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+
+        assertEquals(
+            mapOf(SettingKey.LAST_BACKUP_AT.id to EXPORT_TIME, SettingKey.LAST_DELETION_AT.id to 500L),
+            settingsInFile(backup),
+        )
+        assertEquals(EXPORT_TIME, liveSetting(SettingKey.LAST_BACKUP_AT))
+    }
+
+    /** #51: a failed export leaves the live lastBackupAt as it was. */
+    @Test
+    fun export_whenTheCopyFails_leavesLastBackupAtUnchanged() = runTest {
+        db().settingsDao().upsert(SettingKey.LAST_BACKUP_AT.row(5))
+        val path = File(context.cacheDir, "missing-dir/x.backup")
+
+        assertFalse(repository.exportDatabase(Uri.fromFile(path)))
+
+        assertEquals(5L, liveSetting(SettingKey.LAST_BACKUP_AT))
     }
 
     @Test
@@ -250,10 +286,11 @@ class DatabaseRepositoryTest {
     }
 
     /**
-     * Removes the columns v3 added (#50), so a database created by this build has the v1/v2
-     * schema again. v1 and v2 have the same schema; only MIGRATION_1_2 differs.
+     * Removes what v3 added (#50 columns, #51 Settings table), so a database created by this
+     * build has the v1/v2 schema again. v1 and v2 have the same schema; only MIGRATION_1_2 differs.
      */
-    private fun dropV3Columns(execSQL: (String) -> Unit) {
+    private fun removeV3Schema(execSQL: (String) -> Unit) {
+        execSQL("DROP TABLE `Settings`")
         listOf("Note", "Contact", "Organization", "Category", "Item").forEach {
             execSQL("ALTER TABLE `$it` DROP COLUMN `createdAt`")
             execSQL("ALTER TABLE `$it` DROP COLUMN `updatedAt`")
@@ -264,7 +301,7 @@ class DatabaseRepositoryTest {
     /** Turns the exported [backup] into the backup the app made at database [version] (1 or 2). */
     private fun downgradeBackup(version: Int = 1, addLinks: SQLiteDatabase.() -> Unit = {}) =
         SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { raw ->
-            dropV3Columns(raw::execSQL)
+            removeV3Schema(raw::execSQL)
             raw.addLinks()
             raw.version = version
         }
@@ -345,6 +382,33 @@ class DatabaseRepositoryTest {
         assertEquals(listOf(333L), timestamps("SELECT createdAt FROM LinkedRecord WHERE id = 'l'"))
     }
 
+    /** #51: a v3 backup's settings replace the live ones; import itself saves nothing. */
+    @Test
+    fun import_v3Backup_bringsItsOwnSettings() = runTest {
+        db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(500))
+        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(600))
+        db().settingsDao().upsert(SettingKey.LAST_BACKUP_AT.row(700))
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertEquals(EXPORT_TIME, liveSetting(SettingKey.LAST_BACKUP_AT))
+        assertEquals(500L, liveSetting(SettingKey.LAST_DELETION_AT))
+    }
+
+    /** #51: a v2 backup has no Settings table, so it arrives with none of the values. */
+    @Test
+    fun import_v2Backup_leavesSettingsEmpty() = runTest {
+        backupWithAThenAddB()
+        downgradeBackup(version = 2)
+        db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(600))
+
+        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+
+        assertNull(liveSetting(SettingKey.LAST_BACKUP_AT))
+        assertNull(liveSetting(SettingKey.LAST_DELETION_AT))
+    }
+
     /** #31: a backup from a newer version than the app is still refused. */
     @Test
     fun import_backupFromNewerVersion_isRejected_andDataKept() = runTest {
@@ -368,7 +432,7 @@ class DatabaseRepositoryTest {
             .build()
             .apply {
                 runBlocking { titles.forEach { noteDao().addNote(Note(title = it)) } }
-                dropV3Columns(openHelper.writableDatabase::execSQL)
+                removeV3Schema(openHelper.writableDatabase::execSQL)
                 openHelper.writableDatabase.version = 1
                 close()
             }
@@ -442,5 +506,6 @@ class DatabaseRepositoryTest {
     private companion object {
         const val DB_NAME = "gnoseis_data"
         const val SEED_OWNER = "yyy"
+        const val EXPORT_TIME = 1_000L
     }
 }

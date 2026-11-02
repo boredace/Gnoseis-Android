@@ -45,19 +45,20 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class ItemDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val itemRepository: ItemRepository,
-    private var linkedRecordRepository: LinkedRecordRepository
-
-
+    private var linkedRecordRepository: LinkedRecordRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel(){
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             itemRepository = itemRepository,
             linkedRecordRepository = linkedRecordRepository,
+            settingsRepository = settingsRepository,
         )
     private var itemId : String = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId)
 
