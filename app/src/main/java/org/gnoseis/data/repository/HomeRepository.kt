@@ -36,6 +36,7 @@ import org.gnoseis.data.entity.home.LinkEnds
 import org.gnoseis.data.entity.home.LinkedRecordCount
 import org.gnoseis.data.entity.home.NoteSummary
 import org.gnoseis.data.entity.home.RecordCounts
+import org.gnoseis.data.entity.home.TypeLinkCount
 
 class HomeRepository(
     private val homeDao: HomeDao,
@@ -43,6 +44,7 @@ class HomeRepository(
     fun getRecordCountsStream(): Flow<RecordCounts> = homeDao.getRecordCounts()
     fun getMostLinkedStream(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>> =
         homeDao.getMostLinked(limit, recordTypeId)
+    fun getLinksPerTypeStream(): Flow<List<TypeLinkCount>> = homeDao.getLinksPerType()
     fun getLinksAmongStream(recordIds: List<String>): Flow<List<LinkEnds>> =
         if (recordIds.isEmpty()) flowOf(emptyList()) else homeDao.getLinksAmong(recordIds)
     fun getRecentNotesStream(limit: Int): Flow<List<NoteSummary>> = homeDao.getRecentNotes(limit)

@@ -33,12 +33,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,14 +53,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.BubbleChart
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,13 +82,17 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +108,7 @@ import org.gnoseis.data.entity.home.LinkEnds
 import org.gnoseis.data.entity.home.LinkedRecordCount
 import org.gnoseis.data.entity.home.NoteSummary
 import org.gnoseis.data.entity.home.RecordCounts
+import org.gnoseis.data.entity.home.TypeLinkCount
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
@@ -122,7 +134,7 @@ import java.time.temporal.ChronoUnit
 @Serializable
 object HomeRoute
 
-/** The record types shown as Most linked bubbles, in filter chip order. */
+/** The record types shown as Most linked bubbles, in type picker and legend order. */
 private val BUBBLE_TYPES = listOf(RecordType.Contact, RecordType.Organization, RecordType.Category, RecordType.Item)
 private val CLUSTER_HEIGHT = 360.dp
 
@@ -272,6 +284,7 @@ private fun DateAndSearch(today: LocalDate, navigateToSearchPage: () -> Unit) {
 
 // ---------- Most linked ----------
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MostLinked(
     pageState: HomePageState,
@@ -279,54 +292,147 @@ private fun MostLinked(
     navigateToRecordDetailsPage: (RecordType, String) -> Unit,
 ) {
     val filterTypeId = pageState.mostLinkedTypeId
+    val nothingLinked = pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId == null
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = "Most linked", style = MaterialTheme.typography.titleLarge)
+            // The chip wraps below the title when both don't fit on one line (large font scaling)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Most linked",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .padding(end = 8.dp),
+                )
+                if (!nothingLinked) {
+                    Box(Modifier.align(Alignment.CenterVertically)) {
+                        TypePicker(filterTypeId, pageState.mostLinkedTypes, setMostLinkedTypeId)
+                    }
+                }
+            }
             Text(
-                text = "Bigger bubble, more records link to it",
+                text = mostLinkedSubtitle(filterTypeId),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId == null) {
+        if (nothingLinked) {
             EmptyCluster("Link records to see them here")
+        } else if (pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId != null) {
+            EmptyCluster(
+                text = "No linked ${pluralName(RecordType.from(filterTypeId)).lowercase()} yet",
+                showAllTypes = { setMostLinkedTypeId(null) },
+            )
         } else {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = filterTypeId == null,
-                    onClick = { setMostLinkedTypeId(null) },
-                    label = { Text("All") },
-                )
-                BUBBLE_TYPES.forEach { type ->
-                    val colors = recordTypeColors(type)
-                    FilterChip(
-                        selected = filterTypeId == type.recordTypeId,
-                        onClick = { setMostLinkedTypeId(type.recordTypeId) },
-                        label = { Text(pluralName(type)) },
-                        leadingIcon = {
-                            Box(
-                                Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.outline)
-                            )
-                        },
-                    )
-                }
+            BubbleCluster(
+                records = pageState.mostLinked,
+                links = pageState.mostLinkedLinks,
+                onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
+            )
+            if (filterTypeId == null) {
+                Legend(pageState.mostLinked)
             }
-            if (pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId != null) {
-                EmptyCluster(
-                    text = "No linked ${pluralName(RecordType.from(filterTypeId)).lowercase()} yet",
-                    showAllTypes = { setMostLinkedTypeId(null) },
+        }
+    }
+}
+
+/** The Most linked header chip: shows the current type, and opens a menu of the types that have links. */
+@Composable
+private fun TypePicker(
+    filterTypeId: Int?,
+    types: List<TypeLinkCount>,
+    setMostLinkedTypeId: (Int?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val filterType = filterTypeId?.let { RecordType.from(it) }
+    val current = filterType?.let { pluralName(it) } ?: "All types"
+    Box {
+        FilterChip(
+            selected = filterType != null,
+            onClick = { expanded = true },
+            label = { Text(current) },
+            leadingIcon = filterType?.let { type ->
+                { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), FilterChipDefaults.IconSize) }
+            },
+            trailingIcon = {
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
+            },
+            modifier = Modifier.semantics { contentDescription = "Filter by record type, $current selected" },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("All types") },
+                onClick = {
+                    expanded = false
+                    setMostLinkedTypeId(null)
+                },
+                leadingIcon = { Icon(Icons.Outlined.BubbleChart, contentDescription = null) },
+                trailingIcon = { CurrentCheck(filterTypeId == null) },
+            )
+            HorizontalDivider()
+            types.forEach { typeCount ->
+                val type = RecordType.from(typeCount.recordTypeId)
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = pluralName(type), modifier = Modifier.padding(end = 24.dp))
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                text = linkCountText(typeCount.linkCount),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        setMostLinkedTypeId(typeCount.recordTypeId)
+                    },
+                    leadingIcon = { RecordTypeIcon(type, ColorFilter.tint(recordTypeColors(type).outline), 24.dp) },
+                    trailingIcon = { CurrentCheck(filterTypeId == typeCount.recordTypeId) },
                 )
-            } else {
-                BubbleCluster(
-                    records = pageState.mostLinked,
-                    links = pageState.mostLinkedLinks,
-                    onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
+            }
+        }
+    }
+}
+
+/** The check on the current row of the type picker menu; keeps its space on the other rows so they line up. */
+@Composable
+private fun CurrentCheck(current: Boolean) {
+    if (current) {
+        Icon(Icons.Filled.Check, contentDescription = "Selected")
+    } else {
+        Spacer(Modifier.size(24.dp))
+    }
+}
+
+/** A caption below the cluster naming the colour of each type among the shown bubbles. Not interactive. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Legend(records: List<LinkedRecordCount>) {
+    val shownTypeIds = records.map { it.recordTypeId }.toSet()
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+    ) {
+        BUBBLE_TYPES.filter { it.recordTypeId in shownTypeIds }.forEach { type ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(recordTypeColors(type).outline)
+                )
+                Text(
+                    text = pluralName(type),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -831,6 +937,11 @@ private fun singularName(type: RecordType) = when (type) {
     else -> pluralName(type).removeSuffix("s")
 }
 
+/** The Most linked subtitle for the type picked in the type picker, or for all types. */
+internal fun mostLinkedSubtitle(filterTypeId: Int?) =
+    if (filterTypeId == null) "Bigger bubble, more records link to it"
+    else "${pluralName(RecordType.from(filterTypeId))} with the most links"
+
 internal fun linkCountText(count: Int) = when (count) {
     0 -> "No links"
     1 -> "1 link"
@@ -898,6 +1009,7 @@ fun HomePagePreview() {
                         LinkedRecordCount("f", "Warehouse audit", RecordType.Item.recordTypeId, 7),
                     ),
                     mostLinkedLinks = listOf(LinkEnds("a", "b"), LinkEnds("a", "c"), LinkEnds("b", "e")),
+                    mostLinkedTypes = previewTypeLinkCounts,
                     recentNotes = listOf(
                         NoteSummary("n1", "Call with Maya about Phase 2", "Maya confirmed the revised timeline.", 1_792_713_600_000, 2),
                         NoteSummary("n2", "Ideas for the clinic website", "A simpler booking page.", 1_792_627_200_000, 0),
@@ -908,6 +1020,38 @@ fun HomePagePreview() {
                     unlinkedNotes = listOf(NoteSummary("n2", "Ideas for the clinic website", null, 0, 0)),
                     unlinkedNoteCount = 1,
                     backup = BackupState.ChangedSince(1_791_849_600_000, 18, deletedSince = false),
+                    isLoaded = true,
+                ),
+            )
+        }
+    }
+}
+
+private val previewTypeLinkCounts = listOf(
+    TypeLinkCount(RecordType.Contact.recordTypeId, 35),
+    TypeLinkCount(RecordType.Organization.recordTypeId, 25),
+    TypeLinkCount(RecordType.Category.recordTypeId, 29),
+    TypeLinkCount(RecordType.Item.recordTypeId, 12),
+)
+
+@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun HomePageContactsPickedPreview() {
+    GnoseisTheme {
+        Surface {
+            HomePageScaffold(
+                pageState = HomePageState(
+                    today = LocalDate.of(2026, 10, 25),
+                    mostLinkedTypeId = RecordType.Contact.recordTypeId,
+                    mostLinkedTypes = previewTypeLinkCounts,
+                    mostLinked = listOf(
+                        LinkedRecordCount("b", "Maya Ortiz", RecordType.Contact.recordTypeId, 16),
+                        LinkedRecordCount("e", "Daniel Park", RecordType.Contact.recordTypeId, 9),
+                        LinkedRecordCount("p", "Priya Nair", RecordType.Contact.recordTypeId, 6),
+                        LinkedRecordCount("o", "Owen Hughes", RecordType.Contact.recordTypeId, 4),
+                    ),
+                    mostLinkedLinks = listOf(LinkEnds("b", "e")),
                     isLoaded = true,
                 ),
             )

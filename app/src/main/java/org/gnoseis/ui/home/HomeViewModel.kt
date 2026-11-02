@@ -45,6 +45,7 @@ import org.gnoseis.data.entity.home.LinkEnds
 import org.gnoseis.data.entity.home.LinkedRecordCount
 import org.gnoseis.data.entity.home.NoteSummary
 import org.gnoseis.data.entity.home.RecordCounts
+import org.gnoseis.data.entity.home.TypeLinkCount
 import org.gnoseis.data.repository.HomeRepository
 import org.gnoseis.data.repository.SettingsRepository
 import java.time.LocalDate
@@ -61,15 +62,21 @@ class HomeViewModel(
 ) : ViewModel() {
     private val todayDate = today()
 
-    /** The record type the Most linked filter chips picked, or null for all types. */
+    /**
+     * The record type picked in the Most linked type picker, or null for all types. Kept here so
+     * it survives going to a Details page and back.
+     */
     private val mostLinkedTypeId = MutableStateFlow<Int?>(null)
 
     private val mostLinked: Flow<MostLinked> =
-        mostLinkedTypeId.flatMapLatest { typeId ->
-            homeRepository.getMostLinkedStream(MOST_LINKED_COUNT, typeId).flatMapLatest { records ->
-                homeRepository.getLinksAmongStream(records.map { it.id }).map { MostLinked(typeId, records, it) }
-            }
-        }
+        combine(
+            mostLinkedTypeId.flatMapLatest { typeId ->
+                homeRepository.getMostLinkedStream(MOST_LINKED_COUNT, typeId).flatMapLatest { records ->
+                    homeRepository.getLinksAmongStream(records.map { it.id }).map { MostLinked(typeId, records, it) }
+                }
+            },
+            homeRepository.getLinksPerTypeStream(),
+        ) { mostLinked, linksPerType -> mostLinked.copy(types = linksPerType) }
 
     fun setMostLinkedTypeId(typeId: Int?) {
         mostLinkedTypeId.value = typeId
@@ -119,6 +126,7 @@ class HomeViewModel(
                 today = todayDate,
                 counts = counts,
                 mostLinkedTypeId = mostLinked.typeId,
+                mostLinkedTypes = mostLinked.types,
                 mostLinked = mostLinked.records,
                 mostLinkedLinks = mostLinked.links,
                 recentNotes = recentNotes,
@@ -135,7 +143,12 @@ class HomeViewModel(
                 HomePageState(today = todayDate),
             )
 
-    private data class MostLinked(val typeId: Int?, val records: List<LinkedRecordCount>, val links: List<LinkEnds>)
+    private data class MostLinked(
+        val typeId: Int?,
+        val records: List<LinkedRecordCount>,
+        val links: List<LinkEnds>,
+        val types: List<TypeLinkCount> = emptyList(),
+    )
 
     companion object {
         private const val TIMEOUT_MILLIS = 5_000L
@@ -151,6 +164,8 @@ data class HomePageState(
     val counts: RecordCounts = RecordCounts(),
     /** The record type [mostLinked] is filtered to, or null for all types. */
     val mostLinkedTypeId: Int? = null,
+    /** The types offered in the type picker: those with links, in picker order, with their link counts. */
+    val mostLinkedTypes: List<TypeLinkCount> = emptyList(),
     /** Most linked first, at most [HomeViewModel.MOST_LINKED_COUNT]. */
     val mostLinked: List<LinkedRecordCount> = emptyList(),
     /** Links between two of [mostLinked]. */

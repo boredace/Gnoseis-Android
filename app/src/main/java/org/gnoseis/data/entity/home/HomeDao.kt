@@ -62,6 +62,19 @@ interface HomeDao {
     )
     fun getMostLinked(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>>
 
+    /**
+     * For contacts, organizations, categories and items, the number of links with at least one
+     * end of that type (links from notes too). A link between two records of the same type counts
+     * once. Types with no links are left out.
+     */
+    @Query(
+        "SELECT recordTypeId, COUNT(*) AS linkCount FROM (" +
+                "SELECT id, record1TypeId AS recordTypeId FROM LinkedRecord " +
+                "UNION SELECT id, record2TypeId FROM LinkedRecord" +
+                ") WHERE recordTypeId IN (2, 3, 4, 5) GROUP BY recordTypeId ORDER BY recordTypeId"
+    )
+    fun getLinksPerType(): Flow<List<TypeLinkCount>>
+
     /** The links whose both ends are in [recordIds]. */
     @Query(
         "SELECT record1Id, record2Id FROM LinkedRecord " +
@@ -124,6 +137,11 @@ data class RecordCounts(
 data class LinkedRecordCount(
     val id: String,
     val name: String,
+    val recordTypeId: Int,
+    val linkCount: Int,
+)
+
+data class TypeLinkCount(
     val recordTypeId: Int,
     val linkCount: Int,
 )

@@ -142,6 +142,24 @@ class HomeDaoTest {
     }
 
     @Test
+    fun linksPerType_countsSameTypeLinksOnce_andLinksFromNotes_andLeavesOutTypesWithNone() = runTest {
+        addLink("c1", RecordType.Contact, "c2", RecordType.Contact) // same type: counts once
+        addLink("c1", RecordType.Contact, "n", RecordType.Note)
+        addLink("n", RecordType.Note, "o", RecordType.Organization)
+        addLink("o", RecordType.Organization, "g", RecordType.Category)
+        addLink("n", RecordType.Note, "n2", RecordType.Note) // notes aren't a picker type
+
+        assertEquals(
+            listOf(
+                TypeLinkCount(RecordType.Contact.recordTypeId, 2),
+                TypeLinkCount(RecordType.Organization.recordTypeId, 2),
+                TypeLinkCount(RecordType.Category.recordTypeId, 1),
+            ),
+            dao.getLinksPerType().first(),
+        )
+    }
+
+    @Test
     fun recentNotes_newestFirst_withLinkCounts() = runTest {
         note("old", createDateTime = 1)
         note("mid", createDateTime = 2)

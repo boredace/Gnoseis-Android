@@ -40,6 +40,7 @@ import org.gnoseis.data.AppDataContainer
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.home.DayCount
+import org.gnoseis.data.entity.home.TypeLinkCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.entity.settings.SettingKey
@@ -267,6 +268,48 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun typePicker_offersOnlyTypesWithLinks_withTheirLinkCounts_andUpdatesLive() = runTest {
+        val contact = Contact(nameLast = "Doe")
+        val org = Organization(organizationName = "Acme")
+        val note = Note(title = "n")
+        c.contactRepository.addContact(contact)
+        c.organizationRepository.addOrganization(org)
+        c.noteRepository.addNote(note)
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
+        val vm = vm()
+
+        assertEquals(
+            listOf(TypeLinkCount(RecordType.Contact.recordTypeId, 1)),
+            vm.awaitState { it.mostLinkedTypes.isNotEmpty() }.mostLinkedTypes,
+        )
+
+        c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, org.id, RecordType.Organization))
+        assertEquals(
+            listOf(
+                TypeLinkCount(RecordType.Contact.recordTypeId, 2),
+                TypeLinkCount(RecordType.Organization.recordTypeId, 1),
+            ),
+            vm.awaitState { it.mostLinkedTypes.size == 2 }.mostLinkedTypes,
+        )
+    }
+
+    @Test
+    fun subtitle_followsTheFilter() = runTest {
+        c.contactRepository.addContact(Contact(nameLast = "Doe"))
+        val vm = vm()
+
+        assertEquals("Bigger bubble, more records link to it", mostLinkedSubtitle(vm.awaitState { true }.mostLinkedTypeId))
+        vm.setMostLinkedTypeId(RecordType.Contact.recordTypeId)
+        assertEquals(
+            "Contacts with the most links",
+            mostLinkedSubtitle(vm.awaitState { it.mostLinkedTypeId != null }.mostLinkedTypeId),
+        )
+        assertEquals("Organizations with the most links", mostLinkedSubtitle(RecordType.Organization.recordTypeId))
+        assertEquals("Categories with the most links", mostLinkedSubtitle(RecordType.Category.recordTypeId))
+        assertEquals("Items with the most links", mostLinkedSubtitle(RecordType.Item.recordTypeId))
+    }
+
+    @Test
     fun noLinks_noMostLinked() = runTest {
         c.contactRepository.addContact(Contact(nameLast = "Doe"))
 
@@ -274,6 +317,7 @@ class HomeViewModelTest {
 
         assertEquals(emptyList<Any>(), state.mostLinked)
         assertEquals(emptyList<Any>(), state.mostLinkedLinks)
+        assertEquals(emptyList<Any>(), state.mostLinkedTypes)
         assertNull(c.settingsRepository.getLastBackupAtStream().first())
     }
 
