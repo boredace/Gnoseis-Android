@@ -50,6 +50,8 @@ import org.gnoseis.ui.theme.ContactColorsDark
 import org.gnoseis.ui.theme.ContactColorsLight
 import org.gnoseis.ui.theme.ItemColorsDark
 import org.gnoseis.ui.theme.ItemColorsLight
+import org.gnoseis.ui.theme.NoteColorsDark
+import org.gnoseis.ui.theme.NoteColorsLight
 import org.gnoseis.ui.theme.OrganizationColorsDark
 import org.gnoseis.ui.theme.OrganizationColorsLight
 import org.gnoseis.ui.theme.RecordTypeColors
@@ -79,6 +81,7 @@ fun recordTypeColors(type: RecordType): RecordTypeColors {
         RecordType.Contact -> if (dark) ContactColorsDark else ContactColorsLight
         RecordType.Organization -> if (dark) OrganizationColorsDark else OrganizationColorsLight
         RecordType.Category -> if (dark) CategoryColorsDark else CategoryColorsLight
+        RecordType.Note -> if (dark) NoteColorsDark else NoteColorsLight
         else -> if (dark) ItemColorsDark else ItemColorsLight
     }
 }
