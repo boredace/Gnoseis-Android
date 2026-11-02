@@ -38,9 +38,11 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.contact.Contact
+import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -87,6 +89,7 @@ class CategoryViewModelsTest {
             ),
             c.categoryRepository,
             c.linkedRecordRepository,
+            c.getLinkSourceUseCase(),
         )
     }
 
@@ -250,5 +253,44 @@ class CategoryViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(listOf(cat.copy(categoryName = "New")), c.categoryRepository.getCategoriesStream().first())
+    }
+
+    // ---------- Edit: link source (#7) ----------
+
+    @Test
+    fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
+        val source = Item(itemName = "Laptop")
+        c.itemRepository.addItem(source)
+        val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Item, source.id)
+
+        waitFor { vm.pageState.value.linkSource != null }
+        assertEquals(LinkSource(RecordType.Item, "Laptop"), vm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newAndEditMode_haveNoLinkSource() = runTest {
+        val source = Item(itemName = "Laptop")
+        val record = Category(categoryName = "Old")
+        c.itemRepository.addItem(source)
+        c.categoryRepository.addCategory(record)
+
+        val newVm = editVm(null, CategoryEditPageMode.NEW, RecordType.Item, source.id)
+        val editVm = editVm(record.id, CategoryEditPageMode.EDIT, RecordType.Item, source.id)
+        waitFor { editVm.pageState.value.category != null }
+
+        assertNull(newVm.pageState.value.linkSource)
+        assertNull(editVm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
+        val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Item, "missing-id")
+        vm.updateCategoryName("Linked")
+        advanceTimeBy(501); runCurrent()
+
+        val id = vm.onSave()!!
+
+        assertNull(vm.pageState.value.linkSource)
+        assertEquals("Linked", c.categoryRepository.getCategory(id).categoryName)
     }
 }

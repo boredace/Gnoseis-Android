@@ -45,11 +45,14 @@ import org.gnoseis.data.enums.OrganizationEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.OrganizationRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
 
 class OrganizationEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val organizationRepository: OrganizationRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
 
@@ -74,6 +77,13 @@ class OrganizationEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val linkFromType = _pageState.value.linkFromType
+        val linkFromId = _pageState.value.linkFromId
+        if (_pageState.value.pageMode == OrganizationEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+            viewModelScope.launch {
+                _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
+            }
+        }
         if (!organizationId.isNullOrEmpty()) {
             viewModelScope.launch {
                 organizationRepository.getOrganization(organizationId).let {
@@ -198,6 +208,7 @@ class OrganizationEditViewModel(
         val organizationId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
+        val linkSource: LinkSource? = null,
         val organization: Organization? = Organization(),
     )
 

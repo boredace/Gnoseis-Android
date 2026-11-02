@@ -41,6 +41,7 @@ import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.enums.ItemEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -75,6 +76,7 @@ class ItemViewModelsTest {
                 SavedStateHandle(mapOf("itemId" to itemId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.itemRepository,
                 c.linkedRecordRepository,
+                c.getLinkSourceUseCase(),
             )
         }
 
@@ -170,5 +172,44 @@ class ItemViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(item.copy(itemName = "New"), c.itemRepository.getItem(item.id))
+    }
+
+    // ---------- Edit: link source (#7) ----------
+
+    @Test
+    fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
+        val source = Category(categoryName = "Hardware")
+        c.categoryRepository.addCategory(source)
+        val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, source.id)
+
+        waitFor { vm.pageState.value.linkSource != null }
+        assertEquals(LinkSource(RecordType.Category, "Hardware"), vm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newAndEditMode_haveNoLinkSource() = runTest {
+        val source = Category(categoryName = "Hardware")
+        val record = Item(itemName = "Old")
+        c.categoryRepository.addCategory(source)
+        c.itemRepository.addItem(record)
+
+        val newVm = editVm(null, ItemEditPageMode.NEW, RecordType.Category, source.id)
+        val editVm = editVm(record.id, ItemEditPageMode.EDIT, RecordType.Category, source.id)
+        waitFor { editVm.pageState.value.item != null }
+
+        assertNull(newVm.pageState.value.linkSource)
+        assertNull(editVm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
+        val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, "missing-id")
+        vm.onEvent(ItemEditPageEvent.ItemNameChanged("Laptop"))
+        advanceTimeBy(501); runCurrent()
+
+        val id = vm.onSave()!!
+
+        assertNull(vm.pageState.value.linkSource)
+        assertEquals("Laptop", c.itemRepository.getItem(id).itemName)
     }
 }

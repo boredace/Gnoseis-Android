@@ -62,6 +62,7 @@ import org.gnoseis.data.constants.TITLE_LENGTH_CATEGORY
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -152,10 +153,11 @@ fun CategoryEditScaffold(
         },
         floatingActionButton = {},
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(innerPadding)
             ) {
+                pageState.linkSource?.let { LinkSourceCard(it) }
                 CategoryEditBody(
                     pageState = pageState,
                     editState = editState,

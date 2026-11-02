@@ -79,6 +79,7 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -179,11 +180,12 @@ fun NoteEditScaffold(
         floatingActionButton = {},
         content = { innerPadding ->
             KeyboardAware {
-                Box(
+                Column(
                     modifier = Modifier
                         .padding(innerPadding)
                         
                 ) {
+                    pageState.linkSource?.let { LinkSourceCard(it) }
                     NoteEditBody(
                         editState = editState,
                         datePickerState = datePickerState,

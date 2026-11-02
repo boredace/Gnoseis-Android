@@ -45,11 +45,14 @@ import org.gnoseis.data.enums.ItemEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
 
 class ItemEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val itemRepository: ItemRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
+    private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
     private val itemId : String? = savedStateHandle.toRoute<ItemEditRoute>().itemId
@@ -72,6 +75,13 @@ class ItemEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val linkFromType = _pageState.value.linkFromType
+        val linkFromId = _pageState.value.linkFromId
+        if (_pageState.value.pageMode == ItemEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+            viewModelScope.launch {
+                _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
+            }
+        }
         if (!itemId.isNullOrEmpty()) {
             viewModelScope.launch {
                 itemRepository.getItem(itemId).let {
@@ -199,6 +209,7 @@ class ItemEditViewModel(
         val itemId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
+        val linkSource: LinkSource? = null,
         val item: Item? = Item(),
     )
 

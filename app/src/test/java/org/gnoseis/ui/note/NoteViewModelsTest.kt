@@ -41,6 +41,7 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -79,6 +80,7 @@ class NoteViewModelsTest {
                 SavedStateHandle(mapOf("noteId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.noteRepository,
                 c.linkedRecordRepository,
+                c.getLinkSourceUseCase(),
             )
         }
 
@@ -244,5 +246,44 @@ class NoteViewModelsTest {
         val saved = c.noteRepository.getNote(note.id)
         assertEquals(picked, saved.createDateTime)
         assertEquals(picked, saved.createDate)
+    }
+
+    // ---------- Edit: link source (#7) ----------
+
+    @Test
+    fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
+        val source = Contact(nameFirst = "Anna", nameLast = "Kowalski")
+        c.contactRepository.addContact(source)
+        val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, source.id)
+
+        waitFor { vm.pageState.value.linkSource != null }
+        assertEquals(LinkSource(RecordType.Contact, "Anna Kowalski"), vm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newAndEditMode_haveNoLinkSource() = runTest {
+        val source = Contact(nameFirst = "Anna", nameLast = "Kowalski")
+        val record = Note(title = "Old")
+        c.contactRepository.addContact(source)
+        c.noteRepository.addNote(record)
+
+        val newVm = editVm(null, NoteEditPageMode.NEW, RecordType.Contact, source.id)
+        val editVm = editVm(record.id, NoteEditPageMode.EDIT, RecordType.Contact, source.id)
+        waitFor { editVm.pageState.value.note != null }
+
+        assertNull(newVm.pageState.value.linkSource)
+        assertNull(editVm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
+        val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, "missing-id")
+        vm.updateTitle("call notes")
+        advanceTimeBy(501); runCurrent()
+
+        val id = vm.onSave()!!
+
+        assertNull(vm.pageState.value.linkSource)
+        assertEquals("call notes", c.noteRepository.getNote(id).title)
     }
 }

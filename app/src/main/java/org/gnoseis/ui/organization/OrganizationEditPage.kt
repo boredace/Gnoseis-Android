@@ -66,6 +66,7 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ORGANIZATION
 import org.gnoseis.data.enums.OrganizationEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -152,10 +153,11 @@ fun OrganizationEditScaffold(
         },
         floatingActionButton = {},
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(innerPadding)
             ) {
+                pageState.linkSource?.let { LinkSourceCard(it) }
                 OrganizationEditBody(
                     editState = editState,
                     onEvent = onEvent,

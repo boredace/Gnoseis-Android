@@ -28,27 +28,47 @@
 
 package org.gnoseis
 
+import androidx.activity.ComponentActivity
+import androidx.core.os.bundleOf
+import androidx.lifecycle.DEFAULT_ARGS_KEY
+import androidx.lifecycle.SAVED_STATE_REGISTRY_OWNER_KEY
+import androidx.lifecycle.VIEW_MODEL_STORE_OWNER_KEY
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.ViewModelProvider.NewInstanceFactory.Companion.VIEW_MODEL_KEY
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.NoteEditPageMode
+import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.TestAppContainer
+import org.gnoseis.ui.category.CategoryEditViewModel
 import org.gnoseis.ui.category.CategoryListViewModel
+import org.gnoseis.ui.contact.ContactEditViewModel
 import org.gnoseis.ui.contact.ContactListViewModel
 import org.gnoseis.ui.home.HomeViewModel
+import org.gnoseis.ui.item.ItemEditViewModel
 import org.gnoseis.ui.item.ItemListViewModel
+import org.gnoseis.ui.note.NoteEditViewModel
 import org.gnoseis.ui.note.NoteListViewModel
+import org.gnoseis.ui.organization.OrganizationEditViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
 import org.gnoseis.ui.settings.BackupSettingsViewModel
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 
 /**
  * The factory resolves dependencies from GnoseisApplication.container, which tests can swap
- * for a TestAppContainer. ViewModels needing a SavedStateHandle are covered by their own tests.
+ * for a TestAppContainer. ViewModels needing a SavedStateHandle get their route from an
+ * activity's saved state; their behaviour is covered by their own tests.
  */
 @RunWith(AndroidJUnit4::class)
 class AppViewModelProviderTest {
@@ -74,5 +94,32 @@ class AppViewModelProviderTest {
         ).forEach { clazz ->
             assertTrue(clazz.isInstance(create(clazz)))
         }
+    }
+
+    @Test
+    fun createsEditViewModelsWithTheirRouteAndLinkSourceUseCase() {
+        val owner = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
+        fun <T : ViewModel> createWithRoute(clazz: Class<T>, vararg args: Pair<String, Any?>): T =
+            AppViewModelProvider.Factory.create(clazz, MutableCreationExtras().apply {
+                set(APPLICATION_KEY, app)
+                set(SAVED_STATE_REGISTRY_OWNER_KEY, owner)
+                set(VIEW_MODEL_STORE_OWNER_KEY, owner)
+                set(VIEW_MODEL_KEY, clazz.name)
+                set(DEFAULT_ARGS_KEY, bundleOf(*args))
+            })
+        val link = arrayOf("linkFromType" to RecordType.Note, "linkFromId" to "note-id")
+
+        val vms = listOf(
+            createWithRoute(CategoryEditViewModel::class.java, "categoryId" to null, "pageMode" to CategoryEditPageMode.NEWLINK, *link),
+            createWithRoute(ContactEditViewModel::class.java, "contactId" to null, "pageMode" to ContactEditPageMode.NEWLINK, *link),
+            createWithRoute(ItemEditViewModel::class.java, "itemId" to null, "pageMode" to ItemEditPageMode.NEWLINK, *link),
+            createWithRoute(NoteEditViewModel::class.java, "noteId" to null, "pageMode" to NoteEditPageMode.NEWLINK, *link),
+            createWithRoute(OrganizationEditViewModel::class.java, "organizationId" to null, "pageMode" to OrganizationEditPageMode.NEWLINK, *link),
+        )
+
+        assertEquals(
+            listOf(CategoryEditViewModel::class, ContactEditViewModel::class, ItemEditViewModel::class, NoteEditViewModel::class, OrganizationEditViewModel::class),
+            vms.map { it::class },
+        )
     }
 }

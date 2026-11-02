@@ -66,6 +66,7 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
 import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -155,10 +156,11 @@ fun ContactEditScaffold(
         },
         floatingActionButton = {},
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(innerPadding)
             ) {
+                pageState.linkSource?.let { LinkSourceCard(it) }
                 ContactEditBody(
                     editState = editState,
                     onEvent = onEvent,

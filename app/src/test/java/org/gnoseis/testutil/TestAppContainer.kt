@@ -34,6 +34,7 @@ import androidx.test.core.app.ApplicationProvider
 import org.gnoseis.data.AppContainer
 import org.gnoseis.data.AppDataContainer
 import org.gnoseis.data.database.GnoseisDatabase
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 
 /**
  * In-memory [GnoseisDatabase] without the seed-note callback, so every test starts empty.
@@ -55,4 +56,13 @@ class TestAppContainer(
     val database: GnoseisDatabase = inMemoryDatabase(context),
 ) : AppContainer by AppDataContainer(context, { database }, { TEST_NOW }) {
     fun close() = database.close()
+
+    /** The edit pages' link source lookup, built from this container's repositories (#7). */
+    fun getLinkSourceUseCase() = GetLinkSourceUseCase(
+        categoryRepository = categoryRepository,
+        contactRepository = contactRepository,
+        itemRepository = itemRepository,
+        noteRepository = noteRepository,
+        organizationRepository = organizationRepository,
+    )
 }

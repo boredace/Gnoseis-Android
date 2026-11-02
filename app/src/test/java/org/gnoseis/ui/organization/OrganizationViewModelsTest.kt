@@ -41,6 +41,7 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.OrganizationEditPageMode
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -75,6 +76,7 @@ class OrganizationViewModelsTest {
                 SavedStateHandle(mapOf("organizationId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.organizationRepository,
                 c.linkedRecordRepository,
+                c.getLinkSourceUseCase(),
             )
         }
 
@@ -169,5 +171,44 @@ class OrganizationViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(org.copy(organizationName = "New"), c.organizationRepository.getOrganization(org.id))
+    }
+
+    // ---------- Edit: link source (#7) ----------
+
+    @Test
+    fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
+        val source = Note(title = "Kickoff")
+        c.noteRepository.addNote(source)
+        val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Note, source.id)
+
+        waitFor { vm.pageState.value.linkSource != null }
+        assertEquals(LinkSource(RecordType.Note, "Kickoff"), vm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newAndEditMode_haveNoLinkSource() = runTest {
+        val source = Note(title = "Kickoff")
+        val record = Organization(organizationName = "Old")
+        c.noteRepository.addNote(source)
+        c.organizationRepository.addOrganization(record)
+
+        val newVm = editVm(null, OrganizationEditPageMode.NEW, RecordType.Note, source.id)
+        val editVm = editVm(record.id, OrganizationEditPageMode.EDIT, RecordType.Note, source.id)
+        waitFor { editVm.pageState.value.organization != null }
+
+        assertNull(newVm.pageState.value.linkSource)
+        assertNull(editVm.pageState.value.linkSource)
+    }
+
+    @Test
+    fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
+        val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Note, "missing-id")
+        vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
+        advanceTimeBy(501); runCurrent()
+
+        val id = vm.onSave()!!
+
+        assertNull(vm.pageState.value.linkSource)
+        assertEquals("Acme", c.organizationRepository.getOrganization(id).organizationName)
     }
 }
