@@ -33,7 +33,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -112,21 +111,11 @@ import org.gnoseis.data.entity.home.NoteSummary
 import org.gnoseis.data.entity.home.RecordCounts
 import org.gnoseis.data.entity.home.TypeLinkCount
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.icons.CategoryIcon
-import org.gnoseis.ui.icons.ContactIcon
-import org.gnoseis.ui.icons.ItemIcon
-import org.gnoseis.ui.icons.NoteIcon
-import org.gnoseis.ui.icons.OrganizationIcon
-import org.gnoseis.ui.theme.CategoryColorsDark
-import org.gnoseis.ui.theme.CategoryColorsLight
-import org.gnoseis.ui.theme.ContactColorsDark
-import org.gnoseis.ui.theme.ContactColorsLight
+import org.gnoseis.data.enums.pluralName
+import org.gnoseis.data.enums.singularName
+import org.gnoseis.ui.components.RecordTypeIcon
+import org.gnoseis.ui.components.recordTypeColors
 import org.gnoseis.ui.theme.GnoseisTheme
-import org.gnoseis.ui.theme.ItemColorsDark
-import org.gnoseis.ui.theme.ItemColorsLight
-import org.gnoseis.ui.theme.OrganizationColorsDark
-import org.gnoseis.ui.theme.OrganizationColorsLight
-import org.gnoseis.ui.theme.RecordTypeColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -918,48 +907,6 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.titleLarge,
         modifier = modifier,
     )
-}
-
-@Composable
-private fun RecordTypeIcon(type: RecordType, colorFilter: ColorFilter, size: Dp) {
-    when (type) {
-        RecordType.Contact -> ContactIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Organization -> OrganizationIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Category -> CategoryIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Item -> ItemIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Note -> NoteIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.LinkedRecord -> Icon(
-            Icons.Filled.Link,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(size),
-        )
-    }
-}
-
-@Composable
-private fun recordTypeColors(type: RecordType): RecordTypeColors {
-    val dark = isSystemInDarkTheme()
-    return when (type) {
-        RecordType.Contact -> if (dark) ContactColorsDark else ContactColorsLight
-        RecordType.Organization -> if (dark) OrganizationColorsDark else OrganizationColorsLight
-        RecordType.Category -> if (dark) CategoryColorsDark else CategoryColorsLight
-        else -> if (dark) ItemColorsDark else ItemColorsLight
-    }
-}
-
-private fun pluralName(type: RecordType) = when (type) {
-    RecordType.Contact -> "Contacts"
-    RecordType.Organization -> "Organizations"
-    RecordType.Category -> "Categories"
-    RecordType.Item -> "Items"
-    RecordType.Note -> "Notes"
-    RecordType.LinkedRecord -> "Links"
-}
-
-private fun singularName(type: RecordType) = when (type) {
-    RecordType.Category -> "Category"
-    else -> pluralName(type).removeSuffix("s")
 }
 
 /** The Most linked subtitle for the type picked in the type picker, or for all types. */
