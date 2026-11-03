@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -114,11 +113,6 @@ fun NotePageScaffold(
                 actions = {
                     IconButton(onClick ={ navigateToSearchPage() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Search")
-                    }
-                    IconButton(
-                        onClick ={ /*TODO */},
-                    ) {
-                        Icon(Icons.Filled.FilterList, contentDescription = null)
                     }
                 }
             )
