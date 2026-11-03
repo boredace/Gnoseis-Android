@@ -29,67 +29,30 @@
 package org.gnoseis.ui.organization
 
 import android.content.res.Configuration
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddLink
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
-import org.gnoseis.R
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.DeleteRecordAlertDialog
-import org.gnoseis.ui.components.ExpandableActionButton
-import org.gnoseis.ui.icons.DeleteIcon
-import org.gnoseis.ui.icons.EditIcon
 import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.LinkedRecordsSection
-import org.gnoseis.ui.record.LinkedRecordsTabStyle
 import org.gnoseis.ui.record.RecordDetailsEmpty
+import org.gnoseis.ui.record.RecordDetailsHeader
+import org.gnoseis.ui.record.RecordDetailsNavigation
+import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
-
 
 @Serializable
 data class OrganizationDetailsRoute(
@@ -99,222 +62,25 @@ data class OrganizationDetailsRoute(
 @Composable
 fun OrganizationDetailsPage(
     pageViewModel: OrganizationDetailsViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navMenuClick: () -> Unit,
-    navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToContactDetailsPage: (String) -> Unit,
-    navigateToItemDetailsPage: (String) -> Unit,
-    navigateToNoteDetailsPage: (String) -> Unit,
-    navigateToLinkRecordsPage: (String) -> Unit,
-    navigateToLinkNewNotePage: (String) -> Unit,
-    navigateToLinkNewCategoryPage: (String) -> Unit,
-    navigateToLinkNewContactPage: (String) -> Unit,
-    navigateToLinkNewItemPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
+    navigation: RecordDetailsNavigation,
     linkedNewRecordTypeId: Int? = null,
     onLinkedNewRecordTypeShown: () -> Unit = {},
-
 ) {
     val pageState by pageViewModel.organizationDetailsPageState.collectAsState()
     val linkedRecords by pageViewModel.linkedRecords.collectAsState()
+    val organization = pageState.organization ?: Organization()
 
-    OrganizationDetailsScaffold(
-        organization = pageState.organization?: Organization(),
+    RecordDetailsScaffold(
+        recordType = RecordType.Organization,
+        recordId = organization.id,
         linkedRecordTabs = pageState.linkedRecordTabs,
         linkedRecords = linkedRecords,
-        onDeleteRecord = {
-            pageViewModel.deleteOrganization()
-            navMenuClick() },
-        onNavMenuclick = navMenuClick,
-        navigateToCategoryDetailsPage = navigateToCategoryDetailsPage,
-        navigateToContactDetailsPage = navigateToContactDetailsPage,
-        navigateToItemDetailsPage = navigateToItemDetailsPage,
-        navigateToNoteDetailsPage = navigateToNoteDetailsPage,
-        navigateToLinkRecordsPage = navigateToLinkRecordsPage,
-        navigateToLinkNewNotePage = navigateToLinkNewNotePage,
-        navigateToLinkNewCategoryPage = navigateToLinkNewCategoryPage,
-        navigateToLinkNewContactPage = navigateToLinkNewContactPage,
-        navigateToLinkNewItemPage = navigateToLinkNewItemPage,
-        navigateToOrganizationEditPage = navigateToOrganizationEditPage,
+        newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Contact, RecordType.Category, RecordType.Item),
+        navigation = navigation,
+        onDelete = { pageViewModel.deleteOrganization() },
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun OrganizationDetailsScaffold(
-    organization: Organization,
-    linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  LinkedRecords,
-    onDeleteRecord: () -> Unit,
-    onNavMenuclick: () -> Unit,
-    navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToContactDetailsPage: (String) -> Unit,
-    navigateToItemDetailsPage: (String) -> Unit,
-    navigateToNoteDetailsPage: (String) -> Unit,
-    navigateToLinkRecordsPage: (String) -> Unit,
-    navigateToLinkNewNotePage: (String) -> Unit,
-    navigateToLinkNewCategoryPage: (String) -> Unit,
-    navigateToLinkNewContactPage: (String) -> Unit,
-    navigateToLinkNewItemPage: (String) -> Unit,
-    navigateToOrganizationEditPage: (String) -> Unit,
-    linkedNewRecordTypeId: Int? = null,
-    onLinkedNewRecordTypeShown: () -> Unit = {},
-
-
-    ){
-    var fabExpanded by remember { mutableStateOf(false)}
-    var showDeleteAlertDialog by remember { mutableStateOf(false) }
-
-    Scaffold(
-        topBar = {
-
-            TopAppBar(
-                modifier = Modifier
-                    .alpha(if(fabExpanded) 0.1f else 1f),
-                title = { Text(text="Organization") },
-                colors = TopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { onNavMenuclick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showDeleteAlertDialog = true }
-                    ) {
-                        DeleteIcon(colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface))
-                    }
-                    IconButton(
-                        onClick = { navigateToOrganizationEditPage(organization.id) }
-                    ) {
-                        EditIcon(colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface))
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            Column() {
-                ExpandableActionButton(
-                    isExpanded =  fabExpanded,
-                    fabIcon = Icons.Filled.AddLink,
-                    fabText = "Link Existing",
-                    onFabClick = {
-                        if (fabExpanded) {
-                            fabExpanded = false
-                            navigateToLinkRecordsPage(organization.id)
-                        } else {
-                            fabExpanded = true
-                        }
-                    },
-                    fab1Icon = ImageVector.vectorResource(R.drawable.outline_description_24),
-                    fab1Text = "New Note",
-                    onFab1Click = { navigateToLinkNewNotePage(organization.id) },
-                    fab2Icon = ImageVector.vectorResource(R.drawable.outline_people_24),
-                    fab2Text = "New Contact",
-                    onFab2Click = { navigateToLinkNewContactPage(organization.id) },
-                    fab3Icon = ImageVector.vectorResource(R.drawable.outline_label_24),
-                    fab3Text = "New Category",
-                    onFab3Click = { navigateToLinkNewCategoryPage(organization.id) },
-                    fab4Icon = ImageVector.vectorResource(R.drawable.outline_deployed_code_24),
-                    fab4Text = "New Item",
-                    onFab4Click = { navigateToLinkNewItemPage(organization.id) },
-                )
-            }
-        },
-        content = { innerPadding ->
-
-            Box(
-                modifier = Modifier
-                    .padding(innerPadding)
-            ) {
-                OrganizationDetailsBody(
-                    organization = organization,
-                    linkedRecordTabs = linkedRecordTabs,
-                    linkedRecords = linkedRecords,
-                    showDeleteAlertDialog = showDeleteAlertDialog,
-                    onDeleteAlertDialogConfirm = {
-                        onDeleteRecord()
-                        showDeleteAlertDialog = false
-                    },
-                    onDeleteAlertDialogDismiss = { showDeleteAlertDialog = false },
-                    navigateToCategoryDetailsPage = navigateToCategoryDetailsPage,
-                    navigateToContactDetailsPage = navigateToContactDetailsPage,
-                    navigateToItemDetailsPage = navigateToItemDetailsPage,
-                    navigateToNoteDetailsPage = navigateToNoteDetailsPage,
-                    linkedNewRecordTypeId = linkedNewRecordTypeId,
-                    onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
-                )
-            }
-            if (fabExpanded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize ()
-                        .alpha(0.8f)
-                        .background(Color.Black)
-                        .clickable(
-                            enabled = true,
-                            onClick = { fabExpanded = false }
-                        )
-                ) {
-
-                }
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-fun OrganizationDetailsBody(
-    organization: Organization,
-    linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  LinkedRecords,
-    showDeleteAlertDialog: Boolean,
-    onDeleteAlertDialogDismiss: () -> Unit,
-    onDeleteAlertDialogConfirm: () -> Unit,
-    navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToContactDetailsPage: (String) -> Unit,
-    navigateToItemDetailsPage: (String) -> Unit,
-    navigateToNoteDetailsPage: (String) -> Unit,
-    linkedNewRecordTypeId: Int? = null,
-    onLinkedNewRecordTypeShown: () -> Unit = {},
-) {
-    if(showDeleteAlertDialog) {
-        DeleteRecordAlertDialog(
-            recordTypeName = "Organization",
-            onDismiss = onDeleteAlertDialogDismiss,
-            onConfirm = onDeleteAlertDialogConfirm,
-            linkedRecordCount =
-                linkedRecords.linkedCategories.count() +
-                linkedRecords.linkedItems.count() +
-                linkedRecords.linkedNotes.count() +
-                linkedRecords.linkedContacts.count()
-        )
-    }
-    LinkedRecordsSection(
-        recordType = RecordType.Organization,
-        linkedRecordTabs = linkedRecordTabs,
-        linkedRecords = linkedRecords,
-        onOpenRecord = { type, id ->
-            when (type) {
-                RecordType.Category -> navigateToCategoryDetailsPage(id)
-                RecordType.Contact -> navigateToContactDetailsPage(id)
-                RecordType.Item -> navigateToItemDetailsPage(id)
-                RecordType.Note -> navigateToNoteDetailsPage(id)
-                else -> Unit
-            }
-        },
-        linkedNewRecordTypeId = linkedNewRecordTypeId,
-        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
-        tabStyle = LinkedRecordsTabStyle.LabelBelow,
-        header = { OrganizationHeader(title = "${organization.organizationName}") },
+        header = { RecordDetailsHeader(title = organization.organizationName) },
     ) {
         OrganizationDetailsTab(organization)
     }
@@ -332,92 +98,27 @@ fun OrganizationDetailsTab(organization: Organization) {
     }
 }
 
-@Composable
-fun OrganizationHeader(
-    title: String,
-//    createdDateTime: Long
-){
-//    val zonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(createdDateTime), ZoneId.systemDefault())
-
-    Text(
-        maxLines = 2,
-        style = MaterialTheme.typography.titleLarge,
-        overflow = TextOverflow.Ellipsis,
-        text= title
-    )
-    Spacer(modifier = Modifier.height(5.dp))
-    /*Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = zonedDateTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
-        )
-        Text(
-            text = zonedDateTime.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-        )
-    }*/
-}
-
-
-@Composable
-fun RelatedItemTag(
-    title: String,
-    textColour: Color,
-    backgroundColour: Color
-){
-    Box(
-        modifier = Modifier.padding(horizontal = 1.dp, vertical = 1.dp)
-    ){
-        ElevatedCard(modifier = Modifier
-//        .background(backgroundColour)
-            ,
-            onClick = {},
-            shape =  RoundedCornerShape(5.dp)
-        ){
-            Text(
-                modifier = Modifier
-                    .background(backgroundColour)
-                    .padding(horizontal = 15.dp, vertical = 5.dp)
-                ,
-                color = textColour,
-                text = "Personal")
-        }
-    }
-
-}
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun OrganizationDetailsPagePreview() {
     GnoseisTheme {
         Surface {
-            OrganizationDetailsScaffold(
-                organization = Organization(
-                    ownerDbId = "xxx",
-                    organizationName = "Happy Monkeys Inc."
-                ),
+            val organization = Organization(ownerDbId = "xxx", organizationName = "Anaconda Corporation Ltd.")
+            RecordDetailsScaffold(
+                recordType = RecordType.Organization,
+                recordId = organization.id,
+                linkedRecordTabs = listOf(LinkedRecordTypeCount(recordTypeId = RecordType.Note.recordTypeId, count = 3)),
                 linkedRecords = LinkedRecords(),
-                onDeleteRecord = {},
-                onNavMenuclick = {},
-                navigateToCategoryDetailsPage = {},
-                navigateToContactDetailsPage = {},
-                navigateToItemDetailsPage = {},
-                navigateToNoteDetailsPage = {},
-                navigateToLinkRecordsPage = {},
-                navigateToLinkNewNotePage = {},
-                navigateToLinkNewContactPage = {},
-                navigateToOrganizationEditPage = {},
-                navigateToLinkNewItemPage = {},
-                navigateToLinkNewCategoryPage = {},
-            linkedRecordTabs = listOf(
-                    LinkedRecordTypeCount(
-                        recordTypeId = 1,
-                        count = 3
-                    )
-                )
-            )
+                newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Contact, RecordType.Category, RecordType.Item),
+                navigation = RecordDetailsNavigation({}, { _, _ -> }, {}, {}, { _, _ -> }),
+                onDelete = {},
+                linkedNewRecordTypeId = null,
+                onLinkedNewRecordTypeShown = {},
+                header = { RecordDetailsHeader(title = organization.organizationName) },
+            ) {
+                OrganizationDetailsTab(organization)
+            }
         }
     }
 }

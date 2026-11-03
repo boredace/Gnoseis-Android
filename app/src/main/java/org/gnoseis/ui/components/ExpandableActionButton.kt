@@ -45,12 +45,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLink
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,15 +69,19 @@ fun ExpandableActionButton(
     fabText: String,
     onFabClick: () -> Unit,
     fab1Icon: ImageVector,
+    fab1IconTint: Color = Color.Unspecified,
     fab1Text: String,
     onFab1Click: () -> Unit,
     fab2Icon: ImageVector? = null,
+    fab2IconTint: Color = Color.Unspecified,
     fab2Text: String? = null,
     onFab2Click: () -> Unit? = {},
     fab3Icon: ImageVector? = null,
+    fab3IconTint: Color = Color.Unspecified,
     fab3Text: String? = null,
     onFab3Click: () -> Unit? = {},
     fab4Icon: ImageVector? = null,
+    fab4IconTint: Color = Color.Unspecified,
     fab4Text: String? = null,
     onFab4Click: () -> Unit? = {},
 ) {
@@ -140,6 +146,7 @@ fun ExpandableActionButton(
 
                     Icon(
                         imageVector = fab1Icon,
+                        tint = fab1IconTint.takeOrElse { LocalContentColor.current },
                         contentDescription = null,
                         modifier = Modifier
                             .size(24.dp)
@@ -190,6 +197,7 @@ fun ExpandableActionButton(
 
                         Icon(
                             imageVector = fab2Icon!!,
+                            tint = fab2IconTint.takeOrElse { LocalContentColor.current },
                             contentDescription = null,
                             modifier = Modifier
                                 .size(24.dp)
@@ -242,6 +250,7 @@ fun ExpandableActionButton(
 
                         Icon(
                             imageVector = fab3Icon!!,
+                            tint = fab3IconTint.takeOrElse { LocalContentColor.current },
                             contentDescription = null,
                             modifier = Modifier
                                 .size(24.dp)
@@ -294,6 +303,7 @@ fun ExpandableActionButton(
 
                         Icon(
                             imageVector = fab4Icon!!,
+                            tint = fab4IconTint.takeOrElse { LocalContentColor.current },
                             contentDescription = null,
                             modifier = Modifier
                                 .size(24.dp)

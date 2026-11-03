@@ -85,6 +85,7 @@ import org.gnoseis.ui.organization.OrganizationEditPage
 import org.gnoseis.ui.organization.OrganizationEditRoute
 import org.gnoseis.ui.organization.OrganizationListPage
 import org.gnoseis.ui.organization.OrganizationListRoute
+import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchPageDestination
 import org.gnoseis.ui.settings.BackupSettingsPage
@@ -102,6 +103,51 @@ private fun NavController.popBackStackAfterLinkingNew(recordType: RecordType) {
     previousBackStackEntry?.savedStateHandle?.set(LINKED_NEW_RECORD_TYPE_ID, recordType.recordTypeId)
     popBackStack()
 }
+
+/** Opens the Details page of the record [id] of [type]. */
+private fun NavController.navigateToRecordDetails(type: RecordType, id: String) {
+    when (type) {
+        RecordType.Category -> navigate(CategoryDetailsRoute(id))
+        RecordType.Contact -> navigate(ContactDetailsRoute(id))
+        RecordType.Item -> navigate(ItemDetailsRoute(id))
+        RecordType.Note -> navigate(NoteDetailsRoute(id))
+        RecordType.Organization -> navigate(OrganizationDetailsRoute(id))
+        RecordType.LinkedRecord -> Unit
+    }
+}
+
+/** Opens the Edit page of the record [id] of [type]. */
+private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
+    when (type) {
+        RecordType.Category -> navigate(CategoryEditRoute(id, CategoryEditPageMode.EDIT))
+        RecordType.Contact -> navigate(ContactEditRoute(id, ContactEditPageMode.EDIT))
+        RecordType.Item -> navigate(ItemEditRoute(id, ItemEditPageMode.EDIT))
+        RecordType.Note -> navigate(NoteEditRoute(id, NoteEditPageMode.EDIT))
+        RecordType.Organization -> navigate(OrganizationEditRoute(id, OrganizationEditPageMode.EDIT))
+        RecordType.LinkedRecord -> Unit
+    }
+}
+
+/** Opens the Edit page for a new record of [type], to be linked to [sourceId] of [sourceType]. */
+private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String) {
+    when (type) {
+        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.LinkedRecord -> Unit
+    }
+}
+
+/** Where the Details page of a record of [type] can go. */
+private fun NavController.recordDetailsNavigation(type: RecordType) = RecordDetailsNavigation(
+    back = { popBackStack() },
+    openRecord = { linkedType, id -> navigateToRecordDetails(linkedType, id) },
+    edit = { navigateToRecordEdit(type, it) },
+    linkExisting = { navigate(LinkRecordsRoute(it, type)) },
+    newLinked = { newType, sourceId -> navigateToNewLinkedRecord(newType, type, sourceId) },
+)
 
 @Composable
 fun NavigationPage(
@@ -138,16 +184,7 @@ fun NavigationPage(
                         navMenuClick = { navMenuClick() },
                         navigateToSettingsPage = { navController.navigate(SettingsPageRoute()) },
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
-                        navigateToRecordDetailsPage = { type, id ->
-                            when (type) {
-                                RecordType.Category -> navController.navigate(CategoryDetailsRoute(id))
-                                RecordType.Contact -> navController.navigate(ContactDetailsRoute(id))
-                                RecordType.Item -> navController.navigate(ItemDetailsRoute(id))
-                                RecordType.Note -> navController.navigate(NoteDetailsRoute(id))
-                                RecordType.Organization -> navController.navigate(OrganizationDetailsRoute(id))
-                                RecordType.LinkedRecord -> Unit
-                            }
-                        },
+                        navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                         navigateToNewRecordPage = { type ->
                             when (type) {
                                 RecordType.Category -> navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEW))
@@ -191,20 +228,10 @@ fun NavigationPage(
                    val linkedNewRecordTypeId by backStackEntry.savedStateHandle
                        .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
                     CategoryDetailsPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
-                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Category)) },
-                        navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Category, it) )},
-                        navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Category, it) )},
-                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Category, it) )},
-                        navigateToLinkNewOrganizationPage = { navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, RecordType.Category, it) )},
-                        navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, CategoryEditPageMode.EDIT)) },
+                        navigation = navController.recordDetailsNavigation(RecordType.Category),
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
                         onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
-                        )
+                    )
                 }
 
                 composable<CategoryEditRoute> {
@@ -239,20 +266,10 @@ fun NavigationPage(
                     val linkedNewRecordTypeId by backStackEntry.savedStateHandle
                         .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
                     ContactDetailsPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
-                        navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
-                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Contact)) },
-                        navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Contact, it) )},
-                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Contact, it) )},
-                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Contact, it) )},
-                        navigateToLinkNewOrganizationPage = { navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, RecordType.Contact, it) )},
-                        navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.EDIT))},
+                        navigation = navController.recordDetailsNavigation(RecordType.Contact),
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
                         onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
-                        )
+                    )
                 }
 
                 composable<ContactEditRoute> {
@@ -287,17 +304,7 @@ fun NavigationPage(
                     val linkedNewRecordTypeId by backStackEntry.savedStateHandle
                         .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
                     ItemDetailsPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
-                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
-                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Item)) },
-                        navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Item, it) )},
-                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Item, it) )},
-                        navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Item, it) )},
-                        navigateToLinkNewOrganizationPage = { navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, RecordType.Item, it) )},
-                        navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, ItemEditPageMode.EDIT)) },
+                        navigation = navController.recordDetailsNavigation(RecordType.Item),
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
                         onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
                     )
@@ -334,17 +341,7 @@ fun NavigationPage(
                     val linkedNewRecordTypeId by backStackEntry.savedStateHandle
                         .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
                     NoteDetailsPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
-                        navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
-                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Note)) },
-                        navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Note, it) )},
-                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Note, it) )},
-                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Note, it) )},
-                        navigateToLinkNewOrganizationPage = { navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, RecordType.Note, it) )},
-                        navigateToNoteEditPage = { navController.navigate(NoteEditRoute(it, NoteEditPageMode.EDIT))},
+                        navigation = navController.recordDetailsNavigation(RecordType.Note),
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
                         onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
                     )
@@ -382,17 +379,7 @@ fun NavigationPage(
                     val linkedNewRecordTypeId by backStackEntry.savedStateHandle
                         .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
                     OrganizationDetailsPage(
-                        navMenuClick = { navController.popBackStack() },
-                        navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
-                        navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Organization)) },
-                        navigateToLinkNewNotePage = { navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, RecordType.Organization, it) )},
-                        navigateToLinkNewCategoryPage = { navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, RecordType.Organization, it) )},
-                        navigateToLinkNewContactPage = { navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, RecordType.Organization, it) )},
-                        navigateToLinkNewItemPage = { navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, RecordType.Organization, it))},
-                        navigateToOrganizationEditPage = { navController.navigate(OrganizationEditRoute(it, OrganizationEditPageMode.EDIT)) },
+                        navigation = navController.recordDetailsNavigation(RecordType.Organization),
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
                         onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
                     )
