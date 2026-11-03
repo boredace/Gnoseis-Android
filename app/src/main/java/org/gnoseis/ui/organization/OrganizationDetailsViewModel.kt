@@ -29,7 +29,6 @@
 package org.gnoseis.ui.organization
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,8 +40,7 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
-import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.linkedRecordsFlow
+import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
@@ -50,23 +48,22 @@ import org.gnoseis.domain.usecase.DeleteRecordUseCase
 class OrganizationDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val organizationRepository: OrganizationRepository,
-    private var linkedRecordRepository: LinkedRecordRepository,
+    linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
-) : ViewModel(){
+) : RecordDetailsViewModel(
+    recordId = checkNotNull(savedStateHandle.toRoute<OrganizationDetailsRoute>().organizationId),
+    recordType = RecordType.Organization,
+    linkedRecordRepository = linkedRecordRepository,
+    settingsRepository = settingsRepository,
+) {
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             organizationRepository = organizationRepository,
             linkedRecordRepository = linkedRecordRepository,
             settingsRepository = settingsRepository,
         )
-    private var organizationId : String = checkNotNull(savedStateHandle.toRoute<OrganizationDetailsRoute>().organizationId)
+    private val organizationId: String = recordId
 
-    val linkedRecords: StateFlow<LinkedRecords> =
-        linkedRecordsFlow(linkedRecordRepository, organizationId, RecordType.Organization).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            LinkedRecords()
-        )
 
     val organizationDetailsPageState: StateFlow<OrganizationDetailsPageState> =
         combine(

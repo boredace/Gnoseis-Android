@@ -229,4 +229,21 @@ class HomeDaoTest {
             assertEquals(listOf("c"), awaitItem().map { it.id })
         }
     }
+
+    /** #11: an unlinked pair stops counting towards Most linked. */
+    @Test
+    fun mostLinked_dropsAfterAnUnlink() = runTest {
+        db.contactDao().addContact(Contact(id = "c", nameLast = "Doe"))
+        db.organizationDao().addOrganization(Organization(id = "o", organizationName = "acme"))
+        note("n1")
+        addLink("c", RecordType.Contact, "n1", RecordType.Note)
+        addLink("o", RecordType.Organization, "c", RecordType.Contact)
+
+        db.linkedRecordDao().deleteLinkBetween("c", "o")
+
+        assertEquals(
+            listOf(LinkedRecordCount("c", "Doe", RecordType.Contact.recordTypeId, 1)),
+            dao.getMostLinked(10, null).first(),
+        )
+    }
 }

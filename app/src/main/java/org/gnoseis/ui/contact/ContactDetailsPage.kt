@@ -90,6 +90,8 @@ fun ContactDetailsPage(
         newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Item, RecordType.Category, RecordType.Organization),
         navigation = navigation,
         onDelete = { pageViewModel.deleteContact() },
+        onUnlink = pageViewModel::unlink,
+        onUndoUnlink = pageViewModel::undoUnlink,
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         header = { RecordDetailsHeader(title = "${contact.nameLast}, ${contact.nameFirst}") },

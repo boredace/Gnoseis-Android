@@ -78,6 +78,8 @@ fun OrganizationDetailsPage(
         newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Contact, RecordType.Category, RecordType.Item),
         navigation = navigation,
         onDelete = { pageViewModel.deleteOrganization() },
+        onUnlink = pageViewModel::unlink,
+        onUndoUnlink = pageViewModel::undoUnlink,
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         header = { RecordDetailsHeader(title = organization.organizationName) },

@@ -29,7 +29,6 @@
 package org.gnoseis.ui.item
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,31 +41,29 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
-import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.linkedRecordsFlow
+import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class ItemDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val itemRepository: ItemRepository,
-    private var linkedRecordRepository: LinkedRecordRepository,
+    linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
-) : ViewModel(){
+) : RecordDetailsViewModel(
+    recordId = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId),
+    recordType = RecordType.Item,
+    linkedRecordRepository = linkedRecordRepository,
+    settingsRepository = settingsRepository,
+) {
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             itemRepository = itemRepository,
             linkedRecordRepository = linkedRecordRepository,
             settingsRepository = settingsRepository,
         )
-    private var itemId : String = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId)
+    private val itemId: String = recordId
 
-    val linkedRecords: StateFlow<LinkedRecords> =
-        linkedRecordsFlow(linkedRecordRepository, itemId, RecordType.Item).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            LinkedRecords()
-        )
 
     val itemDetailsPageState: StateFlow<ItemDetailsPageState> =
         combine(
