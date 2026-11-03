@@ -143,11 +143,12 @@ fun ContactIcon(
 
 @Composable
 fun DeleteIcon(
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    contentDescription: String? = null,
 ) {
     Image(
         painter = painterResource(id = R.drawable.outline_delete_24),
-        contentDescription = "Contact",
+        contentDescription = contentDescription,
         contentScale = ContentScale.Fit,
         modifier = Modifier
             .width(24.dp)
@@ -159,11 +160,12 @@ fun DeleteIcon(
 
 @Composable
 fun EditIcon(
-    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+    colorFilter: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+    contentDescription: String? = null,
 ) {
     Image(
         painter = painterResource(id = R.drawable.outline_edit_24),
-        contentDescription = "Contact",
+        contentDescription = contentDescription,
         contentScale = ContentScale.Fit,
         modifier = Modifier
             .width(24.dp)

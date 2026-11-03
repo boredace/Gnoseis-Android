@@ -29,7 +29,6 @@
 package org.gnoseis.ui.item
 
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,8 +41,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -57,19 +54,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
@@ -85,25 +78,16 @@ import org.gnoseis.AppViewModelProvider
 import org.gnoseis.R
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
-import org.gnoseis.data.enums.IconTextPosition
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.category.CategoryList
 import org.gnoseis.ui.components.DeleteRecordAlertDialog
 import org.gnoseis.ui.components.ExpandableActionButton
-import org.gnoseis.ui.components.rememberSelectedLinkedRecordType
-import org.gnoseis.ui.components.tabIndexOf
-import org.gnoseis.ui.contact.ContactList
-import org.gnoseis.ui.icons.CategoryIcon
-import org.gnoseis.ui.icons.ContactIcon
 import org.gnoseis.ui.icons.DeleteIcon
 import org.gnoseis.ui.icons.EditIcon
-import org.gnoseis.ui.icons.ItemIcon
-import org.gnoseis.ui.icons.NoteIcon
-import org.gnoseis.ui.icons.OrganizationIcon
-import org.gnoseis.ui.icons.QuestionIcon
-import org.gnoseis.ui.note.NoteList
-import org.gnoseis.ui.organization.OrganizationList
 import org.gnoseis.ui.record.LinkedRecords
+import org.gnoseis.ui.record.LinkedRecordsSection
+import org.gnoseis.ui.record.LinkedRecordsTabStyle
+import org.gnoseis.ui.record.RecordDetailsEmpty
+import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -307,137 +291,37 @@ fun ItemDetailsBody(
                 linkedRecords.linkedOrganizations.count()
         )
     }
-    var selectedTabRecordTypeId by rememberSelectedLinkedRecordType(linkedNewRecordTypeId, onLinkedNewRecordTypeShown)
-    val selectedTabIndex = tabIndexOf(linkedRecordTabs, selectedTabRecordTypeId)
-    val pagerState = rememberPagerState { linkedRecordTabs.size + 1 }
-
-    Column() {
-        Row(
-            modifier = Modifier
-                .background(color = MaterialTheme.colorScheme.surfaceContainer)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(start = 15.dp, end = 15.dp, bottom = 5.dp)
-            ) {
-                /*ItemHeader(
-                    title = item.itemName?:"",
-        //            createdDateTime = note.createDateTime
-                )*/
-                Spacer(modifier = Modifier.height(5.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                )
-                {
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex
-                    ) {
-                        val align =
-                            if (linkedRecordTabs.size > 3) IconTextPosition.Bottom
-                            else IconTextPosition.Right
-                        Tab(
-                            modifier = Modifier
-                                .background(color = MaterialTheme.colorScheme.surfaceContainer),
-                            selected = selectedTabIndex == 0,
-                            onClick = { selectedTabRecordTypeId = null },
-                            icon = {
-                                ItemIcon("Details", align)
-                            }
-                        )
-                        linkedRecordTabs.forEachIndexed { index, item ->
-                            val text = "(${item.count})"
-                            Tab(
-                                modifier = Modifier
-                                    .background(color = MaterialTheme.colorScheme.surfaceContainer),
-                                selected = selectedTabIndex == index + 1,
-                                onClick = { selectedTabRecordTypeId = item.recordTypeId },
-                                icon = {
-                                    when (item.recordTypeId) {
-                                        RecordType.Category.recordTypeId -> CategoryIcon(text, align)
-                                        RecordType.Contact.recordTypeId -> ContactIcon(text, align)
-                                        RecordType.Item.recordTypeId -> ItemIcon(text, align)
-                                        RecordType.Note.recordTypeId -> NoteIcon(text, align)
-                                        RecordType.Organization.recordTypeId -> OrganizationIcon(text, align)
-                                        else -> QuestionIcon()
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
+    LinkedRecordsSection(
+        recordType = RecordType.Item,
+        linkedRecordTabs = linkedRecordTabs,
+        linkedRecords = linkedRecords,
+        onOpenRecord = { type, id ->
+            when (type) {
+                RecordType.Category -> navigateToCategoryDetailsPage(id)
+                RecordType.Contact -> navigateToContactDetailsPage(id)
+                RecordType.Note -> navigateToNoteDetailsPage(id)
+                RecordType.Organization -> navigateToOrganizationDetailsPage(id)
+                else -> Unit
             }
-        }
-        Column(
-            modifier = Modifier
-                .padding(start = 15.dp, end = 15.dp, bottom = 5.dp)
-        ) {
-            Spacer(modifier = Modifier.height(15.dp))
+        },
+        linkedNewRecordTypeId = linkedNewRecordTypeId,
+        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
+        tabStyle = LinkedRecordsTabStyle.LabelWithIcon,
+        header = {},
+    ) {
+        ItemDetailsTab(item)
+    }
+}
 
-            Box(){
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-//                        .fillMaxSize()
-                ){index ->
-                    Box(
-//                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ){
-                        Log.i("TABS", "selectedTabIndex = ${selectedTabIndex}")
-                        when (selectedTabIndex) {
-                            0 -> {
-                                if(!item.comments.isNullOrEmpty()) {
-                                    Box(modifier=Modifier.verticalScroll(rememberScrollState())){
-                                        Text(text=item.comments?:"")
-                                    }
-                                } else {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier.fillMaxSize(),
-                                    ){
-                                        Text(text="This Item has no details")
-                                    }
-                                }
-                            }
-                            else ->
-                            {
-                                val selectedRecordTypeId = linkedRecordTabs[selectedTabIndex-1].recordTypeId
-                                when(selectedRecordTypeId) {
-                                    1-> {
-                                        NoteList(
-                                            notes = linkedRecords.linkedNotes,
-                                            navigateToNoteDetailsPage = navigateToNoteDetailsPage)
-                                    }
-                                    2 -> {
-                                        ContactList(
-                                            contacts = linkedRecords.linkedContacts,
-                                            navigateToContactDetailsPage = navigateToContactDetailsPage,
-                                            showHeaders = false
-                                        )
-                                    }
-                                    3 -> {
-                                        OrganizationList(
-                                            organizations = linkedRecords.linkedOrganizations,
-                                            navigateToOrganizationDetailsPage = navigateToOrganizationDetailsPage,
-                                            showHeaders = false
-                                        )
-                                    }
-                                    4-> {
-                                        CategoryList(
-                                            categories = linkedRecords.linkedCategories,
-                                            navigateToCategoryDetailsPage = navigateToCategoryDetailsPage,
-                                            showHeaders = false
-                                        )
-                                    }
-                                    else -> { Text(text="Record type ID = ${selectedRecordTypeId}") }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+/** An item's Details tab: its comments, or a line saying it has none. */
+@Composable
+fun ItemDetailsTab(item: Item) {
+    if (!item.comments.isNullOrEmpty()) {
+        Box(modifier = Modifier.detailsTabPadding().verticalScroll(rememberScrollState())) {
+            Text(text = item.comments)
         }
+    } else {
+        RecordDetailsEmpty(text = "This Item has no details", modifier = Modifier.detailsTabPadding())
     }
 }
 

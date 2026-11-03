@@ -26,7 +26,7 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
-package org.gnoseis.ui.components
+package org.gnoseis.ui.record
 
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.enums.RecordType
