@@ -38,18 +38,22 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 /**
- * #45: record type colours for the Home page's Most linked bubbles: an outline (also the icon)
- * on a lighter fill in the light theme, and a lighter outline on a darker fill in the dark one,
- * so the types differ in lightness as well as hue.
+ * Colours for each record type: an outline (also the icon and legend dot) on a light fill in the
+ * light theme, and a light outline on a dark fill in the dark one, so the types differ in
+ * lightness as well as hue. Lightness also differs a little between types, to keep them apart
+ * where hue alone can't, also with night light on. Every outline is at least 5:1 against its
+ * fill. Fixed colours: they don't follow dynamic colour.
  */
 data class RecordTypeColors(val outline: Color, val fill: Color)
 
-val ContactColorsLight = RecordTypeColors(outline = Color(0xFF4A5C92), fill = Color(0xFFDBE1FF))
-val OrganizationColorsLight = RecordTypeColors(outline = Color(0xFF8A5A00), fill = Color(0xFFFFDDB3))
-val CategoryColorsLight = RecordTypeColors(outline = Color(0xFF3A6A3E), fill = Color(0xFFCDEBC6))
-val ItemColorsLight = RecordTypeColors(outline = Color(0xFF7B4E91), fill = Color(0xFFF3DAFF))
+val NoteColorsLight = RecordTypeColors(outline = Color(0xFF38641C), fill = Color(0xFFDBEFCB))
+val ContactColorsLight = RecordTypeColors(outline = Color(0xFF7C560D), fill = Color(0xFFFFE7CA))
+val OrganizationColorsLight = RecordTypeColors(outline = Color(0xFF96333F), fill = Color(0xFFFFCECF))
+val CategoryColorsLight = RecordTypeColors(outline = Color(0xFF235198), fill = Color(0xFFD0D9FF))
+val ItemColorsLight = RecordTypeColors(outline = Color(0xFF00646B), fill = Color(0xFFAFECF3))
 
-val ContactColorsDark = RecordTypeColors(outline = Color(0xFFB4C5FF), fill = Color(0xFF31447A))
-val OrganizationColorsDark = RecordTypeColors(outline = Color(0xFFFFB951), fill = Color(0xFF633F00))
-val CategoryColorsDark = RecordTypeColors(outline = Color(0xFFA0D49A), fill = Color(0xFF225128))
-val ItemColorsDark = RecordTypeColors(outline = Color(0xFFE7B4FF), fill = Color(0xFF613777))
+val NoteColorsDark = RecordTypeColors(outline = Color(0xFFAACD90), fill = Color(0xFF324D21))
+val ContactColorsDark = RecordTypeColors(outline = Color(0xFFE3BA82), fill = Color(0xFF553C12))
+val OrganizationColorsDark = RecordTypeColors(outline = Color(0xFFFFAAAD), fill = Color(0xFF6B2D32))
+val CategoryColorsDark = RecordTypeColors(outline = Color(0xFFACBFFF), fill = Color(0xFF293E6C))
+val ItemColorsDark = RecordTypeColors(outline = Color(0xFF62DEEA), fill = Color(0xFF004349))

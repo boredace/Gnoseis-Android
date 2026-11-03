@@ -69,7 +69,7 @@ import org.gnoseis.ui.theme.GnoseisTheme
 fun LinkSourceCard(source: LinkSource, modifier: Modifier = Modifier) {
     val typeName = singularName(source.type).lowercase()
     val shape = RoundedCornerShape(12.dp)
-    // Notes have no type colour, so their badge uses neutral surface colours.
+    // The card keeps a neutral badge for notes, in surface colours.
     val (badgeFill, badgeOutline) =
         if (source.type == RecordType.Note) {
             MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
