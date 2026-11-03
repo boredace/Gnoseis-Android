@@ -28,16 +28,15 @@
 
 package org.gnoseis.data.database
 
+import android.content.ContentValues
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.annotation.VisibleForTesting
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.category.CategoryDao
 import org.gnoseis.data.entity.contact.Contact
@@ -145,6 +144,21 @@ abstract class GnoseisDatabase : RoomDatabase() {
             MIGRATION_2_3,
         )
 
+        /**
+         * Column values for the seed note. Written by hand because no DAO exists yet
+         * inside onCreate.
+         */
+        private fun Note.toContentValues() = ContentValues().apply {
+            put("id", id)
+            put("ownerDbId", ownerDbId)
+            put("title", title)
+            put("textContents", textContents)
+            put("createDateTime", createDateTime)
+            put("createDate", createDate)
+            put("createdAt", createdAt)
+            put("updatedAt", updatedAt)
+        }
+
         @Volatile
         private var Instance: GnoseisDatabase? = null
 
@@ -161,18 +175,20 @@ abstract class GnoseisDatabase : RoomDatabase() {
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            CoroutineScope(Dispatchers.IO).launch {
-                                val now = System.currentTimeMillis()
-                                Instance?.noteDao()?.addNote(
-                                    Note(
+                            // #20: inside the transaction that creates the schema, so the
+                            // note is there before the first query
+                            val now = System.currentTimeMillis()
+                            db.insert(
+                                "Note",
+                                SQLiteDatabase.CONFLICT_ABORT,
+                                Note(
                                     ownerDbId = "yyy",
                                     title = "This is a default note",
                                     textContents = "This note is created when application was initialized. Feel free to delete or edit it as you please.",
                                     createdAt = now,
                                     updatedAt = now,
-                                    )
-                                )
-                            }
+                                ).toContentValues()
+                            )
                         }
                     })
                     .build()
