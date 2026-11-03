@@ -103,6 +103,7 @@ import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
 import org.gnoseis.ui.note.NoteList
 import org.gnoseis.ui.organization.OrganizationList
+import org.gnoseis.ui.record.LinkedRecords
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -160,7 +161,7 @@ fun ContactDetailsPage(
 fun ContactDetailsScaffold(
     contact: Contact,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  ContactDetailsViewModel.ContactLinkedRecords,
+    linkedRecords:  LinkedRecords,
     onDeleteRecord: () -> Unit,
     onNavMenuclick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
@@ -288,7 +289,7 @@ fun ContactDetailsScaffold(
 fun ContactDetailsBody(
     contact: Contact,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  ContactDetailsViewModel.ContactLinkedRecords,
+    linkedRecords:  LinkedRecords,
     showDeleteAlertDialog: Boolean,
     onDeleteAlertDialogDismiss: () -> Unit,
     onDeleteAlertDialogConfirm: () -> Unit,
@@ -654,7 +655,7 @@ fun ContactDetailsPagePreview() {
 //                            " widget to a prospect who didnt need any widgets. As a matter of " +
 //                            "fact didnt even know what widgets are..."
                 ),
-                linkedRecords = ContactDetailsViewModel.ContactLinkedRecords(),
+                linkedRecords = LinkedRecords(),
                 onNavMenuclick = {},
                 onDeleteRecord = {},
                 navigateToContactEditPage = {},

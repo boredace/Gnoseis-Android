@@ -37,14 +37,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.gnoseis.data.entity.category.Category
-import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
-import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.ui.record.LinkedRecords
+import org.gnoseis.ui.record.linkedRecordsFlow
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
@@ -62,24 +61,11 @@ class ItemDetailsViewModel(
         )
     private var itemId : String = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId)
 
-    val linkedRecords: StateFlow<ItemLinkedRecords> =
-        combine(
-            linkedRecordRepository.getLinkedCategoryListByItemId(itemId),
-            linkedRecordRepository.getLinkedContactListByItemId(itemId),
-            linkedRecordRepository.getLinkedNoteListByItemId(itemId),
-            linkedRecordRepository.getLinkedOrganizationListByItemId(itemId)
-        ){
-            linkedCategories, linkedContacts, linkedNotes, linkedOrganizations ->
-            ItemLinkedRecords(
-                linkedCategories = linkedCategories,
-                linkedContacts = linkedContacts,
-                linkedNotes = linkedNotes,
-                linkedOrganizations = linkedOrganizations
-            )
-        }.stateIn(
+    val linkedRecords: StateFlow<LinkedRecords> =
+        linkedRecordsFlow(linkedRecordRepository, itemId, RecordType.Item).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            ItemLinkedRecords()
+            LinkedRecords()
         )
 
     val itemDetailsPageState: StateFlow<ItemDetailsPageState> =
@@ -108,12 +94,6 @@ class ItemDetailsViewModel(
         val linkedRecordTabs: List<LinkedRecordTypeCount> = emptyList()
     )
 
-    data class ItemLinkedRecords(
-        val linkedCategories: List<Category> = emptyList(),
-        val linkedContacts: List<Contact> = emptyList(),
-        val linkedNotes: List<Note> = emptyList(),
-        val linkedOrganizations: List<Organization> = emptyList()
-    )
 
 
 

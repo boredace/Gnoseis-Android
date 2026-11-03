@@ -105,6 +105,7 @@ import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
 import org.gnoseis.ui.organization.OrganizationList
+import org.gnoseis.ui.record.LinkedRecords
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.time.Instant
 import java.time.ZoneId
@@ -166,7 +167,7 @@ fun NoteDetailsPage(
 fun NoteDetailsScaffold(
     note: Note,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  NoteDetailsViewModel.NoteLinkedRecords,
+    linkedRecords:  LinkedRecords,
     onDeleteRecord: () -> Unit,
     onNavMenuclick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
@@ -311,7 +312,7 @@ fun NoteDetailsScaffold(
 fun NoteDetailsBody(
     note: Note,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  NoteDetailsViewModel.NoteLinkedRecords,
+    linkedRecords:  LinkedRecords,
     showDeleteAlertDialog: Boolean,
     onDeleteAlertDialogDismiss: () -> Unit,
     onDeleteAlertDialogConfirm: () -> Unit,
@@ -571,7 +572,7 @@ fun NoteDetailsPagePreview() {
                         count = 1
                     )
                 ),
-                linkedRecords = NoteDetailsViewModel.NoteLinkedRecords(),
+                linkedRecords = LinkedRecords(),
                 navigateToLinkNewItemPage = {},
                 navigateToLinkNewOrganizationPage = {},
                 navigateToLinkNewCategoryPage = {},

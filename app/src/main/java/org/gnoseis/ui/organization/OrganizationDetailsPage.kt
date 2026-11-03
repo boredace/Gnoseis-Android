@@ -104,6 +104,7 @@ import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
 import org.gnoseis.ui.note.NoteList
+import org.gnoseis.ui.record.LinkedRecords
 import org.gnoseis.ui.theme.GnoseisTheme
 
 
@@ -161,7 +162,7 @@ fun OrganizationDetailsPage(
 fun OrganizationDetailsScaffold(
     organization: Organization,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  OrganizationDetailsViewModel.OrganizationLinkedRecords,
+    linkedRecords:  LinkedRecords,
     onDeleteRecord: () -> Unit,
     onNavMenuclick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
@@ -291,7 +292,7 @@ fun OrganizationDetailsScaffold(
 fun OrganizationDetailsBody(
     organization: Organization,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  OrganizationDetailsViewModel.OrganizationLinkedRecords,
+    linkedRecords:  LinkedRecords,
     showDeleteAlertDialog: Boolean,
     onDeleteAlertDialogDismiss: () -> Unit,
     onDeleteAlertDialogConfirm: () -> Unit,
@@ -515,7 +516,7 @@ fun OrganizationDetailsPagePreview() {
                     ownerDbId = "xxx",
                     organizationName = "Happy Monkeys Inc."
                 ),
-                linkedRecords = OrganizationDetailsViewModel.OrganizationLinkedRecords(),
+                linkedRecords = LinkedRecords(),
                 onDeleteRecord = {},
                 onNavMenuclick = {},
                 navigateToCategoryDetailsPage = {},

@@ -103,6 +103,7 @@ import org.gnoseis.ui.icons.OrganizationIcon
 import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.note.NoteList
 import org.gnoseis.ui.organization.OrganizationList
+import org.gnoseis.ui.record.LinkedRecords
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -159,7 +160,7 @@ fun ItemDetailsPage(
 fun ItemDetailsScaffold(
     item: Item,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  ItemDetailsViewModel.ItemLinkedRecords,
+    linkedRecords:  LinkedRecords,
     onDeleteRecord: () -> Unit,
     onNavMenuclick: () -> Unit,
     navigateToCategoryDetailsPage: (String) -> Unit,
@@ -283,7 +284,7 @@ fun ItemDetailsScaffold(
 fun ItemDetailsBody(
     item: Item,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  ItemDetailsViewModel.ItemLinkedRecords,
+    linkedRecords:  LinkedRecords,
     showDeleteAlertDialog: Boolean,
     onDeleteAlertDialogDismiss: () -> Unit,
     onDeleteAlertDialogConfirm: () -> Unit,
@@ -507,7 +508,7 @@ fun ItemDetailsPagePreview() {
                     itemName = "Tesla Model Y - AWD",
                     comments = "This is my newest Model Y entry"
                 ),
-                linkedRecords = ItemDetailsViewModel.ItemLinkedRecords(),
+                linkedRecords = LinkedRecords(),
                 onNavMenuclick = {},
                 onDeleteRecord = {},
                 navigateToNoteDetailsPage = {},

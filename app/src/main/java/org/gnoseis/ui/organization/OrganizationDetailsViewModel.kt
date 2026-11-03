@@ -37,13 +37,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.gnoseis.data.entity.category.Category
-import org.gnoseis.data.entity.contact.Contact
-import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
-import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.ui.record.LinkedRecords
+import org.gnoseis.ui.record.linkedRecordsFlow
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
@@ -62,24 +61,11 @@ class OrganizationDetailsViewModel(
         )
     private var organizationId : String = checkNotNull(savedStateHandle.toRoute<OrganizationDetailsRoute>().organizationId)
 
-    val linkedRecords: StateFlow<OrganizationLinkedRecords> =
-        combine(
-            linkedRecordRepository.getLinkedCategoryListByOrganizationId(organizationId),
-            linkedRecordRepository.getLinkedContactListByOrganizationId(organizationId),
-            linkedRecordRepository.getLinkedItemListByOrganizationId(organizationId),
-            linkedRecordRepository.getLinkedNoteListByOrganizationId(organizationId)
-        ){
-            linkedCategories, linkedContacts, linkedItems, linkedNotes ->
-            OrganizationLinkedRecords(
-                linkedCategories = linkedCategories,
-                linkedContacts = linkedContacts,
-                linkedItems = linkedItems,
-                linkedNotes = linkedNotes
-            )
-        }.stateIn(
+    val linkedRecords: StateFlow<LinkedRecords> =
+        linkedRecordsFlow(linkedRecordRepository, organizationId, RecordType.Organization).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            OrganizationLinkedRecords()
+            LinkedRecords()
         )
 
     val organizationDetailsPageState: StateFlow<OrganizationDetailsPageState> =
@@ -107,12 +93,6 @@ class OrganizationDetailsViewModel(
         val linkedRecordTabs: List<LinkedRecordTypeCount> = emptyList()
     )
 
-    data class OrganizationLinkedRecords(
-        val linkedCategories: List<Category> = emptyList(),
-        val linkedContacts: List<Contact> = emptyList(),
-        val linkedItems: List<Item> = emptyList(),
-        val linkedNotes: List<Note> = emptyList()
-    )
 
 
 

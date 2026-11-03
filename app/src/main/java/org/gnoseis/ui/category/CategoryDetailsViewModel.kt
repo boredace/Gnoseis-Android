@@ -38,13 +38,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.category.Category
-import org.gnoseis.data.entity.contact.Contact
-import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
-import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.ui.record.LinkedRecords
+import org.gnoseis.ui.record.linkedRecordsFlow
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
@@ -64,24 +63,11 @@ class CategoryDetailsViewModel(
 
     private var categoryId : String = checkNotNull(savedStateHandle.toRoute<CategoryDetailsRoute>().categoryId)
 
-    val linkedRecords: StateFlow<CategoryLinkedRecords> =
-        combine(
-            linkedRecordRepository.getLinkedContactListByCategoryId(categoryId),
-            linkedRecordRepository.getLinkedItemListByCategoryId(categoryId),
-            linkedRecordRepository.getLinkedNoteListByCategoryId(categoryId),
-            linkedRecordRepository.getLinkedOrganizationListByCategoryId(categoryId)
-        ){
-                linkedContacts, linkedItems, linkedNotes, linkedOrganizations ->
-            CategoryLinkedRecords(
-                linkedContacts = linkedContacts,
-                linkedItems = linkedItems,
-                linkedNotes = linkedNotes,
-                linkedOrganizations = linkedOrganizations
-            )
-        }.stateIn(
+    val linkedRecords: StateFlow<LinkedRecords> =
+        linkedRecordsFlow(linkedRecordRepository, categoryId, RecordType.Category).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            CategoryLinkedRecords()
+            LinkedRecords()
         )
 
     val categoryDetailsPageState: StateFlow<CategoryDetailsPageState> =
@@ -110,12 +96,6 @@ class CategoryDetailsViewModel(
         val linkedRecordTabs: List<LinkedRecordTypeCount> = emptyList()
     )
 
-    data class CategoryLinkedRecords(
-        val linkedContacts: List<Contact> = emptyList(),
-        val linkedItems: List<Item> = emptyList(),
-        val linkedNotes: List<Note> = emptyList(),
-        val linkedOrganizations: List<Organization> = emptyList()
-    )
 
     companion object {
         private const val TIMEOUT_MILLIS = 5_000L

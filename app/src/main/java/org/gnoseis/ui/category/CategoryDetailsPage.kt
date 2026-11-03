@@ -102,6 +102,7 @@ import org.gnoseis.ui.icons.QuestionIcon
 import org.gnoseis.ui.item.ItemList
 import org.gnoseis.ui.note.NoteList
 import org.gnoseis.ui.organization.OrganizationList
+import org.gnoseis.ui.record.LinkedRecords
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -157,7 +158,7 @@ fun CategoryDetailsPage(
 fun CategoryDetailsScaffold(
     category: Category,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  CategoryDetailsViewModel.CategoryLinkedRecords,
+    linkedRecords:  LinkedRecords,
     onDeleteRecord: () -> Unit,
     onNavMenuclick: () -> Unit,
     navigateToContactDetailsPage: (String) -> Unit,
@@ -282,7 +283,7 @@ fun CategoryDetailsScaffold(
 fun CategoryDetailsBody(
     category: Category,
     linkedRecordTabs: List<LinkedRecordTypeCount>,
-    linkedRecords:  CategoryDetailsViewModel.CategoryLinkedRecords,
+    linkedRecords:  LinkedRecords,
     showDeleteAlertDialog: Boolean,
     onDeleteAlertDialogDismiss: () -> Unit,
     onDeleteAlertDialogConfirm: () -> Unit,
@@ -525,7 +526,7 @@ fun CategoryDetailsPagePreview() {
                         count = 3
                     )
                 ),
-                linkedRecords = CategoryDetailsViewModel.CategoryLinkedRecords(),
+                linkedRecords = LinkedRecords(),
                 navigateToLinkNewOrganizationPage = {},
                 navigateToLinkNewItemPage = {},
                 navigateToLinkNewContactPage = {},
