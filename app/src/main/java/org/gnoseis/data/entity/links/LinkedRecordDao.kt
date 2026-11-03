@@ -225,6 +225,24 @@ interface LinkedRecordDao {
                 "record2Id = :id" )
     suspend fun deleteLinksToRecordID(id: String): Int
 
+    /** A link between the two records, stored either way round; null if they aren't linked. */
+    @Query(
+        "SELECT * FROM LinkedRecord " +
+                "WHERE (record1Id = :recordIdA AND record2Id = :recordIdB) " +
+                "OR (record1Id = :recordIdB AND record2Id = :recordIdA) " +
+                "LIMIT 1" )
+    suspend fun getLinkBetween(recordIdA: String, recordIdB: String): LinkedRecord?
+
+    /**
+     * Unlinks the two records (#11): deletes every link between them, stored either way round,
+     * including duplicates from before #13. Returns the number of links deleted.
+     */
+    @Query(
+        "DELETE FROM LinkedRecord " +
+                "WHERE (record1Id = :recordIdA AND record2Id = :recordIdB) " +
+                "OR (record1Id = :recordIdB AND record2Id = :recordIdA)" )
+    suspend fun deleteLinkBetween(recordIdA: String, recordIdB: String): Int
+
     @Insert
     suspend fun addLinkedRecord(linkedRecord: LinkedRecord)
 

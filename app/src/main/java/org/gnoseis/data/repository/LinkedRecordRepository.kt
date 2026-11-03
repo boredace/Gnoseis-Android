@@ -146,4 +146,11 @@ class LinkedRecordRepository(
 
     suspend fun deleteLinksToRecordID(id: String): Int =
         linkedRecordDao.deleteLinksToRecordID(id)
+
+    suspend fun getLinkBetween(recordIdA: String, recordIdB: String): LinkedRecord? =
+        linkedRecordDao.getLinkBetween(recordIdA, recordIdB)
+
+    /** Deletes every link between the two records, either way round. Returns how many. */
+    suspend fun deleteLinkBetween(recordIdA: String, recordIdB: String): Int =
+        linkedRecordDao.deleteLinkBetween(recordIdA, recordIdB)
 }

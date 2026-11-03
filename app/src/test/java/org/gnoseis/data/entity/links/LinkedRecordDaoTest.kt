@@ -220,4 +220,32 @@ class LinkedRecordDaoTest {
             assertEquals(emptyList<Note>(), awaitItem())
         }
     }
+
+    /** #11: unlinking removes the pair however it's stored, duplicates included, and nothing else. */
+    @Test
+    fun deleteLinkBetween_removesThePairInBothDirections_andItsDuplicates_only() = runTest {
+        insertAllRecords()
+        dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
+        dao.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
+        dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
+        dao.addLinkedRecord(link(contact.id, RecordType.Contact, org.id, RecordType.Organization))
+        dao.addLinkedRecord(link(note.id, RecordType.Note, item.id, RecordType.Item))
+
+        assertEquals(3, dao.deleteLinkBetween(note.id, contact.id))
+
+        assertEquals(listOf(org.id), dao.getRecordIdsLinkedToRecordId(contact.id).first())
+        assertEquals(listOf(item.id), dao.getRecordIdsLinkedToRecordId(note.id).first())
+        assertEquals(0, dao.deleteLinkBetween(contact.id, note.id))
+    }
+
+    @Test
+    fun getLinkBetween_findsTheLinkEitherWayRound() = runTest {
+        insertAllRecords()
+        val stored = link(org.id, RecordType.Organization, item.id, RecordType.Item)
+        dao.addLinkedRecord(stored)
+
+        assertEquals(stored, dao.getLinkBetween(org.id, item.id))
+        assertEquals(stored, dao.getLinkBetween(item.id, org.id))
+        assertEquals(null, dao.getLinkBetween(org.id, note.id))
+    }
 }
