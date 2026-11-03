@@ -30,8 +30,10 @@
 
 package org.gnoseis.ui.organization
 
+import org.gnoseis.ui.record.saveRecord
+import org.gnoseis.ui.record.RecordEditScaffold
+import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -41,17 +43,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -60,13 +55,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ORGANIZATION
 import org.gnoseis.data.enums.OrganizationEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -81,90 +74,31 @@ data class OrganizationEditRoute(
 fun OrganizationEditPage(
     pageMode: OrganizationEditPageMode,
     pageViewModel: OrganizationEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navMenuClick: () -> Unit,
-    navigateToOrganizationDetailsPage: (String) -> Unit,
-    navigateBackAfterLinkingNew: () -> Unit,
+    navigation: RecordEditNavigation,
 ) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
     val coroutineScope = rememberCoroutineScope()
 
-    OrganizationEditScaffold(
-        pageState = pageState,
-        editState = editState,
-        onNavMenuclick = navMenuClick,
-        onEvent = {
-            when (it) {
-                is OrganizationEditPageEvent.Save -> {
-                    coroutineScope.launch {
-                        val addedOrganizationId = pageViewModel.onSave()
-                        if (addedOrganizationId != null) {
-                            if(pageMode == OrganizationEditPageMode.NEWLINK) {
-                                navigateBackAfterLinkingNew()
-                            } else  {
-                                navigateToOrganizationDetailsPage(addedOrganizationId)
-                            }
-                        } else {
-                            navMenuClick()
-                        }
-                    }
-                }
-                else -> {
-                    pageViewModel.onEvent(it)
-                }
-            }
-        },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun OrganizationEditScaffold(
-    pageState: OrganizationEditViewModel.PageState,
-    editState: OrganizationEditViewModel.EditState,
-    onEvent: (OrganizationEditPageEvent) -> Unit,
-    onNavMenuclick: () -> Unit,
-
-
-    ){
-    Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text="New Organization") },
-                navigationIcon = {
-                    IconButton(onClick = { onNavMenuclick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Button(
-//                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            onEvent(OrganizationEditPageEvent.Save)
-                        },
-                        enabled = editState.isValid
-
-                    ) {
-                        Text(text = "Save")
-                        }
-                }
+    RecordEditScaffold(
+        recordType = RecordType.Organization,
+        isNew = pageMode != OrganizationEditPageMode.EDIT,
+        linkSource = pageState.linkSource,
+        saveEnabled = editState.isValid,
+        onSave = {
+            coroutineScope.saveRecord(
+                save = pageViewModel::onSave,
+                linksNew = pageMode == OrganizationEditPageMode.NEWLINK,
+                navigation = navigation,
             )
         },
-        floatingActionButton = {},
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-            ) {
-                pageState.linkSource?.let { LinkSourceCard(it) }
-                OrganizationEditBody(
-                    editState = editState,
-                    onEvent = onEvent,
-                )
-            }
-        }
-    )
+        onBack = navigation.back,
+    ) {
+        OrganizationEditBody(
+            editState = editState,
+            onEvent = { pageViewModel.onEvent(it) },
+        )
+    }
 }
 
 @Composable
@@ -254,22 +188,22 @@ fun OrganizationTextField(
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun ContactEditPagePreview()
-{
+fun OrganizationEditPagePreview() {
     GnoseisTheme {
         Surface {
-            OrganizationEditScaffold(
-                pageState = OrganizationEditViewModel.PageState(
-                    isNew = true,
-                    pageMode = OrganizationEditPageMode.NEW,
-                ),
-                editState = OrganizationEditViewModel.EditState(
-                    isValid = false,
-                    editOrganizationName = "ABC Corp"
-                ),
-                onEvent = {},
-                onNavMenuclick = {},
-            )
+            RecordEditScaffold(
+                recordType = RecordType.Organization,
+                isNew = true,
+                linkSource = null,
+                saveEnabled = true,
+                onSave = {},
+                onBack = {},
+            ) {
+                OrganizationEditBody(
+                    editState = OrganizationEditViewModel.EditState(isValid = false, editOrganizationName = "ABC Corp"),
+                    onEvent = {},
+                )
+            }
         }
     }
 }

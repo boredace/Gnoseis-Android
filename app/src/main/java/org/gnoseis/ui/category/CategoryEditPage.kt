@@ -30,39 +30,32 @@
 
 package org.gnoseis.ui.category
 
+import org.gnoseis.ui.record.saveRecord
+import org.gnoseis.ui.record.RecordEditScaffold
+import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CATEGORY
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.enums.CategoryEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -79,94 +72,33 @@ const val TAG = "CategoryEditPage"
 fun CategoryEditPage(
     pageMode: CategoryEditPageMode,
     pageViewModel: CategoryEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navMenuClick: () -> Unit,
-    navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateBackAfterLinkingNew: () -> Unit,
-
-    ) {
+    navigation: RecordEditNavigation,
+) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
-
     val coroutineScope = rememberCoroutineScope()
 
-
-    CategoryEditScaffold(
-        pageState = pageState,
-        editState = editState,
-        onNavMenuclick = navMenuClick,
+    RecordEditScaffold(
+        recordType = RecordType.Category,
+        isNew = pageMode != CategoryEditPageMode.EDIT,
+        linkSource = pageState.linkSource,
+        saveEnabled = editState.isValid,
         onSave = {
-            coroutineScope.launch {
-                val addedCategoryId = pageViewModel.onSave()
-                if(addedCategoryId != null) {
-                    if(pageMode == CategoryEditPageMode.NEWLINK) {
-                        navigateBackAfterLinkingNew()
-                    } else {
-                        navigateToCategoryDetailsPage(addedCategoryId)
-                    }
-                } else {
-                    navMenuClick()
-                }
-            }
-         },
-        onCategoryNameChanged = { pageViewModel.updateCategoryName(it) },
-        onCategoryDescriptionChanged = {pageViewModel.updateCategoryDescription(it) }
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoryEditScaffold(
-    pageState: CategoryEditViewModel.PageState,
-    editState: CategoryEditViewModel.EditState,
-    onNavMenuclick: () -> Unit,
-    onSave: () -> Unit,
-    onCategoryNameChanged: (String) -> Unit,
-    onCategoryDescriptionChanged: (String) -> Unit
-
-
-){
-    Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text="New Category") },
-                navigationIcon = {
-                    IconButton(onClick = { onNavMenuclick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Button(
-//                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onSave() },
-                        enabled = editState.isValid
-
-                    ) {
-                        when {
-                            pageState.isNew -> Text(text = "Add")
-                            !pageState.isNew -> Text(text= "Save")
-                        }
-                    }
-                }
+            coroutineScope.saveRecord(
+                save = pageViewModel::onSave,
+                linksNew = pageMode == CategoryEditPageMode.NEWLINK,
+                navigation = navigation,
             )
         },
-        floatingActionButton = {},
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-            ) {
-                pageState.linkSource?.let { LinkSourceCard(it) }
-                CategoryEditBody(
-                    pageState = pageState,
-                    editState = editState,
-                    onCategoryNameChanged = onCategoryNameChanged,
-                    onCategoryDescriptionChanged = onCategoryDescriptionChanged
-                )
-            }
-        }
-    )
+        onBack = navigation.back,
+    ) {
+        CategoryEditBody(
+            pageState = pageState,
+            editState = editState,
+            onCategoryNameChanged = { pageViewModel.updateCategoryName(it) },
+            onCategoryDescriptionChanged = { pageViewModel.updateCategoryDescription(it) },
+        )
+    }
 }
 
 @Composable
@@ -214,26 +146,24 @@ fun CategoryEditBody(
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun CategoryEditPagePreview()
-{
+fun CategoryEditPagePreview() {
     GnoseisTheme {
         Surface {
-            CategoryEditScaffold(
-                pageState = CategoryEditViewModel.PageState(
-                    isNew = true,
-                    category = Category(
-                        ownerDbId = "aaa",
-                        categoryName = "New category name"
-                    ),
-                ),
-                editState = CategoryEditViewModel.EditState(
-                    isValid = true,
-                ),
-                onNavMenuclick = {},
+            RecordEditScaffold(
+                recordType = RecordType.Category,
+                isNew = true,
+                linkSource = null,
+                saveEnabled = true,
                 onSave = {},
-                onCategoryNameChanged = {},
-                onCategoryDescriptionChanged = {},
-            )
+                onBack = {},
+            ) {
+                CategoryEditBody(
+                    pageState = CategoryEditViewModel.PageState(isNew = true),
+                    editState = CategoryEditViewModel.EditState(isValid = true, editCategoryName = "New category name"),
+                    onCategoryNameChanged = {},
+                    onCategoryDescriptionChanged = {},
+                )
+            }
         }
     }
 }

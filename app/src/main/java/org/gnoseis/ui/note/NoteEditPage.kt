@@ -30,6 +30,9 @@
 
 package org.gnoseis.ui.note
 
+import org.gnoseis.ui.record.saveRecord
+import org.gnoseis.ui.record.RecordEditScaffold
+import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.layout.Box
@@ -43,24 +46,18 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CalendarLocale
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,13 +70,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.NoteEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -98,106 +93,37 @@ data class NoteEditRoute(
 fun NoteEditPage(
     pageMode: NoteEditPageMode,
     pageViewModel: NoteEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navMenuClick: () -> Unit,
-    navigateToNoteDetailsPage: (String) ->Unit,
-    navigateBackAfterLinkingNew: () -> Unit,
-
-    ) {
+    navigation: RecordEditNavigation,
+) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
-
-    val coroutineScope = rememberCoroutineScope()
     val datePickerState by pageViewModel.datePickerState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
-    NoteEditScaffold(
-        pageState = pageState,
-        editState = editState,
-        datePickerState = datePickerState,
-        onDateChanged = {
-            pageViewModel.updateDate(it)
-        },
-        onNavMenuclick = navMenuClick,
+    RecordEditScaffold(
+        recordType = RecordType.Note,
+        isNew = pageMode != NoteEditPageMode.EDIT,
+        linkSource = pageState.linkSource,
+        saveEnabled = editState.isValid,
         onSave = {
-            coroutineScope.launch {
-                val addedNoteId = pageViewModel.onSave()
-                if(addedNoteId != null) {
-                    if(pageMode == NoteEditPageMode.NEWLINK) {
-                        navigateBackAfterLinkingNew()
-                    } else {
-                        navigateToNoteDetailsPage(addedNoteId)
-                    }
-                } else {
-                    navMenuClick()
-                }
-            }
-         },
-        onTextContentChange = { pageViewModel.updateTextContent(it) },
-        onTitleChange = {pageViewModel.updateTitle(it) },
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NoteEditScaffold(
-    pageState: NoteEditViewModel.PageState,
-    editState: NoteEditViewModel.EditState,
-    datePickerState: DatePickerState,
-    onDateChanged: (Long) -> Unit,
-    onNavMenuclick: () -> Unit,
-    onSave: () -> Unit,
-    onTextContentChange: (String) -> Unit,
-    onTitleChange: (String) -> Unit,
-
-
-){
-    Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text="New Note") },
-                navigationIcon = {
-                    IconButton(onClick = { onNavMenuclick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Button(
-//                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onSave() },
-//                        enabled = pageState.isValid
-                        enabled = editState.isValid
-
-                    ) {
-                        when {
-                            pageState.isNew -> Text(text = "Add")
-                            !pageState.isNew -> Text(text= "Save")
-                        }
-                    }
-                }
+            coroutineScope.saveRecord(
+                save = pageViewModel::onSave,
+                linksNew = pageMode == NoteEditPageMode.NEWLINK,
+                navigation = navigation,
             )
         },
-        floatingActionButton = {},
-        content = { innerPadding ->
-            KeyboardAware {
-                Column(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        
-                ) {
-                    pageState.linkSource?.let { LinkSourceCard(it) }
-                    NoteEditBody(
-                        editState = editState,
-                        datePickerState = datePickerState,
-                        onDateChanged = onDateChanged,
-                        onTextContentChange = onTextContentChange,
-                        onTitleChange = onTitleChange,
-                    )
-                }
-            }
-
+        onBack = navigation.back,
+    ) {
+        KeyboardAware {
+            NoteEditBody(
+                editState = editState,
+                datePickerState = datePickerState,
+                onDateChanged = { pageViewModel.updateDate(it) },
+                onTextContentChange = { pageViewModel.updateTextContent(it) },
+                onTitleChange = { pageViewModel.updateTitle(it) },
+            )
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -377,26 +303,25 @@ fun MyTimePickerDialog(
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun NoteEditPagePreview()
-{
+fun NoteEditPagePreview() {
     GnoseisTheme {
         Surface {
-            NoteEditScaffold(
-                pageState = NoteEditViewModel.PageState(
-                    isNew = true,
-                    pageMode = NoteEditPageMode.NEW,
-                ),
-                editState = NoteEditViewModel.EditState(
-                    isValid = true
-                ),
-                datePickerState = DatePickerState(locale = CalendarLocale.getDefault()),
-                onNavMenuclick = {},
+            RecordEditScaffold(
+                recordType = RecordType.Note,
+                isNew = true,
+                linkSource = null,
+                saveEnabled = true,
                 onSave = {},
-                onTextContentChange = {},
-                onTitleChange = {},
-                onDateChanged = {},
-            )
+                onBack = {},
+            ) {
+                NoteEditBody(
+                    editState = NoteEditViewModel.EditState(isValid = true),
+                    datePickerState = DatePickerState(locale = CalendarLocale.getDefault()),
+                    onDateChanged = {},
+                    onTextContentChange = {},
+                    onTitleChange = {},
+                )
+            }
         }
     }
-
 }

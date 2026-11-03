@@ -30,8 +30,10 @@
 
 package org.gnoseis.ui.contact
 
+import org.gnoseis.ui.record.saveRecord
+import org.gnoseis.ui.record.RecordEditScaffold
+import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -41,17 +43,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -60,13 +55,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
 import org.gnoseis.data.enums.ContactEditPageMode
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.LinkSourceCard
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
@@ -81,93 +74,31 @@ data class ContactEditRoute(
 fun ContactEditPage(
     pageMode: ContactEditPageMode,
     pageViewModel: ContactEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navMenuClick: () -> Unit,
-    navigateToContactDetailsPage: (String) ->Unit,
-    navigateBackAfterLinkingNew: () -> Unit,
-
-    ) {
+    navigation: RecordEditNavigation,
+) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
-
     val coroutineScope = rememberCoroutineScope()
 
-    ContactEditScaffold(
-        pageState = pageState,
-        editState = editState,
-        onEvent = {
-            when (it) {
-                is ContactEditPageEvent.Save -> {
-                    coroutineScope.launch {
-                        val addedContactId = pageViewModel.onSave()
-                        if (addedContactId != null) {
-                            if(pageMode == ContactEditPageMode.NEWLINK) {
-                                navigateBackAfterLinkingNew()
-                            } else {
-                                navigateToContactDetailsPage(addedContactId)
-                            }
-                        } else {
-                            navMenuClick()
-                        }
-                    }
-                }
-                else -> {
-                    pageViewModel.onEvent(it)
-                }
-            }
-        },
-        onNavMenuclick = navMenuClick,
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ContactEditScaffold(
-    pageState: ContactEditViewModel.PageState,
-    editState: ContactEditViewModel.EditState,
-    onEvent: (ContactEditPageEvent) -> Unit,
-    onNavMenuclick: () -> Unit,
-
-
-    ){
-    Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text="New Contact") },
-                navigationIcon = {
-                    IconButton(onClick = { onNavMenuclick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Button(
-//                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            onEvent(ContactEditPageEvent.Save)
-                        },
-                        enabled = editState.isValid
-
-                    ) {
-                        Text(text = "Save")
-                        }
-                }
+    RecordEditScaffold(
+        recordType = RecordType.Contact,
+        isNew = pageMode != ContactEditPageMode.EDIT,
+        linkSource = pageState.linkSource,
+        saveEnabled = editState.isValid,
+        onSave = {
+            coroutineScope.saveRecord(
+                save = pageViewModel::onSave,
+                linksNew = pageMode == ContactEditPageMode.NEWLINK,
+                navigation = navigation,
             )
         },
-        floatingActionButton = {},
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-            ) {
-                pageState.linkSource?.let { LinkSourceCard(it) }
-                ContactEditBody(
-                    editState = editState,
-                    onEvent = onEvent,
-                )
-            }
-        }
-    )
+        onBack = navigation.back,
+    ) {
+        ContactEditBody(
+            editState = editState,
+            onEvent = { pageViewModel.onEvent(it) },
+        )
+    }
 }
 
 @Composable
@@ -355,23 +286,22 @@ fun ContactTextField(
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun ContactEditPagePreview()
-{
+fun ContactEditPagePreview() {
     GnoseisTheme {
         Surface {
-            ContactEditScaffold(
-                pageState = ContactEditViewModel.PageState(
-                    isNew = true,
-                    pageMode = ContactEditPageMode.NEW,
-                ),
-                editState = ContactEditViewModel.EditState(
-                    isValid = false,
-                    nameLast = "Smith"
-                ),
-                onEvent = {},
-                onNavMenuclick = {},
-            )
+            RecordEditScaffold(
+                recordType = RecordType.Contact,
+                isNew = true,
+                linkSource = null,
+                saveEnabled = true,
+                onSave = {},
+                onBack = {},
+            ) {
+                ContactEditBody(
+                    editState = ContactEditViewModel.EditState(isValid = false, nameLast = "Smith"),
+                    onEvent = {},
+                )
+            }
         }
     }
-
 }

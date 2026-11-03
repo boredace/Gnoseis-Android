@@ -86,6 +86,7 @@ import org.gnoseis.ui.organization.OrganizationEditRoute
 import org.gnoseis.ui.organization.OrganizationListPage
 import org.gnoseis.ui.organization.OrganizationListRoute
 import org.gnoseis.ui.record.RecordDetailsNavigation
+import org.gnoseis.ui.record.RecordEditNavigation
 import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchPageDestination
 import org.gnoseis.ui.settings.BackupSettingsPage
@@ -147,6 +148,16 @@ private fun NavController.recordDetailsNavigation(type: RecordType) = RecordDeta
     edit = { navigateToRecordEdit(type, it) },
     linkExisting = { navigate(LinkRecordsRoute(it, type)) },
     newLinked = { newType, sourceId -> navigateToNewLinkedRecord(newType, type, sourceId) },
+)
+
+/** Where the Edit page of a record of [type] can go. */
+private fun NavController.recordEditNavigation(type: RecordType) = RecordEditNavigation(
+    back = { popBackStack() },
+    openCreated = { id ->
+        popBackStack()
+        navigateToRecordDetails(type, id)
+    },
+    backAfterLinkingNew = { popBackStackAfterLinkingNew(type) },
 )
 
 @Composable
@@ -238,12 +249,7 @@ fun NavigationPage(
                     val args = it.toRoute<CategoryEditRoute>()
                     CategoryEditPage(
                         pageMode = args.pageMode,
-                        navMenuClick = { navController.popBackStack() },
-                        navigateBackAfterLinkingNew = { navController.popBackStackAfterLinkingNew(RecordType.Category) },
-                        navigateToCategoryDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate(CategoryDetailsRoute(it))
-                        }
+                        navigation = navController.recordEditNavigation(RecordType.Category),
                     )
                 }
 
@@ -276,12 +282,7 @@ fun NavigationPage(
                     val args = it.toRoute<ContactEditRoute>()
                     ContactEditPage(
                         pageMode = args.pageMode,
-                        navMenuClick = { navController.popBackStack() },
-                        navigateBackAfterLinkingNew = { navController.popBackStackAfterLinkingNew(RecordType.Contact) },
-                        navigateToContactDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate(ContactDetailsRoute(it))
-                        }
+                        navigation = navController.recordEditNavigation(RecordType.Contact),
                     )
                 }
 
@@ -314,12 +315,7 @@ fun NavigationPage(
                     val args = it.toRoute<ItemEditRoute>()
                     ItemEditPage(
                         pageMode = args.pageMode,
-                        navMenuClick = { navController.popBackStack() },
-                        navigateBackAfterLinkingNew = { navController.popBackStackAfterLinkingNew(RecordType.Item) },
-                        navigateToItemDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate(ItemDetailsRoute(it))
-                        }
+                        navigation = navController.recordEditNavigation(RecordType.Item),
                     )
                 }
 
@@ -351,12 +347,7 @@ fun NavigationPage(
                     val args = it.toRoute<NoteEditRoute>()
                     NoteEditPage(
                         pageMode = args.pageMode,
-                        navMenuClick = { navController.popBackStack() },
-                        navigateBackAfterLinkingNew = { navController.popBackStackAfterLinkingNew(RecordType.Note) },
-                        navigateToNoteDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate(NoteDetailsRoute(it))
-                        }
+                        navigation = navController.recordEditNavigation(RecordType.Note),
                     )
                 }
 
@@ -389,12 +380,7 @@ fun NavigationPage(
                     val args = it.toRoute<OrganizationEditRoute>()
                     OrganizationEditPage(
                         pageMode = args.pageMode,
-                        navMenuClick = { navController.popBackStack() },
-                        navigateBackAfterLinkingNew = { navController.popBackStackAfterLinkingNew(RecordType.Organization) },
-                        navigateToOrganizationDetailsPage = {
-                            navController.popBackStack()
-                            navController.navigate(OrganizationDetailsRoute(it))
-                        }
+                        navigation = navController.recordEditNavigation(RecordType.Organization),
                     )
                 }
 
