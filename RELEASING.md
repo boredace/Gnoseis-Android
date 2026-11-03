@@ -28,8 +28,10 @@ Debug builds add where they were built from to the version, using `git describe`
 
 Gnoseis uses [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow). `main` is the only long-lived branch.
 
-- Every change is a short-lived branch from `main`, named after its issue (`feature/45-home-dashboard`, `fix/42-filter-button`), merged into `main` with a pull request.
-- A release is a tag on `main`. APKs for users are only ever built from a tag, never from the tip of `main`.
+- Every change is a short-lived branch from `main`. A change with an issue is named after it (`feature/45-home-dashboard`, `fix/42-filter-button`); one without is named for what it does (`release/0.3.0`, `chore/branch-rules`).
+- Commit messages are `#<issue>: <imperative summary>`, one issue per commit, or just the summary when there's no issue.
+- A finished branch is merged into `main` with a merge commit, so each change stays one unit in the history. If the change has an issue, the merge closes it (`Fixes #<issue>`).
+- A release is a tag on `main`. Builds for users are only ever made from a tag, never from the tip of `main`.
 
 ## Signing
 
@@ -65,7 +67,7 @@ Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis D
    ```bash
    ./gradlew :app:testDebugUnitTest
    ```
-3. Open a pull request named `Release <version>` into `main` and merge it.
+3. Merge the branch into `main`, with the merge commit named `Release <version>`.
 4. Tag the merge commit `v<version>` and push the tag.
 5. Build the signed APK from the tag:
    ```bash
@@ -77,12 +79,12 @@ Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis D
    apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
    ```
 7. Create the GitHub release for the tag and attach the APK as `Gnoseis-v<version>.apk`. Mark betas as pre-releases.
-8. After a final release, open a pull request named `Start <next version>` that sets `main` to the next version with NN = 00, for example `0.4.0` and `40_000`. After a beta, `main` keeps the beta's version until the next release.
+8. After a final release, on a `start/<next version>` branch from `main`, set the next version with NN = 00, for example `0.4.0` and `40_000`, then merge it into `main` with the merge commit named `Start <next version>`. After a beta, `main` keeps the beta's version until the next release.
 9. Close the milestone.
 
 ### Fixing an older release
 
-If a released version needs a fix while `main` already holds unreleased work, branch `hotfix/<version>` from that release's tag, set the patch version (for example `0.3.1` and `30_199`), fix it, and release from that branch the same way: tag, build, GitHub release. Then bring the fix into `main` with a pull request. Releases with nothing unreleased on `main` don't need this: they go through `main` as usual.
+If a released version needs a fix while `main` already holds unreleased work, branch `hotfix/<version>` from that release's tag, set the patch version (for example `0.3.1` and `30_199`), fix it, and release from that branch the same way: tag, build, GitHub release. Then merge the fix into `main`. Releases with nothing unreleased on `main` don't need this: they go through `main` as usual.
 
 Gradle 8.9 needs Java 17 to 22, and Java 21 is the version it's tested with. Recent Android Studio versions come with Java 25, which Gradle 8.9 can't run on. Point `JAVA_HOME` at a Java 21 installation, for example a JetBrains Runtime 21 downloaded through Android Studio.
 
