@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.organization
 
+import org.gnoseis.data.constants.TITLE_LENGTH_ORGANIZATION
+import org.gnoseis.ui.record.prefillName
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -77,6 +79,13 @@ class OrganizationEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val route = savedStateHandle.toRoute<OrganizationEditRoute>()
+        if (_pageState.value.pageMode != OrganizationEditPageMode.EDIT) {
+            prefillName(route.prefillName, TITLE_LENGTH_ORGANIZATION)?.let { name ->
+                _editState.value = _editState.value.copy(editOrganizationName = name, isValid = validateInput(name))
+                _pageState.value = _pageState.value.copy(namePrefilled = true)
+            }
+        }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
         if (_pageState.value.pageMode == OrganizationEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
@@ -209,6 +218,8 @@ class OrganizationEditViewModel(
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
         val linkSource: LinkSource? = null,
+        /** The name came from a search (#10): the page starts in its field. */
+        val namePrefilled: Boolean = false,
         val organization: Organization? = Organization(),
     )
 

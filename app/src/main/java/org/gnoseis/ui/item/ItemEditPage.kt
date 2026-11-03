@@ -30,6 +30,7 @@
 
 package org.gnoseis.ui.item
 
+import org.gnoseis.ui.components.PrefillableTextField
 import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
@@ -68,7 +69,9 @@ data class ItemEditRoute(
     val itemId: String?,
     val pageMode: ItemEditPageMode,
     val linkFromType: RecordType? = null,
-    val linkFromId: String? = null
+    val linkFromId: String? = null,
+    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
+    val prefillName: String? = null,
 )
 
 const val TAG = "ItemEditPage"
@@ -99,6 +102,7 @@ fun ItemEditPage(
         ItemEditBody(
             editState = editState,
             onEvent = { pageViewModel.onEvent(it) },
+            namePrefilled = pageState.namePrefilled,
         )
     }
 }
@@ -108,6 +112,7 @@ fun ItemEditPage(
 fun ItemEditBody(
     editState: ItemEditViewModel.EditState,
     onEvent: (ItemEditPageEvent) -> Unit,
+    namePrefilled: Boolean = false,
 ){
     Column(
        modifier = Modifier
@@ -117,6 +122,7 @@ fun ItemEditBody(
 
         ItemTextField(
             label = "Item Name",
+            focusOnStart = namePrefilled,
             value = editState.editItemName?:"" ,
             onValueChanged = {
                 if(it.length <= TITLE_LENGTH_ITEM)
@@ -151,13 +157,15 @@ fun ItemTextField(
     label: String,
     value: String,
     onValueChanged: (String) -> Unit,
-    type: TextFieldType
+    type: TextFieldType,
+    focusOnStart: Boolean = false,
 ){
-    OutlinedTextField(
+    PrefillableTextField(
         modifier = Modifier.fillMaxWidth(),
         label = {Text(text=label)},
         value = value,
         onValueChange = {onValueChanged(it) },
+        focusOnStart = focusOnStart,
         singleLine = true,
         keyboardOptions =
         when (type) {

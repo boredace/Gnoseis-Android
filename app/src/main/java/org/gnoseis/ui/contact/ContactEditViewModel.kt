@@ -28,6 +28,7 @@
 
 package org.gnoseis.ui.contact
 
+import org.gnoseis.ui.record.prefillContactName
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -85,6 +86,17 @@ class ContactEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val route = savedStateHandle.toRoute<ContactEditRoute>()
+        if (_pageState.value.pageMode != ContactEditPageMode.EDIT) {
+            prefillContactName(route.prefillName)?.let { name ->
+                _editState.value = _editState.value.copy(
+                    nameFirst = name.nameFirst,
+                    nameLast = name.nameLast,
+                    isValid = true, // the last name isn't empty and is within its length
+                )
+                _pageState.value = _pageState.value.copy(namePrefilled = true)
+            }
+        }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
         if (_pageState.value.pageMode == ContactEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
@@ -250,6 +262,8 @@ class ContactEditViewModel(
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
         val linkSource: LinkSource? = null,
+        /** The name came from a search (#10): the page starts in its field. */
+        val namePrefilled: Boolean = false,
         val contact: Contact? = Contact(),
     )
 

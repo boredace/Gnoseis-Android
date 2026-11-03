@@ -40,6 +40,8 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
+import org.gnoseis.ui.components.CreateFromSearchOffer
+import org.gnoseis.ui.components.CreateFromSearchState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -131,5 +133,36 @@ class SearchPageViewModelTest {
             val results = awaitResults { it.isNotEmpty() }
             assertTrue(results.any { it.recordId == lastNameOnly.id })
         }
+    }
+
+    // ---------- #10: create from search ----------
+
+    private suspend fun SearchPageViewModel.settledOffer(query: String): CreateFromSearchOffer {
+        updateCurrentQuery(query)
+        var state = CreateFromSearchState()
+        createFromSearch.test {
+            state = awaitItem()
+            while (state.query != query) state = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        return state.offer
+    }
+
+    @Test
+    fun createOffer_onlyForASettledQueryOfThreeOrMoreCharacters_withNoResults() = runTest {
+        seed()
+        val vm = vm()
+        assertEquals(CreateFromSearchOffer.None, vm.createFromSearch.value.offer)
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("zz"))
+        assertEquals(CreateFromSearchOffer.NoResults, vm.settledOffer("zzz"))
+    }
+
+    @Test
+    fun createOffer_afterResults_unlessOneMatchesExactly() = runTest {
+        seed()
+        val vm = vm()
+        assertEquals(CreateFromSearchOffer.AfterResults, vm.settledOffer("budget"))
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer(" BUDGET  meeting "))
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("Meyer, Ann"))
     }
 }

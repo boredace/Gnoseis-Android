@@ -23,6 +23,8 @@ import org.gnoseis.data.enums.RecordType
 fun SearchResultsList(
     results: List<SearchResult> = emptyList(),
     onResultClick: (SearchResult) -> Unit,
+    /** Shown after the last result, scrolling with the list (#10). */
+    footer: (@Composable () -> Unit)? = null,
 //    onIncrementSelectedCount: () -> Unit
 ) {
 
@@ -65,6 +67,9 @@ fun SearchResultsList(
                 }
             }
 
+        }
+        if (footer != null) {
+            item { footer() }
         }
     }
 }

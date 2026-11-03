@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.link
 
+import org.gnoseis.ui.components.CreateFromSearchOffer
+import org.gnoseis.ui.components.CreateFromSearch
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +50,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.asIntState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -59,7 +60,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
@@ -77,9 +77,11 @@ data class LinkRecordsRoute(
 fun LinkRecordsPage(
     pageViewModel: LinkRecordsViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onNavMenuClick: () -> Unit,
-
+    navigateToNewLinkedRecordPage: (type: RecordType, name: String) -> Unit,
     ) {
     val results by pageViewModel.searchResults.collectAsState()
+    val query by pageViewModel.currentQuery.collectAsState()
+    val createFromSearch by pageViewModel.createFromSearch.collectAsState()
     val sourceRecordId by pageViewModel.sourceRecordId.collectAsState()
     val sourceRecordTypeId by pageViewModel.sourceRecordTypeId.collectAsState()
     val selectedCount by pageViewModel.selectedCount.asIntState()
@@ -91,6 +93,11 @@ fun LinkRecordsPage(
 
     LinkRecordsScaffold(
         results = results,
+        query = query,
+        // #10: only once the query has settled, so the offer doesn't flash while typing
+        createFromSearchOffer = if (createFromSearch.query == query) createFromSearch.offer else CreateFromSearchOffer.None,
+        createFromSearchTypes = pageViewModel.createFromSearchTypes,
+        onCreateFromSearch = { navigateToNewLinkedRecordPage(it, query.trim()) },
         onSearchBoxValueChanged = {
             Log.i("LinkRecords","onSearchBoxValueChanged value = ${it}")
             pageViewModel.updateCurrentQuery(it)
@@ -112,6 +119,10 @@ fun LinkRecordsPage(
 @Composable
 fun LinkRecordsScaffold(
     results: List<SearchResult>,
+    query: String,
+    createFromSearchOffer: CreateFromSearchOffer,
+    createFromSearchTypes: List<RecordType>,
+    onCreateFromSearch: (RecordType) -> Unit,
     onNavMenuClick: () -> Unit,
     onLinkSelectedResults: () -> Unit,
     onResultClick: (SearchResult) -> Unit,
@@ -148,6 +159,10 @@ fun LinkRecordsScaffold(
             ) {
                 LinkRecordsBody(
                     results = results,
+                    query = query,
+                    createFromSearchOffer = createFromSearchOffer,
+                    createFromSearchTypes = createFromSearchTypes,
+                    onCreateFromSearch = onCreateFromSearch,
                     onSearchBoxValueChanged = onSearchBoxValueChanged,
                     onResultClick = onResultClick,
                     selectedCount = selectedCount
@@ -161,21 +176,30 @@ fun LinkRecordsScaffold(
 @Composable
 fun LinkRecordsBody(
     results: List<SearchResult>,
+    query: String,
+    createFromSearchOffer: CreateFromSearchOffer,
+    createFromSearchTypes: List<RecordType>,
+    onCreateFromSearch: (RecordType) -> Unit,
     onSearchBoxValueChanged: (String) -> Unit,
     onResultClick: (SearchResult) -> Unit,
     selectedCount: Int
 
 
 ){
-    var searchBoxValue = MutableStateFlow("")
-
     val keyboard = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
-    var textTitle by remember { mutableStateOf("") }
+    val createBlock = @Composable {
+        CreateFromSearch(
+            query = query,
+            offer = createFromSearchOffer,
+            types = createFromSearchTypes,
+            onCreate = onCreateFromSearch,
+        )
+    }
 
     // focus the search box and open the keyboard when the page opens empty
     LaunchedEffect(Unit) {
-        if (textTitle.isEmpty()) {
+        if (query.isEmpty()) {
             focusRequester.requestFocus()
             keyboard?.show()
         }
@@ -191,21 +215,20 @@ fun LinkRecordsBody(
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
             label = {Text(text="Search or Create Records")},
-            value = textTitle,
-            onValueChange = {
-                    textTitle = it
-                    searchBoxValue.value = textTitle
-                    onSearchBoxValueChanged(it)
-            },
+            value = query,
+            onValueChange = { onSearchBoxValueChanged(it) },
             singleLine = true,
             )
 
-        SearchResultsList(
-            results = results,
-            onResultClick = onResultClick,
-//            onIncrementSelectedCount = {selectedCount++}
-
-        )
+        if (createFromSearchOffer == CreateFromSearchOffer.NoResults) {
+            createBlock()
+        } else {
+            SearchResultsList(
+                results = results,
+                onResultClick = onResultClick,
+                footer = if (createFromSearchOffer == CreateFromSearchOffer.AfterResults) createBlock else null,
+            )
+        }
     }
 }
 
@@ -225,6 +248,10 @@ fun LinkdRecordsPreview()
     )
     LinkRecordsScaffold(
         results = results,
+        query = "",
+        createFromSearchOffer = CreateFromSearchOffer.None,
+        createFromSearchTypes = emptyList(),
+        onCreateFromSearch = {},
         onNavMenuClick = {},
         onLinkSelectedResults = {},
         onResultClick = {},

@@ -40,6 +40,11 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.data.repository.SearchRepository
+import org.gnoseis.ui.components.CreateFromSearchOffer
+import org.gnoseis.ui.components.CreateFromSearchState
+import org.gnoseis.ui.components.SEARCH_SETTLE_MILLIS
+import org.gnoseis.ui.components.createFromSearchOffer
+import org.gnoseis.ui.components.searchResultContains
 
 class SearchPageViewModel(
     savedStateHandle: SavedStateHandle,
@@ -48,20 +53,46 @@ class SearchPageViewModel(
     var currentQuery = MutableStateFlow("")
 
 
+    private fun List<SearchResult>.matching(query: String) =
+        filter { searchResultContains(it, query) }
+
     @OptIn(FlowPreview::class)
     var searchResults : StateFlow<List<SearchResult>> =
         searchRepository.getSearchResultsForQuery("%${currentQuery.value}%")
             .debounce(1000L)
-            .combine(currentQuery) { list, filter ->
-                list.filter { it.recordTitle.contains(filter, ignoreCase = true) }
-            }
+            .combine(currentQuery) { list, filter -> list.matching(filter) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
                 emptyList()
             )
+
+    /**
+     * #10: what to offer to create, once the query has settled. Only a query long enough to
+     * search ([MIN_QUERY_LENGTH]) gets an offer.
+     */
+    @OptIn(FlowPreview::class)
+    val createFromSearch: StateFlow<CreateFromSearchState> =
+        searchRepository.getSearchResultsForQuery("%%")
+            .combine(currentQuery.debounce(SEARCH_SETTLE_MILLIS)) { list, query ->
+                CreateFromSearchState(
+                    query = query,
+                    offer = if (query.trim().length < MIN_QUERY_LENGTH) CreateFromSearchOffer.None
+                        else createFromSearchOffer(query, list.matching(query)),
+                )
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                CreateFromSearchState()
+            )
     public fun updateCurrentQuery(newQuery: String) {
         currentQuery.value = newQuery
+    }
+
+    companion object {
+        /** The shortest query the Search page searches for. */
+        const val MIN_QUERY_LENGTH = 3
     }
 
 }

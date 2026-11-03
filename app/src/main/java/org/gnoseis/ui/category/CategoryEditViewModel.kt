@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.category
 
+import org.gnoseis.data.constants.TITLE_LENGTH_CATEGORY
+import org.gnoseis.ui.record.prefillName
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -76,6 +78,13 @@ class CategoryEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val route = savedStateHandle.toRoute<CategoryEditRoute>()
+        if (_pageState.value.pageMode != CategoryEditPageMode.EDIT) {
+            prefillName(route.prefillName, TITLE_LENGTH_CATEGORY)?.let { name ->
+                _editState.value = _editState.value.copy(editCategoryName = name, isValid = validateInput(name))
+                _pageState.value = _pageState.value.copy(namePrefilled = true)
+            }
+        }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
         if (_pageState.value.pageMode == CategoryEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
@@ -195,6 +204,8 @@ class CategoryEditViewModel(
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
         val linkSource: LinkSource? = null,
+        /** The name came from a search (#10): the page starts in its field. */
+        val namePrefilled: Boolean = false,
         val category: Category? = Category(),
     )
 

@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.item
 
+import org.gnoseis.data.constants.TITLE_LENGTH_ITEM
+import org.gnoseis.ui.record.prefillName
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -75,6 +77,13 @@ class ItemEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val route = savedStateHandle.toRoute<ItemEditRoute>()
+        if (_pageState.value.pageMode != ItemEditPageMode.EDIT) {
+            prefillName(route.prefillName, TITLE_LENGTH_ITEM)?.let { name ->
+                _editState.value = _editState.value.copy(editItemName = name, isValid = validateInput(name))
+                _pageState.value = _pageState.value.copy(namePrefilled = true)
+            }
+        }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
         if (_pageState.value.pageMode == ItemEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
@@ -210,6 +219,8 @@ class ItemEditViewModel(
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
         val linkSource: LinkSource? = null,
+        /** The name came from a search (#10): the page starts in its field. */
+        val namePrefilled: Boolean = false,
         val item: Item? = Item(),
     )
 
