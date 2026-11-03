@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.organization
 
+import org.gnoseis.ui.components.RecordListRow
+import org.gnoseis.ui.components.RecordRowAction
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +55,8 @@ import org.gnoseis.data.entity.organization.Organization
 fun OrganizationList(
     organizations: List<Organization> = emptyList(),
     navigateToOrganizationDetailsPage: (String) -> Unit,
-    showHeaders: Boolean = true
+    showHeaders: Boolean = true,
+    rowAction: RecordRowAction? = null,
 ) {
     LazyColumn(
         modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp)//.scrollable(ScrollableState)
@@ -71,7 +73,8 @@ fun OrganizationList(
                     OrganizationListItem(
                         id = organization.id,
                         organizationName = organization.organizationName ?: "",
-                        onClick = { navigateToOrganizationDetailsPage(organization.id) }
+                        onClick = { navigateToOrganizationDetailsPage(organization.id) },
+                        rowAction = rowAction,
                     )
                 }
             }
@@ -80,7 +83,8 @@ fun OrganizationList(
                 OrganizationListItem(
                     id = organization.id,
                     organizationName = organization.organizationName ?: "",
-                    onClick = { navigateToOrganizationDetailsPage(organization.id) }
+                    onClick = { navigateToOrganizationDetailsPage(organization.id) },
+                    rowAction = rowAction,
                 )
             }
         }
@@ -113,13 +117,17 @@ fun OrganizationListHeader(
 fun OrganizationListItem(
     id: String,
     organizationName: String ="",
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    rowAction: RecordRowAction? = null,
 ){
-    Card(
+    RecordListRow(
+        id = id,
+        name = organizationName,
+        onClick = { onClick(id) },
+        rowAction = rowAction,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
             .fillMaxWidth(),
-        onClick = { onClick(id) }
     ){
         Column(
             modifier = Modifier

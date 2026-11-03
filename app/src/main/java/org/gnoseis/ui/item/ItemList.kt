@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.item
 
+import org.gnoseis.ui.components.RecordListRow
+import org.gnoseis.ui.components.RecordRowAction
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +40,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +52,8 @@ import org.gnoseis.data.entity.item.Item
 fun ItemList(
     items : List<Item> = emptyList(),
     navigateToItemDetailsPage: (String) -> Unit,
-    showHeaders: Boolean = true
+    showHeaders: Boolean = true,
+    rowAction: RecordRowAction? = null,
 )
 {
     LazyColumn(
@@ -69,7 +71,8 @@ fun ItemList(
                     ItemListItem(
                         id = item.id,
                         title = item.itemName ?: "",
-                        onClick = { navigateToItemDetailsPage(item.id) }
+                        onClick = { navigateToItemDetailsPage(item.id) },
+                        rowAction = rowAction,
 
                     )
                 }
@@ -79,7 +82,8 @@ fun ItemList(
                 ItemListItem(
                     id = item.id,
                     title = item.itemName ?: "",
-                    onClick = { navigateToItemDetailsPage(item.id) }
+                    onClick = { navigateToItemDetailsPage(item.id) },
+                    rowAction = rowAction,
 
                 )
             }
@@ -111,13 +115,17 @@ fun ItemListHeader(
 fun ItemListItem(
     id: String,
     title: String ="",
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    rowAction: RecordRowAction? = null,
 ){
-    Card(
+    RecordListRow(
+        id = id,
+        name = title,
+        onClick = { onClick(id) },
+        rowAction = rowAction,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
             .fillMaxWidth(),
-        onClick = { onClick(id) }
     ){
         Column(
             modifier = Modifier
