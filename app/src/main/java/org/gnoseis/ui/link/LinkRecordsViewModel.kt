@@ -28,6 +28,12 @@
 
 package org.gnoseis.ui.link
 
+import org.gnoseis.ui.components.searchResultContains
+import org.gnoseis.ui.components.creatableRecordTypes
+import org.gnoseis.ui.components.createFromSearchOffer
+import org.gnoseis.ui.components.SEARCH_SETTLE_MILLIS
+import org.gnoseis.ui.components.CreateFromSearchState
+import org.gnoseis.data.enums.RecordType
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -66,16 +72,19 @@ class LinkRecordsViewModel(
                 emptyList()
             )
 
+    private fun List<SearchResult>.matching(query: String) =
+        filter { searchResultContains(it, query) }
+
+    // Not the source record, nor any record of its type: those can't be linked to it
+    private fun List<SearchResult>.linkable(source: String) =
+        filterNot { it.recordId.contains(source) || it.recordTypeId == sourceRecordTypeId.value }
+
     @OptIn(FlowPreview::class)
     var searchResults : StateFlow<List<SearchResult>> =
         searchRepository.getSearchResultsForQuery("%${currentQuery.value}%")
             .debounce(1000L)
-            .combine(currentQuery) { list, filter ->
-                list.filter { it.recordTitle.contains(filter, ignoreCase = true) }
-            }
-            .combine(sourceRecordId) {list, source ->
-                list.filterNot { it.recordId.contains(source) || it.recordTypeId == sourceRecordTypeId.value}
-            }
+            .combine(currentQuery) { list, filter -> list.matching(filter) }
+            .combine(sourceRecordId) { list, source -> list.linkable(source) }
             .combine(alreadyLinked) { searchResults, linkedIds ->
                 // Combined (not read once) so the flags stay correct whichever loads first
                 searchResults.onEach {
@@ -86,6 +95,22 @@ class LinkRecordsViewModel(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
                 emptyList()
+            )
+
+    /** #10: the types a new record can be created as and linked: all but the source's. */
+    val createFromSearchTypes: List<RecordType> = creatableRecordTypes - route.sourceRecordType
+
+    /** #10: what to offer to create, once the query has settled. */
+    @OptIn(FlowPreview::class)
+    val createFromSearch: StateFlow<CreateFromSearchState> =
+        searchRepository.getSearchResultsForQuery("%%")
+            .combine(currentQuery.debounce(SEARCH_SETTLE_MILLIS)) { list, query ->
+                CreateFromSearchState(query, createFromSearchOffer(query, list.matching(query).linkable(route.sourceRecordId)))
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                CreateFromSearchState()
             )
 
     var selectedCount = mutableIntStateOf(0)

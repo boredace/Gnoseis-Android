@@ -72,11 +72,23 @@ private val spaces = Regex("\\s+")
 
 private fun normalized(text: String) = text.trim().replace(spaces, " ").lowercase()
 
+/** A contact's title shows as "Last, First"; this is it as "First Last". Null for other records. */
+private fun firstLastTitle(result: SearchResult): String? {
+    val title = result.recordTitle
+    return if (result.recordTypeId == RecordType.Contact.recordTypeId && ", " in title) {
+        "${title.substringAfter(", ")} ${title.substringBefore(", ")}"
+    } else null
+}
+
 /**
  * Whether a result's [title] contains the [query], ignoring case, the spaces around the query
  * and runs of spaces, so a result that [matchesSearchExactly] is always found.
  */
 fun searchTitleContains(title: String, query: String): Boolean = normalized(title).contains(normalized(query))
+
+/** Whether [result] is found by the [query]; a contact also as "First Last". */
+fun searchResultContains(result: SearchResult, query: String): Boolean =
+    searchTitleContains(result.recordTitle, query) || firstLastTitle(result)?.let { searchTitleContains(it, query) } == true
 
 /**
  * Whether a result's [title] is the [query]: the same once trimmed, with runs of spaces as one
@@ -85,17 +97,9 @@ fun searchTitleContains(title: String, query: String): Boolean = normalized(titl
 fun matchesSearchExactly(title: String?, query: String): Boolean =
     title != null && normalized(query).isNotEmpty() && normalized(title) == normalized(query)
 
-/**
- * Whether [result] is the record the [query] names. A contact's title shows as "Last, First",
- * so it also matches as "First Last".
- */
-fun matchesSearchExactly(result: SearchResult, query: String): Boolean {
-    val title = result.recordTitle
-    val firstLast = if (result.recordTypeId == RecordType.Contact.recordTypeId && ", " in title) {
-        "${title.substringAfter(", ")} ${title.substringBefore(", ")}"
-    } else null
-    return matchesSearchExactly(title, query) || matchesSearchExactly(firstLast, query)
-}
+/** Whether [result] is the record the [query] names; a contact also as "First Last". */
+fun matchesSearchExactly(result: SearchResult, query: String): Boolean =
+    matchesSearchExactly(result.recordTitle, query) || matchesSearchExactly(firstLastTitle(result), query)
 
 /** What to offer for a settled [query] with these [results]. */
 fun createFromSearchOffer(query: String, results: List<SearchResult>): CreateFromSearchOffer = when {

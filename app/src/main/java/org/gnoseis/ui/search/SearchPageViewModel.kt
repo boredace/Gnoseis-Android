@@ -44,7 +44,7 @@ import org.gnoseis.ui.components.CreateFromSearchOffer
 import org.gnoseis.ui.components.CreateFromSearchState
 import org.gnoseis.ui.components.SEARCH_SETTLE_MILLIS
 import org.gnoseis.ui.components.createFromSearchOffer
-import org.gnoseis.ui.components.searchTitleContains
+import org.gnoseis.ui.components.searchResultContains
 
 class SearchPageViewModel(
     savedStateHandle: SavedStateHandle,
@@ -54,7 +54,7 @@ class SearchPageViewModel(
 
 
     private fun List<SearchResult>.matching(query: String) =
-        filter { searchTitleContains(it.recordTitle, query) }
+        filter { searchResultContains(it, query) }
 
     @OptIn(FlowPreview::class)
     var searchResults : StateFlow<List<SearchResult>> =

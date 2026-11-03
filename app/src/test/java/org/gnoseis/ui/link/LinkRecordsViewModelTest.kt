@@ -47,6 +47,8 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.stamped
+import org.gnoseis.ui.components.CreateFromSearchOffer
+import org.gnoseis.ui.components.CreateFromSearchState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -223,5 +225,48 @@ class LinkRecordsViewModelTest {
             val results = awaitResults { it.isNotEmpty() }
             assertTrue(results.any { it.recordId == lastNameOnly.id })
         }
+    }
+
+    // ---------- #10: create from search ----------
+
+    private suspend fun LinkRecordsViewModel.settledOffer(query: String): CreateFromSearchOffer {
+        updateCurrentQuery(query)
+        var state = CreateFromSearchState()
+        createFromSearch.test {
+            state = awaitItem()
+            while (state.query != query) state = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        return state.offer
+    }
+
+    @Test
+    fun createOffer_noResultsAfterTheFilters() = runTest {
+        seed()
+        val vm = vm()
+        // "Other note" is found by search, but it's the source's type, so it's left out
+        assertEquals(CreateFromSearchOffer.NoResults, vm.settledOffer("other"))
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("  "))
+    }
+
+    @Test
+    fun createOffer_afterResults_unlessOneMatchesExactly() = runTest {
+        seed()
+        val vm = vm()
+        assertEquals(CreateFromSearchOffer.AfterResults, vm.settledOffer("ac"))
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("acme"))
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("Jane Doe"))
+    }
+
+    @Test
+    fun createOffer_typesLeaveOutTheSourceType() {
+        assertEquals(
+            listOf(RecordType.Contact, RecordType.Organization, RecordType.Category, RecordType.Item),
+            vm().createFromSearchTypes,
+        )
+        assertEquals(
+            listOf(RecordType.Note, RecordType.Contact, RecordType.Organization, RecordType.Category),
+            vm(item.id, RecordType.Item).createFromSearchTypes,
+        )
     }
 }

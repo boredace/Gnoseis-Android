@@ -58,6 +58,8 @@ class CreateFromSearchTest {
         assertTrue(matchesSearchExactly(contact, "doe, jane"))
         assertTrue(matchesSearchExactly(contact, "Jane  Doe"))
         assertFalse(matchesSearchExactly(contact.copy(recordTypeId = RecordType.Note.recordTypeId), "Jane Doe"))
+        assertTrue(searchResultContains(contact, "jane d"))
+        assertFalse(searchResultContains(contact.copy(recordTypeId = RecordType.Note.recordTypeId), "jane d"))
     }
 
     @Test

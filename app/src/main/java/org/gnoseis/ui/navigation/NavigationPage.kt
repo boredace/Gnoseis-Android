@@ -28,6 +28,7 @@
 
 package org.gnoseis.ui.navigation
 
+import androidx.navigation.NavDestination.Companion.hasRoute
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DrawerValue
@@ -102,6 +103,8 @@ import org.gnoseis.ui.settings.SettingsPageRoute
 private const val LINKED_NEW_RECORD_TYPE_ID = "linkedNewRecordTypeId"
 
 private fun NavController.popBackStackAfterLinkingNew(recordType: RecordType) {
+    // #10: a record created from the Link Records page goes back past it, to the source's page
+    if (previousBackStackEntry?.destination?.hasRoute<LinkRecordsRoute>() == true) popBackStack()
     previousBackStackEntry?.savedStateHandle?.set(LINKED_NEW_RECORD_TYPE_ID, recordType.recordTypeId)
     popBackStack()
 }
@@ -407,8 +410,12 @@ fun NavigationPage(
                 // ********** LINK RECORD PAGE **********
                 //
                 composable<LinkRecordsRoute> {
+                    val route = it.toRoute<LinkRecordsRoute>()
                     LinkRecordsPage(
-                        onNavMenuClick = { navController.popBackStack()}
+                        onNavMenuClick = { navController.popBackStack()},
+                        navigateToNewLinkedRecordPage = { type, name ->
+                            navController.navigateToNewLinkedRecord(type, route.sourceRecordType, route.sourceRecordId, name)
+                        },
                     )
                 }
 
