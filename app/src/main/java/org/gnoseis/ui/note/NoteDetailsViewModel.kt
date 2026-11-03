@@ -37,13 +37,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.gnoseis.data.entity.category.Category
-import org.gnoseis.data.entity.contact.Contact
-import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
+import org.gnoseis.ui.record.LinkedRecords
+import org.gnoseis.ui.record.linkedRecordsFlow
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
@@ -62,24 +61,11 @@ class NoteDetailsViewModel(
         )
     private var noteId : String = checkNotNull(savedStateHandle.toRoute<NoteDetailsRoute>().noteId)
 
-    val linkedRecords: StateFlow<NoteLinkedRecords> =
-        combine(
-            linkedRecordRepository.getLinkedCategoryListByNoteId(noteId),
-            linkedRecordRepository.getLinkedContactListByNoteId(noteId),
-            linkedRecordRepository.getLinkedItemListByNoteId(noteId),
-            linkedRecordRepository.getLinkedOrganizationListByNoteId(noteId)
-        ){
-            linkedCategories, linkedContacts, linkedItems, linkedOrganizations ->
-            NoteLinkedRecords(
-                linkedCategories = linkedCategories,
-                linkedContacts = linkedContacts,
-                linkedItems = linkedItems,
-                linkedOrganizations = linkedOrganizations
-            )
-        }.stateIn(
+    val linkedRecords: StateFlow<LinkedRecords> =
+        linkedRecordsFlow(linkedRecordRepository, noteId, RecordType.Note).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            NoteLinkedRecords()
+            LinkedRecords()
         )
     fun deleteNote() {
         viewModelScope.launch {
@@ -104,12 +90,6 @@ class NoteDetailsViewModel(
     data class NoteDetailsPageState(
         val note: Note? = Note(ownerDbId = "dbx"),
         val linkedRecordTabs: List<LinkedRecordTypeCount> = emptyList()
-    )
-    data class NoteLinkedRecords(
-        val linkedCategories: List<Category> = emptyList(),
-        val linkedContacts: List<Contact> = emptyList(),
-        val linkedItems: List<Item> = emptyList(),
-        val linkedOrganizations: List<Organization> = emptyList(),
     )
 
 

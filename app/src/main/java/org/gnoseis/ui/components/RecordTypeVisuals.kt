@@ -28,6 +28,7 @@
 
 package org.gnoseis.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.Dp
+import org.gnoseis.R
+import org.gnoseis.data.enums.IconTextPosition
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.icons.CategoryIcon
 import org.gnoseis.ui.icons.ContactIcon
@@ -56,15 +59,24 @@ import org.gnoseis.ui.theme.OrganizationColorsDark
 import org.gnoseis.ui.theme.OrganizationColorsLight
 import org.gnoseis.ui.theme.RecordTypeColors
 
-/** A record type's icon, tinted with [colorFilter]. */
+/**
+ * A record type's icon, tinted with [colorFilter]. With [text], the text is shown at
+ * [textPosition] in the current content colour.
+ */
 @Composable
-fun RecordTypeIcon(type: RecordType, colorFilter: ColorFilter, size: Dp) {
+fun RecordTypeIcon(
+    type: RecordType,
+    colorFilter: ColorFilter,
+    size: Dp,
+    text: String? = null,
+    textPosition: IconTextPosition? = IconTextPosition.Bottom,
+) {
     when (type) {
-        RecordType.Contact -> ContactIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Organization -> OrganizationIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Category -> CategoryIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Item -> ItemIcon(colorFilter = colorFilter, width = size, height = size)
-        RecordType.Note -> NoteIcon(colorFilter = colorFilter, width = size, height = size)
+        RecordType.Contact -> ContactIcon(text, textPosition, colorFilter, size, size)
+        RecordType.Organization -> OrganizationIcon(text, textPosition, colorFilter, size, size)
+        RecordType.Category -> CategoryIcon(text, textPosition, colorFilter, size, size)
+        RecordType.Item -> ItemIcon(text, textPosition, colorFilter, size, size)
+        RecordType.Note -> NoteIcon(text, textPosition, colorFilter, size, size)
         RecordType.LinkedRecord -> Icon(
             Icons.Filled.Link,
             contentDescription = null,
@@ -84,4 +96,15 @@ fun recordTypeColors(type: RecordType): RecordTypeColors {
         RecordType.Note -> if (dark) NoteColorsDark else NoteColorsLight
         else -> if (dark) ItemColorsDark else ItemColorsLight
     }
+}
+
+/** The drawable of a record type's icon, for components that take an [ImageVector] or painter. */
+@DrawableRes
+fun recordTypeIconRes(type: RecordType): Int = when (type) {
+    RecordType.Contact -> R.drawable.outline_people_24
+    RecordType.Organization -> R.drawable.baseline_business_24
+    RecordType.Category -> R.drawable.outline_label_24
+    RecordType.Item -> R.drawable.outline_deployed_code_24
+    RecordType.Note -> R.drawable.outline_description_24
+    RecordType.LinkedRecord -> R.drawable.outline_question_mark_24
 }

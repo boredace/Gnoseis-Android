@@ -102,7 +102,7 @@ class LinkedRecordRepository(
         linkedRecordDao.getLinkedNoteListByItemId(itemId)
 
     fun getLinkedNoteListByOrganizationId(organizationId: String): Flow<List<Note>> =
-        linkedRecordDao.getLinkedNoteListByItemId(organizationId)
+        linkedRecordDao.getLinkedNoteListByOrganizationId(organizationId)
 
 
     // ********** Linked Organizations ***********

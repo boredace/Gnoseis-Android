@@ -45,8 +45,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The repositories are pass-through except for one oddity covered here:
- * getLinkedNoteListByOrganizationId delegates to the DAO's *ItemId* query.
+ * The repositories are pass-through. getLinkedNoteListByOrganizationId used to delegate to the
+ * DAO's *ItemId* query (same SQL, so it worked by chance); it now calls its own query.
  */
 @RunWith(AndroidJUnit4::class)
 class LinkedRecordRepositoryTest {
