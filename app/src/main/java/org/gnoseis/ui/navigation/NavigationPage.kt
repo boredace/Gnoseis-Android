@@ -38,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -160,6 +161,39 @@ private fun NavController.recordEditNavigation(type: RecordType) = RecordEditNav
     backAfterLinkingNew = { popBackStackAfterLinkingNew(type) },
 )
 
+/**
+ * The Details page destination for route [R], a record of [type]. [page] gets the page's
+ * navigation and the #6 linked-new-record tab handling.
+ */
+private inline fun <reified R : Any> NavGraphBuilder.recordDetailsDestination(
+    navController: NavController,
+    type: RecordType,
+    crossinline page: @Composable (
+        navigation: RecordDetailsNavigation,
+        linkedNewRecordTypeId: Int?,
+        onLinkedNewRecordTypeShown: () -> Unit,
+    ) -> Unit,
+) {
+    composable<R> { backStackEntry ->
+        val linkedNewRecordTypeId by backStackEntry.savedStateHandle
+            .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+        page(navController.recordDetailsNavigation(type), linkedNewRecordTypeId) {
+            backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null
+        }
+    }
+}
+
+/** The Edit page destination for route [R], a record of [type]. [page] gets the route and the page's navigation. */
+private inline fun <reified R : Any> NavGraphBuilder.recordEditDestination(
+    navController: NavController,
+    type: RecordType,
+    crossinline page: @Composable (route: R, navigation: RecordEditNavigation) -> Unit,
+) {
+    composable<R> { backStackEntry ->
+        page(backStackEntry.toRoute<R>(), navController.recordEditNavigation(type))
+    }
+}
+
 @Composable
 fun NavigationPage(
 ) {
@@ -234,23 +268,16 @@ fun NavigationPage(
                     )
                 }
 
-               composable<CategoryDetailsRoute> { backStackEntry ->
-                   val args = backStackEntry.toRoute<CategoryDetailsRoute>()
-                   val linkedNewRecordTypeId by backStackEntry.savedStateHandle
-                       .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+                recordDetailsDestination<CategoryDetailsRoute>(navController, RecordType.Category) { navigation, linkedNewRecordTypeId, onLinkedNewRecordTypeShown ->
                     CategoryDetailsPage(
-                        navigation = navController.recordDetailsNavigation(RecordType.Category),
+                        navigation = navigation,
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
-                        onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
+                        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     )
                 }
 
-                composable<CategoryEditRoute> {
-                    val args = it.toRoute<CategoryEditRoute>()
-                    CategoryEditPage(
-                        pageMode = args.pageMode,
-                        navigation = navController.recordEditNavigation(RecordType.Category),
-                    )
+                recordEditDestination<CategoryEditRoute>(navController, RecordType.Category) { route, navigation ->
+                    CategoryEditPage(pageMode = route.pageMode, navigation = navigation)
                 }
 
                 // #############################################################
@@ -267,23 +294,16 @@ fun NavigationPage(
                     )
                 }
 
-               composable<ContactDetailsRoute> { backStackEntry ->
-                    val args = backStackEntry.toRoute<ContactDetailsRoute>()
-                    val linkedNewRecordTypeId by backStackEntry.savedStateHandle
-                        .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+                recordDetailsDestination<ContactDetailsRoute>(navController, RecordType.Contact) { navigation, linkedNewRecordTypeId, onLinkedNewRecordTypeShown ->
                     ContactDetailsPage(
-                        navigation = navController.recordDetailsNavigation(RecordType.Contact),
+                        navigation = navigation,
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
-                        onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
+                        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     )
                 }
 
-                composable<ContactEditRoute> {
-                    val args = it.toRoute<ContactEditRoute>()
-                    ContactEditPage(
-                        pageMode = args.pageMode,
-                        navigation = navController.recordEditNavigation(RecordType.Contact),
-                    )
+                recordEditDestination<ContactEditRoute>(navController, RecordType.Contact) { route, navigation ->
+                    ContactEditPage(pageMode = route.pageMode, navigation = navigation)
                 }
 
                 // #############################################################
@@ -300,23 +320,16 @@ fun NavigationPage(
                     )
                 }
 
-                composable<ItemDetailsRoute> { backStackEntry ->
-                    val args = backStackEntry.toRoute<ItemDetailsRoute>()
-                    val linkedNewRecordTypeId by backStackEntry.savedStateHandle
-                        .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+                recordDetailsDestination<ItemDetailsRoute>(navController, RecordType.Item) { navigation, linkedNewRecordTypeId, onLinkedNewRecordTypeShown ->
                     ItemDetailsPage(
-                        navigation = navController.recordDetailsNavigation(RecordType.Item),
+                        navigation = navigation,
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
-                        onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
+                        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     )
                 }
 
-                composable<ItemEditRoute> {
-                    val args = it.toRoute<ItemEditRoute>()
-                    ItemEditPage(
-                        pageMode = args.pageMode,
-                        navigation = navController.recordEditNavigation(RecordType.Item),
-                    )
+                recordEditDestination<ItemEditRoute>(navController, RecordType.Item) { route, navigation ->
+                    ItemEditPage(pageMode = route.pageMode, navigation = navigation)
                 }
 
                 // #############################################################
@@ -332,23 +345,16 @@ fun NavigationPage(
                     )
                 }
 
-                composable<NoteDetailsRoute> { backStackEntry ->
-                    val args = backStackEntry.toRoute<NoteDetailsRoute>()
-                    val linkedNewRecordTypeId by backStackEntry.savedStateHandle
-                        .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+                recordDetailsDestination<NoteDetailsRoute>(navController, RecordType.Note) { navigation, linkedNewRecordTypeId, onLinkedNewRecordTypeShown ->
                     NoteDetailsPage(
-                        navigation = navController.recordDetailsNavigation(RecordType.Note),
+                        navigation = navigation,
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
-                        onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
+                        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     )
                 }
 
-                composable<NoteEditRoute> {
-                    val args = it.toRoute<NoteEditRoute>()
-                    NoteEditPage(
-                        pageMode = args.pageMode,
-                        navigation = navController.recordEditNavigation(RecordType.Note),
-                    )
+                recordEditDestination<NoteEditRoute>(navController, RecordType.Note) { route, navigation ->
+                    NoteEditPage(pageMode = route.pageMode, navigation = navigation)
                 }
 
                 // #############################################################
@@ -365,23 +371,16 @@ fun NavigationPage(
                     )
                 }
 
-                composable<OrganizationDetailsRoute> { backStackEntry ->
-                    val args = backStackEntry.toRoute<OrganizationDetailsRoute>()
-                    val linkedNewRecordTypeId by backStackEntry.savedStateHandle
-                        .getStateFlow<Int?>(LINKED_NEW_RECORD_TYPE_ID, null).collectAsState()
+                recordDetailsDestination<OrganizationDetailsRoute>(navController, RecordType.Organization) { navigation, linkedNewRecordTypeId, onLinkedNewRecordTypeShown ->
                     OrganizationDetailsPage(
-                        navigation = navController.recordDetailsNavigation(RecordType.Organization),
+                        navigation = navigation,
                         linkedNewRecordTypeId = linkedNewRecordTypeId,
-                        onLinkedNewRecordTypeShown = { backStackEntry.savedStateHandle[LINKED_NEW_RECORD_TYPE_ID] = null },
+                        onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     )
                 }
 
-                composable<OrganizationEditRoute> {
-                    val args = it.toRoute<OrganizationEditRoute>()
-                    OrganizationEditPage(
-                        pageMode = args.pageMode,
-                        navigation = navController.recordEditNavigation(RecordType.Organization),
-                    )
+                recordEditDestination<OrganizationEditRoute>(navController, RecordType.Organization) { route, navigation ->
+                    OrganizationEditPage(pageMode = route.pageMode, navigation = navigation)
                 }
 
 
