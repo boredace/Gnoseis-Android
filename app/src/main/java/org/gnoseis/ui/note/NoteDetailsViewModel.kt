@@ -29,7 +29,6 @@
 package org.gnoseis.ui.note
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,8 +40,7 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
-import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.linkedRecordsFlow
+import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
@@ -50,23 +48,22 @@ import org.gnoseis.domain.usecase.DeleteRecordUseCase
 class NoteDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val noteRepository: NoteRepository,
-    private var linkedRecordRepository: LinkedRecordRepository,
+    linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
-) : ViewModel(){
+) : RecordDetailsViewModel(
+    recordId = checkNotNull(savedStateHandle.toRoute<NoteDetailsRoute>().noteId),
+    recordType = RecordType.Note,
+    linkedRecordRepository = linkedRecordRepository,
+    settingsRepository = settingsRepository,
+) {
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             noteRepository = noteRepository,
             linkedRecordRepository = linkedRecordRepository,
             settingsRepository = settingsRepository,
         )
-    private var noteId : String = checkNotNull(savedStateHandle.toRoute<NoteDetailsRoute>().noteId)
+    private val noteId: String = recordId
 
-    val linkedRecords: StateFlow<LinkedRecords> =
-        linkedRecordsFlow(linkedRecordRepository, noteId, RecordType.Note).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            LinkedRecords()
-        )
     fun deleteNote() {
         viewModelScope.launch {
             deleteRecord(noteId)

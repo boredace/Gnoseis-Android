@@ -28,6 +28,10 @@
 
 package org.gnoseis.ui.record
 
+import org.gnoseis.ui.components.RecordRowAction
+import androidx.compose.runtime.remember
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -85,7 +89,8 @@ enum class LinkedRecordsTabStyle {
  * A Details page's [header], its tab row (the Details tab, then one tab per linked record type,
  * in [linkedRecordTabs] order) and the selected tab's content: [detailsTab], or the list of
  * linked records of that type. [detailsTab] gets the whole page area under the tab row and does
- * its own padding, scrolling and empty state.
+ * its own padding, scrolling and empty state. With [onUnlink], a long press on a linked record
+ * offers to unlink it (#11).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -98,6 +103,7 @@ fun LinkedRecordsSection(
     onLinkedNewRecordTypeShown: () -> Unit,
     tabStyle: LinkedRecordsTabStyle,
     header: @Composable () -> Unit,
+    onUnlink: ((linkedRecordId: String) -> Unit)? = null,
     detailsTab: @Composable () -> Unit,
 ) {
     var selectedTabRecordTypeId by rememberSelectedLinkedRecordType(linkedNewRecordTypeId, onLinkedNewRecordTypeShown)
@@ -147,6 +153,7 @@ fun LinkedRecordsSection(
                                 recordTypeId = linkedRecordTabs[selectedTabIndex - 1].recordTypeId,
                                 linkedRecords = linkedRecords,
                                 onOpenRecord = onOpenRecord,
+                                rowAction = onUnlink?.let { rememberUnlinkRowAction(it) },
                             )
                         }
                     }
@@ -235,34 +242,65 @@ private fun LinkedRecordList(
     recordTypeId: Int,
     linkedRecords: LinkedRecords,
     onOpenRecord: (RecordType, String) -> Unit,
+    rowAction: RecordRowAction?,
 ) {
     when (recordTypeId) {
         RecordType.Note.recordTypeId -> NoteList(
             notes = linkedRecords.linkedNotes,
             navigateToNoteDetailsPage = { onOpenRecord(RecordType.Note, it) },
+            rowAction = rowAction,
         )
         RecordType.Contact.recordTypeId -> ContactList(
             contacts = linkedRecords.linkedContacts,
             navigateToContactDetailsPage = { onOpenRecord(RecordType.Contact, it) },
             showHeaders = false,
+            rowAction = rowAction,
         )
         RecordType.Organization.recordTypeId -> OrganizationList(
             organizations = linkedRecords.linkedOrganizations,
             navigateToOrganizationDetailsPage = { onOpenRecord(RecordType.Organization, it) },
             showHeaders = false,
+            rowAction = rowAction,
         )
         RecordType.Category.recordTypeId -> CategoryList(
             categories = linkedRecords.linkedCategories,
             navigateToCategoryDetailsPage = { onOpenRecord(RecordType.Category, it) },
             showHeaders = false,
+            rowAction = rowAction,
         )
         RecordType.Item.recordTypeId -> ItemList(
             items = linkedRecords.linkedItems,
             navigateToItemDetailsPage = { onOpenRecord(RecordType.Item, it) },
             showHeaders = false,
+            rowAction = rowAction,
         )
         else -> Text(text = "Record type ID = $recordTypeId")
     }
+}
+
+/** Long press on a linked record opens a menu on its row with Unlink; TalkBack gets "Unlink <name>". */
+@Composable
+private fun rememberUnlinkRowAction(onUnlink: (String) -> Unit): RecordRowAction {
+    var menuRecordId by remember { mutableStateOf<String?>(null) }
+    return RecordRowAction(
+        label = "Unlink",
+        onLongClick = { menuRecordId = it },
+        onAction = onUnlink,
+        menu = { id ->
+            DropdownMenu(
+                expanded = menuRecordId == id,
+                onDismissRequest = { menuRecordId = null },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = "Unlink") },
+                    onClick = {
+                        menuRecordId = null
+                        onUnlink(id)
+                    },
+                )
+            }
+        },
+    )
 }
 
 /**

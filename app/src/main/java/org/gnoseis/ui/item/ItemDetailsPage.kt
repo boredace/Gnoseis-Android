@@ -78,6 +78,8 @@ fun ItemDetailsPage(
         newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Contact, RecordType.Category, RecordType.Organization),
         navigation = navigation,
         onDelete = { pageViewModel.deleteItem() },
+        onUnlink = pageViewModel::unlink,
+        onUndoUnlink = pageViewModel::undoUnlink,
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         title = item.itemName ?: "",

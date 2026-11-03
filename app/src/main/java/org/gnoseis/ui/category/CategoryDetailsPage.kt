@@ -78,6 +78,8 @@ fun CategoryDetailsPage(
         newLinkedRecordTypes = listOf(RecordType.Note, RecordType.Item, RecordType.Contact, RecordType.Organization),
         navigation = navigation,
         onDelete = { pageViewModel.deleteCategory() },
+        onUnlink = pageViewModel::unlink,
+        onUndoUnlink = pageViewModel::undoUnlink,
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         title = category.categoryName,

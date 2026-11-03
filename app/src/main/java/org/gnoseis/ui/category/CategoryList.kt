@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.category
 
+import org.gnoseis.ui.components.RecordListRow
+import org.gnoseis.ui.components.RecordRowAction
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +54,8 @@ import org.gnoseis.data.entity.category.Category
 fun CategoryList(
     categories : List<Category> = emptyList(),
     navigateToCategoryDetailsPage: (String) -> Unit,
-    showHeaders: Boolean = true
+    showHeaders: Boolean = true,
+    rowAction: RecordRowAction? = null,
 )
 {
     LazyColumn(
@@ -71,7 +73,8 @@ fun CategoryList(
                     CategoryListItem(
                         id = item.id,
                         title = item.categoryName ?: "",
-                        onClick = { navigateToCategoryDetailsPage(item.id) }
+                        onClick = { navigateToCategoryDetailsPage(item.id) },
+                        rowAction = rowAction,
 
                     )
                 }
@@ -81,7 +84,8 @@ fun CategoryList(
                 CategoryListItem(
                     id = item.id,
                     title = item.categoryName ?: "",
-                    onClick = { navigateToCategoryDetailsPage(item.id) }
+                    onClick = { navigateToCategoryDetailsPage(item.id) },
+                    rowAction = rowAction,
 
                 )
             }
@@ -114,13 +118,17 @@ fun CategoryListHeader(
 fun CategoryListItem(
     id: String,
     title: String ="",
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    rowAction: RecordRowAction? = null,
 ){
-    Card(
+    RecordListRow(
+        id = id,
+        name = title,
+        onClick = { onClick(id) },
+        rowAction = rowAction,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
             .fillMaxWidth(),
-        onClick = { onClick(id) }
     ){
         Column(
             modifier = Modifier

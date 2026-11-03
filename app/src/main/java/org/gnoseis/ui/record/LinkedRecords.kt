@@ -53,6 +53,14 @@ data class LinkedRecords(
     val count: Int
         get() = linkedNotes.size + linkedContacts.size + linkedOrganizations.size +
             linkedCategories.size + linkedItems.size
+
+    /** The name of the linked record [id], as its list row shows it; null if it isn't linked. */
+    fun nameOf(id: String): String? =
+        linkedNotes.find { it.id == id }?.let { note -> note.title?.ifEmpty { null } ?: note.textContents.orEmpty() }
+            ?: linkedContacts.find { it.id == id }?.let { "${it.nameLast}, ${it.nameFirst ?: ""}" }
+            ?: linkedOrganizations.find { it.id == id }?.organizationName
+            ?: linkedCategories.find { it.id == id }?.categoryName
+            ?: linkedItems.find { it.id == id }?.itemName
 }
 
 /** The records linked to the record [recordId] of type [recordType], kept up to date. */

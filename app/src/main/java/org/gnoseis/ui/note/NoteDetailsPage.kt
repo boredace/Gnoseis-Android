@@ -90,6 +90,8 @@ fun NoteDetailsPage(
         newLinkedRecordTypes = listOf(RecordType.Contact, RecordType.Item, RecordType.Category, RecordType.Organization),
         navigation = navigation,
         onDelete = { pageViewModel.deleteNote() },
+        onUnlink = pageViewModel::unlink,
+        onUndoUnlink = pageViewModel::undoUnlink,
         linkedNewRecordTypeId = linkedNewRecordTypeId,
         onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
         header = { NoteHeader(title = note.title ?: "", createdDateTime = note.createDateTime) },

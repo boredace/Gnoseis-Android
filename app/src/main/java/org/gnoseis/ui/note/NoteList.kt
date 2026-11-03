@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.note
 
+import org.gnoseis.ui.components.RecordListRow
+import org.gnoseis.ui.components.RecordRowAction
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +58,8 @@ import java.time.format.DateTimeFormatter
 fun NoteList(
     notes : List<Note> = emptyList(),
     navigateToNoteDetailsPage: (String) -> Unit,
-    showHeaders: Boolean = true
+    showHeaders: Boolean = true,
+    rowAction: RecordRowAction? = null,
 )
 {
 
@@ -77,7 +79,8 @@ fun NoteList(
                         id = note.id,
                         title = note.title ?: "",
                         textContent = note.textContents ?: "",
-                        onClick = { navigateToNoteDetailsPage(note.id) }
+                        onClick = { navigateToNoteDetailsPage(note.id) },
+                        rowAction = rowAction,
 
                     )
                 }
@@ -88,7 +91,8 @@ fun NoteList(
                     id = note.id,
                     title = note.title ?: "",
                     textContent = note.textContents ?: "",
-                    onClick = { navigateToNoteDetailsPage(note.id) }
+                    onClick = { navigateToNoteDetailsPage(note.id) },
+                    rowAction = rowAction,
 
                 )
             }
@@ -131,13 +135,17 @@ fun NoteListItem(
     id: String,
     title: String ="",
     textContent: String = "",
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    rowAction: RecordRowAction? = null,
 ){
 //    val anotatedString =  getAnnotatedString(title, textContent)
 
 //    Spacer(modifier = Modifier.height(5.dp))
-    Card(
-        onClick = { onClick(id) }
+    RecordListRow(
+        id = id,
+        name = title.ifEmpty { textContent },
+        onClick = { onClick(id) },
+        rowAction = rowAction,
     ){
         Column(
             modifier = Modifier

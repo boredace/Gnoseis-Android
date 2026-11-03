@@ -29,7 +29,6 @@
 package org.gnoseis.ui.category
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,17 +41,21 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
-import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.linkedRecordsFlow
+import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class CategoryDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val categoryRepository: CategoryRepository,
-    private var linkedRecordRepository: LinkedRecordRepository,
+    linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
-) : ViewModel(){
+) : RecordDetailsViewModel(
+    recordId = checkNotNull(savedStateHandle.toRoute<CategoryDetailsRoute>().categoryId),
+    recordType = RecordType.Category,
+    linkedRecordRepository = linkedRecordRepository,
+    settingsRepository = settingsRepository,
+) {
 
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
@@ -61,14 +64,8 @@ class CategoryDetailsViewModel(
             settingsRepository = settingsRepository,
         )
 
-    private var categoryId : String = checkNotNull(savedStateHandle.toRoute<CategoryDetailsRoute>().categoryId)
+    private val categoryId: String = recordId
 
-    val linkedRecords: StateFlow<LinkedRecords> =
-        linkedRecordsFlow(linkedRecordRepository, categoryId, RecordType.Category).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            LinkedRecords()
-        )
 
     val categoryDetailsPageState: StateFlow<CategoryDetailsPageState> =
         combine(

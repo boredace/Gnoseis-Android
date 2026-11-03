@@ -29,7 +29,6 @@
 package org.gnoseis.ui.contact
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,24 +42,28 @@ import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ContactRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
-import org.gnoseis.ui.record.LinkedRecords
-import org.gnoseis.ui.record.linkedRecordsFlow
+import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
 
 class ContactDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val contactRepository: ContactRepository,
-    private var linkedRecordRepository: LinkedRecordRepository,
+    linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
-) : ViewModel(){
+) : RecordDetailsViewModel(
+    recordId = checkNotNull(savedStateHandle.toRoute<ContactDetailsRoute>().contactId),
+    recordType = RecordType.Contact,
+    linkedRecordRepository = linkedRecordRepository,
+    settingsRepository = settingsRepository,
+) {
     private val deleteRecord : DeleteRecordUseCase =
         DeleteRecordUseCase(
             contactRepository = contactRepository,
             linkedRecordRepository = linkedRecordRepository,
             settingsRepository = settingsRepository,
         )
-    private var contactId : String = checkNotNull(savedStateHandle.toRoute<ContactDetailsRoute>().contactId)
+    private val contactId: String = recordId
 
 /*
     val item: StateFlow<Item> =
@@ -74,12 +77,6 @@ class ContactDetailsViewModel(
 */
 
 
-    val linkedRecords: StateFlow<LinkedRecords> =
-        linkedRecordsFlow(linkedRecordRepository, contactId, RecordType.Contact).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-            LinkedRecords()
-        )
 
     fun deleteContact() {
         viewModelScope.launch {

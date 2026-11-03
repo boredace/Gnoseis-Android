@@ -74,4 +74,14 @@ class SettingsRepositoryTest {
         assertEquals(listOf(note), db.noteDao().getNotes().first())
         assertNull(repository.getLastDeletionAtStream().first())
     }
+
+    /** #11: a delete that found nothing to delete doesn't count as a deletion. */
+    @Test
+    fun recordingDeletion_whenNothingWasDeleted_doesNotSaveTheTime() = runTest {
+        assertEquals(0, repository.recordingDeletion(delete = { 0 }, deleted = { it > 0 }))
+        assertNull(repository.getLastDeletionAtStream().first())
+
+        assertEquals(1, repository.recordingDeletion(delete = { 1 }, deleted = { it > 0 }))
+        assertEquals(100L, repository.getLastDeletionAtStream().first())
+    }
 }

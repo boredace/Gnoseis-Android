@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.contact
 
+import org.gnoseis.ui.components.RecordListRow
+import org.gnoseis.ui.components.RecordRowAction
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +55,8 @@ import org.gnoseis.data.entity.contact.Contact
 fun ContactList(
     contacts: List<Contact> = emptyList(),
     navigateToContactDetailsPage: (String) -> Unit,
-    showHeaders: Boolean = true
+    showHeaders: Boolean = true,
+    rowAction: RecordRowAction? = null,
 ) {
     LazyColumn(
         modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp)//.scrollable(ScrollableState)
@@ -72,7 +74,8 @@ fun ContactList(
                         id = contact.id,
                         nameLast = contact.nameLast ?: "",
                         nameFirst = contact.nameFirst ?: "",
-                        onClick = { navigateToContactDetailsPage(contact.id) }
+                        onClick = { navigateToContactDetailsPage(contact.id) },
+                        rowAction = rowAction,
 
                     )
                 }
@@ -83,7 +86,8 @@ fun ContactList(
                     id = contact.id,
                     nameLast = contact.nameLast ?: "",
                     nameFirst = contact.nameFirst ?: "",
-                    onClick = { navigateToContactDetailsPage(contact.id) }
+                    onClick = { navigateToContactDetailsPage(contact.id) },
+                    rowAction = rowAction,
                 )
             }
         }
@@ -117,14 +121,18 @@ fun ContactListItem(
     id: String,
     nameLast: String ="",
     nameFirst: String ="",
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    rowAction: RecordRowAction? = null,
 ){
 
-    Card(
+    RecordListRow(
+        id = id,
+        name = "${nameLast}, ${nameFirst}",
+        onClick = { onClick(id) },
+        rowAction = rowAction,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
             .fillMaxWidth(),
-        onClick = { onClick(id) }
     ){
         Column(
             modifier = Modifier

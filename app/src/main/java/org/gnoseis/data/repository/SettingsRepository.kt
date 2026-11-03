@@ -55,7 +55,14 @@ class SettingsRepository(
      * exactly when the deletion is. Every path that deletes a record or a link goes through here.
      */
     suspend fun <R> recordingDeletion(delete: suspend () -> R): R =
+        recordingDeletion(delete) { true }
+
+    /**
+     * Like [recordingDeletion], but saves lastDeletionAt only if [deleted] says, from the result
+     * of [delete], that something was deleted. For deletes that may find nothing to delete.
+     */
+    suspend fun <R> recordingDeletion(delete: suspend () -> R, deleted: (R) -> Boolean): R =
         database.withTransaction {
-            delete().also { settingsDao.upsert(SettingKey.LAST_DELETION_AT.row(now())) }
+            delete().also { if (deleted(it)) settingsDao.upsert(SettingKey.LAST_DELETION_AT.row(now())) }
         }
 }

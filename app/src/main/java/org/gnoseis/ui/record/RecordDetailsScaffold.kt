@@ -28,6 +28,13 @@
 
 package org.gnoseis.ui.record
 
+import org.gnoseis.data.entity.links.LinkedRecord
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -90,6 +97,8 @@ class RecordDetailsNavigation(
  * The Details page of a record of [recordType]: top bar (back, delete, edit), [header], the
  * linked records tabs with [detailsTab] as the first tab, and the FAB to link an existing record
  * or a new one of each of [newLinkedRecordTypes] (in that order, top to bottom; at most four).
+ * With [onUnlink], a linked record can be unlinked from its row's menu; a snackbar then offers
+ * Undo ([onUndoUnlink]) until it times out or the page is left (#11).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,13 +115,18 @@ fun RecordDetailsScaffold(
     title: String = singularName(recordType),
     tabStyle: LinkedRecordsTabStyle = LinkedRecordsTabStyle.LabelBelow,
     header: @Composable () -> Unit = {},
+    onUnlink: ((linkedRecordId: String, onUnlinked: (LinkedRecord) -> Unit) -> Unit)? = null,
+    onUndoUnlink: (LinkedRecord) -> Unit = {},
     detailsTab: @Composable () -> Unit,
 ) {
     var fabExpanded by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     var showDeleteAlertDialog by remember { mutableStateOf(false) }
     val typeName = singularName(recordType)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 modifier = Modifier
@@ -219,6 +233,21 @@ fun RecordDetailsScaffold(
                     onLinkedNewRecordTypeShown = onLinkedNewRecordTypeShown,
                     tabStyle = tabStyle,
                     header = header,
+                    onUnlink = onUnlink?.let { unlink ->
+                        { linkedRecordId ->
+                            val name = linkedRecords.nameOf(linkedRecordId).orEmpty()
+                            unlink(linkedRecordId) { removed ->
+                                snackbarScope.launch {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Unlinked $name",
+                                        actionLabel = "Undo",
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) onUndoUnlink(removed)
+                                }
+                            }
+                        }
+                    },
                     detailsTab = detailsTab,
                 )
             }
