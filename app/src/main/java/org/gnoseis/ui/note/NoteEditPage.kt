@@ -30,6 +30,7 @@
 
 package org.gnoseis.ui.note
 
+import org.gnoseis.ui.components.PrefillableTextField
 import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
@@ -85,7 +86,9 @@ data class NoteEditRoute(
     val noteId: String?,
     val pageMode: NoteEditPageMode,
     val linkFromType: RecordType? = null,
-    val linkFromId: String? = null
+    val linkFromId: String? = null,
+    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
+    val prefillName: String? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,6 +124,7 @@ fun NoteEditPage(
                 onDateChanged = { pageViewModel.updateDate(it) },
                 onTextContentChange = { pageViewModel.updateTextContent(it) },
                 onTitleChange = { pageViewModel.updateTitle(it) },
+                titlePrefilled = pageState.namePrefilled,
             )
         }
     }
@@ -134,7 +138,7 @@ fun NoteEditBody(
     onDateChanged: (Long) -> Unit,
     onTextContentChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
-
+    titlePrefilled: Boolean = false,
     ){
     val title = editState.editTitle
     val textContent = editState.editTextContent
@@ -143,9 +147,10 @@ fun NoteEditBody(
     Column(
        modifier = Modifier.padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
     ){
-        OutlinedTextField(
+        PrefillableTextField(
             modifier = Modifier.fillMaxWidth(),
             label = {Text(text="Title")},
+            focusOnStart = titlePrefilled,
             value = title ?:"",
             onValueChange = {
                 if(it.length <= TITLE_LENGTH_NOTE) {

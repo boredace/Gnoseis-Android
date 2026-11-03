@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.note
 
+import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
+import org.gnoseis.ui.record.prefillName
 import android.util.Log
 import androidx.compose.material3.CalendarLocale
 import androidx.compose.material3.DatePickerState
@@ -107,6 +109,16 @@ class NoteEditViewModel(
     val pageState: State<PageState> = _pageState
 
     init {
+        val route = savedStateHandle.toRoute<NoteEditRoute>()
+        if (_pageState.value.pageMode != NoteEditPageMode.EDIT) {
+            prefillName(route.prefillName, TITLE_LENGTH_NOTE)?.let { title ->
+                _editState.value = _editState.value.copy(
+                    editTitle = title,
+                    isValid = validateInput(title, _editState.value.editTextContent ?: ""),
+                )
+                _pageState.value = _pageState.value.copy(namePrefilled = true)
+            }
+        }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
         if (_pageState.value.pageMode == NoteEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
@@ -248,6 +260,8 @@ class NoteEditViewModel(
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
         val linkSource: LinkSource? = null,
+        /** The name came from a search (#10): the page starts in its field. */
+        val namePrefilled: Boolean = false,
         val note: Note? = Note(),
     )
 

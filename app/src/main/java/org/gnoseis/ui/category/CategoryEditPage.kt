@@ -30,6 +30,7 @@
 
 package org.gnoseis.ui.category
 
+import org.gnoseis.ui.components.PrefillableTextField
 import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
@@ -63,7 +64,9 @@ data class CategoryEditRoute(
     val categoryId: String?,
     val pageMode: CategoryEditPageMode,
     val linkFromType: RecordType? = null,
-    val linkFromId: String? = null
+    val linkFromId: String? = null,
+    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
+    val prefillName: String? = null,
 )
 
 const val TAG = "CategoryEditPage"
@@ -112,9 +115,10 @@ fun CategoryEditBody(
        modifier = Modifier.padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
     ){
 
-        OutlinedTextField(
+        PrefillableTextField(
             modifier = Modifier.fillMaxWidth(),
             label = {Text(text="Category name")},
+            focusOnStart = pageState.namePrefilled,
             value = editState.editCategoryName?:"",
             onValueChange = {
                 if(it.length <= TITLE_LENGTH_CATEGORY) {

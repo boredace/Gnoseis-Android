@@ -30,6 +30,7 @@
 
 package org.gnoseis.ui.contact
 
+import org.gnoseis.ui.components.PrefillableTextField
 import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
@@ -67,7 +68,9 @@ data class ContactEditRoute(
     val contactId: String?,
     val pageMode: ContactEditPageMode,
     val linkFromType: RecordType? = null,
-    val linkFromId: String? = null
+    val linkFromId: String? = null,
+    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
+    val prefillName: String? = null,
 )
 
 @Composable
@@ -97,6 +100,7 @@ fun ContactEditPage(
         ContactEditBody(
             editState = editState,
             onEvent = { pageViewModel.onEvent(it) },
+            namePrefilled = pageState.namePrefilled,
         )
     }
 }
@@ -105,6 +109,7 @@ fun ContactEditPage(
 fun ContactEditBody(
     editState: ContactEditViewModel.EditState,
     onEvent: (ContactEditPageEvent) -> Unit,
+    namePrefilled: Boolean = false,
 ){
     Column(
        modifier = Modifier
@@ -123,6 +128,7 @@ fun ContactEditBody(
 
         ContactTextField(
             label = "Last Name",
+            focusOnStart = namePrefilled,
             value = editState.nameLast?:"" ,
             onValueChanged = {
                 if(it.length <= TITLE_LENGTH_CONTACT)
@@ -247,13 +253,15 @@ fun ContactTextField(
     label: String,
     value: String,
     onValueChanged: (String) -> Unit,
-    type: TextFieldType
+    type: TextFieldType,
+    focusOnStart: Boolean = false,
 ){
-    OutlinedTextField(
+    PrefillableTextField(
         modifier = Modifier.fillMaxWidth(),
         label = {Text(text=label)},
         value = value,
         onValueChange = {onValueChanged(it) },
+        focusOnStart = focusOnStart,
         singleLine = true,
         keyboardOptions =
         when (type) {

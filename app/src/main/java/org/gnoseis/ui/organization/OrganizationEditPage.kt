@@ -30,6 +30,7 @@
 
 package org.gnoseis.ui.organization
 
+import org.gnoseis.ui.components.PrefillableTextField
 import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
@@ -67,7 +68,9 @@ data class OrganizationEditRoute(
     val organizationId: String?,
     val pageMode: OrganizationEditPageMode,
     val linkFromType: RecordType? = null,
-    val linkFromId: String? = null
+    val linkFromId: String? = null,
+    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
+    val prefillName: String? = null,
 )
 
 @Composable
@@ -97,6 +100,7 @@ fun OrganizationEditPage(
         OrganizationEditBody(
             editState = editState,
             onEvent = { pageViewModel.onEvent(it) },
+            namePrefilled = pageState.namePrefilled,
         )
     }
 }
@@ -105,6 +109,7 @@ fun OrganizationEditPage(
 fun OrganizationEditBody(
     editState: OrganizationEditViewModel.EditState,
     onEvent: (OrganizationEditPageEvent) -> Unit,
+    namePrefilled: Boolean = false,
 ){
     Column(
        modifier = Modifier
@@ -114,6 +119,7 @@ fun OrganizationEditBody(
 
         OrganizationTextField(
             label = "Organization Name",
+            focusOnStart = namePrefilled,
             value = editState.editOrganizationName?:"" ,
             onValueChanged = {
                 if(it.length <= TITLE_LENGTH_ORGANIZATION)
@@ -149,13 +155,15 @@ fun OrganizationTextField(
     label: String,
     value: String,
     onValueChanged: (String) -> Unit,
-    type: TextFieldType
+    type: TextFieldType,
+    focusOnStart: Boolean = false,
 ){
-    OutlinedTextField(
+    PrefillableTextField(
         modifier = Modifier.fillMaxWidth(),
         label = {Text(text=label)},
         value = value,
         onValueChange = {onValueChanged(it) },
+        focusOnStart = focusOnStart,
         singleLine = true,
         keyboardOptions =
         when (type) {
