@@ -45,8 +45,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The repositories are pass-through. getLinkedNoteListByOrganizationId used to delegate to the
- * DAO's *ItemId* query (same SQL, so it worked by chance); it now calls its own query.
+ * The repositories are pass-through. The linked-records methods take any record id, so an
+ * organization's and an item's notes come from the same query, each for its own record.
  */
 @RunWith(AndroidJUnit4::class)
 class LinkedRecordRepositoryTest {
@@ -56,7 +56,7 @@ class LinkedRecordRepositoryTest {
     fun tearDown() = c.close()
 
     @Test
-    fun linkedNotesByOrganizationId_returnsNotesLinkedToThatOrganization() = runTest {
+    fun linkedNotesForRecordId_returnsNotesLinkedToThatRecord() = runTest {
         val org = Organization(organizationName = "Acme").stamped()
         val item = Item(itemName = "Laptop").stamped()
         val orgNote = Note(title = "org note").stamped()
@@ -68,8 +68,8 @@ class LinkedRecordRepositoryTest {
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, orgNote.id, RecordType.Note))
         c.linkedRecordRepository.addLinkedRecord(link(itemNote.id, RecordType.Note, item.id, RecordType.Item))
 
-        assertEquals(listOf(orgNote), c.linkedRecordRepository.getLinkedNoteListByOrganizationId(org.id).first())
-        assertEquals(listOf(itemNote), c.linkedRecordRepository.getLinkedNoteListByItemId(item.id).first())
+        assertEquals(listOf(orgNote), c.linkedRecordRepository.getLinkedNotesForRecordId(org.id).first())
+        assertEquals(listOf(itemNote), c.linkedRecordRepository.getLinkedNotesForRecordId(item.id).first())
     }
 
     @Test

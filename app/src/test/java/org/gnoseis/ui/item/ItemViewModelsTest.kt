@@ -154,7 +154,7 @@ class ItemViewModelsTest {
         val saved = c.itemRepository.getItem(id)
         assertEquals("Laptop", saved.itemName)
         assertEquals("16GB", saved.comments)
-        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedItemListByCategoryId(cat.id).first())
+        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedItemsForRecordId(cat.id).first())
     }
 
     @Test

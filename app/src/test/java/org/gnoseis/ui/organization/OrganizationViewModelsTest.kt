@@ -154,7 +154,7 @@ class OrganizationViewModelsTest {
         val saved = c.organizationRepository.getOrganization(id)
         assertEquals("Acme", saved.organizationName)
         assertEquals("desc", saved.comments)
-        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedOrganizationListByContactId(contact.id).first())
+        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedOrganizationsForRecordId(contact.id).first())
     }
 
     @Test

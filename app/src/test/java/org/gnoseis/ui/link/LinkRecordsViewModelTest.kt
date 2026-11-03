@@ -167,8 +167,8 @@ class LinkRecordsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        assertEquals(listOf(org), c.linkedRecordRepository.getLinkedOrganizationListByNoteId(note.id).first())
-        assertEquals(listOf(item), c.linkedRecordRepository.getLinkedItemListByNoteId(note.id).first())
+        assertEquals(listOf(org), c.linkedRecordRepository.getLinkedOrganizationsForRecordId(note.id).first())
+        assertEquals(listOf(item), c.linkedRecordRepository.getLinkedItemsForRecordId(note.id).first())
         assertEquals(
             setOf(RecordType.Organization.recordTypeId, RecordType.Item.recordTypeId),
             c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first().map { it.recordTypeId }.toSet(),

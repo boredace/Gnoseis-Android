@@ -90,35 +90,49 @@ class LinkedRecordDaoTest {
     }
 
     @Test
-    fun everyLinkedListQuery_findsTheLinkedRecord_inBothDirections() = runTest {
+    fun everyLinkedRecordsQuery_findsTheLinkedRecordOfItsType_fromEverySourceType() = runTest {
         insertAllRecords()
         linkEveryPair()
 
-        // Categories
-        assertEquals(listOf(category), dao.getLinkedCategoryListByContactId(contact.id).first())
-        assertEquals(listOf(category), dao.getLinkedCategoryListByItemId(item.id).first())
-        assertEquals(listOf(category), dao.getLinkedCategoryListByNoteId(note.id).first())
-        assertEquals(listOf(category), dao.getLinkedCategoryListByOrganizationId(org.id).first())
-        // Contacts
-        assertEquals(listOf(contact), dao.getLinkedContactListByCategoryId(category.id).first())
-        assertEquals(listOf(contact), dao.getLinkedContactListByItemId(item.id).first())
-        assertEquals(listOf(contact), dao.getLinkedContactListByNoteId(note.id).first())
-        assertEquals(listOf(contact), dao.getLinkedContactListByOrganizationId(org.id).first())
-        // Items
-        assertEquals(listOf(item), dao.getLinkedItemListByCategoryId(category.id).first())
-        assertEquals(listOf(item), dao.getLinkedItemListByContactId(contact.id).first())
-        assertEquals(listOf(item), dao.getLinkedItemListByNoteId(note.id).first())
-        assertEquals(listOf(item), dao.getLinkedItemListByOrganizationId(org.id).first())
-        // Notes
-        assertEquals(listOf(note), dao.getLinkedNoteListByCategoryId(category.id).first())
-        assertEquals(listOf(note), dao.getLinkedNoteListByContactId(contact.id).first())
-        assertEquals(listOf(note), dao.getLinkedNoteListByItemId(item.id).first())
-        assertEquals(listOf(note), dao.getLinkedNoteListByOrganizationId(org.id).first())
-        // Organizations
-        assertEquals(listOf(org), dao.getLinkedOrganizationListByCategoryId(category.id).first())
-        assertEquals(listOf(org), dao.getLinkedOrganizationListByContactId(contact.id).first())
-        assertEquals(listOf(org), dao.getLinkedOrganizationListByItemId(item.id).first())
-        assertEquals(listOf(org), dao.getLinkedOrganizationListByNoteId(note.id).first())
+        val sources = listOf(
+            category.id to RecordType.Category,
+            contact.id to RecordType.Contact,
+            item.id to RecordType.Item,
+            note.id to RecordType.Note,
+            org.id to RecordType.Organization,
+        )
+        for ((id, type) in sources) {
+            // Each source is linked to one record of every other type: each query returns only
+            // the record of its own type, and nothing for the source's own type.
+            assertEquals(if (type == RecordType.Category) emptyList() else listOf(category), dao.getLinkedCategoriesForRecordId(id).first())
+            assertEquals(if (type == RecordType.Contact) emptyList() else listOf(contact), dao.getLinkedContactsForRecordId(id).first())
+            assertEquals(if (type == RecordType.Item) emptyList() else listOf(item), dao.getLinkedItemsForRecordId(id).first())
+            assertEquals(if (type == RecordType.Note) emptyList() else listOf(note), dao.getLinkedNotesForRecordId(id).first())
+            assertEquals(if (type == RecordType.Organization) emptyList() else listOf(org), dao.getLinkedOrganizationsForRecordId(id).first())
+        }
+    }
+
+    @Test
+    fun linkedRecordsQueries_findLinksStoredEitherWayRound() = runTest {
+        insertAllRecords()
+        // The note is record1 in its link to the contact and record2 in its link to the organization
+        dao.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
+        dao.addLinkedRecord(link(org.id, RecordType.Organization, note.id, RecordType.Note))
+
+        assertEquals(listOf(contact), dao.getLinkedContactsForRecordId(note.id).first())
+        assertEquals(listOf(org), dao.getLinkedOrganizationsForRecordId(note.id).first())
+        assertEquals(listOf(note), dao.getLinkedNotesForRecordId(contact.id).first())
+        assertEquals(listOf(note), dao.getLinkedNotesForRecordId(org.id).first())
+    }
+
+    @Test
+    fun linkedRecordsQueries_followTheLinksTypeColumns() = runTest {
+        insertAllRecords()
+        // A link that stores the note's end under the Item type isn't one of the contact's notes
+        dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Item))
+
+        assertEquals(emptyList<Note>(), dao.getLinkedNotesForRecordId(contact.id).first())
+        assertEquals(emptyList<Item>(), dao.getLinkedItemsForRecordId(contact.id).first())
     }
 
     @Test
@@ -163,7 +177,7 @@ class LinkedRecordDaoTest {
         dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
         dao.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
 
-        assertEquals(listOf(note), dao.getLinkedNoteListByContactId(contact.id).first())
+        assertEquals(listOf(note), dao.getLinkedNotesForRecordId(contact.id).first())
         // #23: the tab badge matches the one note the tab lists
         assertEquals(
             listOf(LinkedRecordTypeCount(RecordType.Note.recordTypeId, 1)),
@@ -199,7 +213,7 @@ class LinkedRecordDaoTest {
 
         db.noteDao().deleteNoteById(note.id)
 
-        assertEquals(emptyList<Note>(), dao.getLinkedNoteListByContactId(contact.id).first())
+        assertEquals(emptyList<Note>(), dao.getLinkedNotesForRecordId(contact.id).first())
         assertEquals(listOf(note.id), dao.getRecordIdsLinkedToRecordId(contact.id).first())
         assertEquals(
             listOf(LinkedRecordTypeCount(RecordType.Note.recordTypeId, 1)),
@@ -210,7 +224,7 @@ class LinkedRecordDaoTest {
     @Test
     fun linkedListFlow_emitsWhenLinkAdded_andWhenLinkedRecordChanges() = runTest {
         insertAllRecords()
-        dao.getLinkedNoteListByContactId(contact.id).test {
+        dao.getLinkedNotesForRecordId(contact.id).test {
             assertEquals(emptyList<Note>(), awaitItem())
             dao.addLinkedRecord(link(contact.id, RecordType.Contact, note.id, RecordType.Note))
             assertEquals(listOf(note), awaitItem())
