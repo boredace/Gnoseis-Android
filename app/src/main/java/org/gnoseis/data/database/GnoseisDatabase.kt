@@ -47,7 +47,6 @@ import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.item.ItemDao
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.links.LinkedRecordDao
-import org.gnoseis.data.entity.links.NoteItemDao
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.note.NoteDao
 import org.gnoseis.data.entity.organization.Organization
@@ -79,7 +78,6 @@ abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
     abstract fun noteDao(): NoteDao
     abstract fun organizationDao(): OrganizationDao
-    abstract fun noteItemDao(): NoteItemDao
     abstract fun linkedRecordDao(): LinkedRecordDao
     abstract fun searchDao(): SearchDao
     abstract fun settingsDao(): SettingsDao
