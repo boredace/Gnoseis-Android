@@ -28,6 +28,8 @@
 
 package org.gnoseis.ui.components
 
+import org.gnoseis.data.entity.search.SearchResult
+import org.gnoseis.data.enums.RecordType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,17 +40,32 @@ class CreateFromSearchTest {
     @Test
     fun exactMatch_ignoresCaseAndSpaces() {
         assertTrue(matchesSearchExactly("Acme Ltd", "  acme   LTD "))
-        assertTrue(matchesSearchExactly("Jane  Doe", "jane doe")) // a contact's "First Last" title
+        assertTrue(matchesSearchExactly("Jane  Doe", "jane doe"))
         assertFalse(matchesSearchExactly("Acme Ltd", "Acme")) // only contains the query
         assertFalse(matchesSearchExactly(null, "Acme"))
         assertFalse(matchesSearchExactly("", "  "))
     }
 
     @Test
+    fun contains_ignoresCaseAndSpaces() {
+        assertTrue(searchTitleContains("Budget  meeting", " budget meet"))
+        assertFalse(searchTitleContains("Budget meeting", "budgetmeeting"))
+    }
+
+    @Test
+    fun exactMatch_contactAsFirstLast() {
+        val contact = SearchResult(recordTypeId = RecordType.Contact.recordTypeId, recordTitle = "Doe, Jane")
+        assertTrue(matchesSearchExactly(contact, "doe, jane"))
+        assertTrue(matchesSearchExactly(contact, "Jane  Doe"))
+        assertFalse(matchesSearchExactly(contact.copy(recordTypeId = RecordType.Note.recordTypeId), "Jane Doe"))
+    }
+
+    @Test
     fun offer_byResults() {
+        fun result(title: String) = SearchResult(recordTypeId = RecordType.Item.recordTypeId, recordTitle = title)
         assertEquals(CreateFromSearchOffer.None, createFromSearchOffer(" ", emptyList()))
         assertEquals(CreateFromSearchOffer.NoResults, createFromSearchOffer("Acme", emptyList()))
-        assertEquals(CreateFromSearchOffer.AfterResults, createFromSearchOffer("Acme", listOf("Acme Ltd", null)))
-        assertEquals(CreateFromSearchOffer.None, createFromSearchOffer("acme", listOf("Acme Ltd", "ACME")))
+        assertEquals(CreateFromSearchOffer.AfterResults, createFromSearchOffer("Acme", listOf(result("Acme Ltd"))))
+        assertEquals(CreateFromSearchOffer.None, createFromSearchOffer("acme", listOf(result("Acme Ltd"), result("ACME"))))
     }
 }

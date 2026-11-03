@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.enums.singularName
 
@@ -72,19 +73,46 @@ private val spaces = Regex("\\s+")
 private fun normalized(text: String) = text.trim().replace(spaces, " ").lowercase()
 
 /**
+ * Whether a result's [title] contains the [query], ignoring case, the spaces around the query
+ * and runs of spaces, so a result that [matchesSearchExactly] is always found.
+ */
+fun searchTitleContains(title: String, query: String): Boolean = normalized(title).contains(normalized(query))
+
+/**
  * Whether a result's [title] is the [query]: the same once trimmed, with runs of spaces as one
  * and ignoring case. A title that only contains the query doesn't match.
  */
 fun matchesSearchExactly(title: String?, query: String): Boolean =
     title != null && normalized(query).isNotEmpty() && normalized(title) == normalized(query)
 
-/** What to offer for a settled [query] whose results have [resultTitles]. */
-fun createFromSearchOffer(query: String, resultTitles: List<String?>): CreateFromSearchOffer = when {
+/**
+ * Whether [result] is the record the [query] names. A contact's title shows as "Last, First",
+ * so it also matches as "First Last".
+ */
+fun matchesSearchExactly(result: SearchResult, query: String): Boolean {
+    val title = result.recordTitle
+    val firstLast = if (result.recordTypeId == RecordType.Contact.recordTypeId && ", " in title) {
+        "${title.substringAfter(", ")} ${title.substringBefore(", ")}"
+    } else null
+    return matchesSearchExactly(title, query) || matchesSearchExactly(firstLast, query)
+}
+
+/** What to offer for a settled [query] with these [results]. */
+fun createFromSearchOffer(query: String, results: List<SearchResult>): CreateFromSearchOffer = when {
     query.isBlank() -> CreateFromSearchOffer.None
-    resultTitles.isEmpty() -> CreateFromSearchOffer.NoResults
-    resultTitles.any { matchesSearchExactly(it, query) } -> CreateFromSearchOffer.None
+    results.isEmpty() -> CreateFromSearchOffer.NoResults
+    results.any { matchesSearchExactly(it, query) } -> CreateFromSearchOffer.None
     else -> CreateFromSearchOffer.AfterResults
 }
+
+/** How long a query stays unchanged before a search offers to create a record from it. */
+const val SEARCH_SETTLE_MILLIS = 500L
+
+/** What a search offers for its settled [query]. */
+data class CreateFromSearchState(
+    val query: String = "",
+    val offer: CreateFromSearchOffer = CreateFromSearchOffer.None,
+)
 
 /**
  * Offers to create a record of each of [types] named [query]: in place of the results when

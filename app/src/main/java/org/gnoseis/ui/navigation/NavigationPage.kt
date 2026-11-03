@@ -130,14 +130,29 @@ private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
     }
 }
 
-/** Opens the Edit page for a new record of [type], to be linked to [sourceId] of [sourceType]. */
-private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String) {
+/**
+ * Opens the Edit page for a new record of [type], to be linked to [sourceId] of [sourceType].
+ * With [prefillName], the record's name starts as that (#10).
+ */
+private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String, prefillName: String? = null) {
     when (type) {
-        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, sourceType, sourceId))
-        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, sourceType, sourceId))
-        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, sourceType, sourceId))
-        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, sourceType, sourceId))
-        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, sourceType, sourceId))
+        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.LinkedRecord -> Unit
+    }
+}
+
+/** #10: opens the Edit page for a new record of [type] named [prefillName]. */
+private fun NavController.navigateToNewRecord(type: RecordType, prefillName: String) {
+    when (type) {
+        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEW, prefillName = prefillName))
         RecordType.LinkedRecord -> Unit
     }
 }
@@ -413,6 +428,7 @@ fun NavigationPage(
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
                         navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
+                        navigateToNewRecordPage = { type, name -> navController.navigateToNewRecord(type, name) },
                     )
                 }
 
