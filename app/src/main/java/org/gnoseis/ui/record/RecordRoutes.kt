@@ -53,4 +53,15 @@ data class RecordEditRoute(
     val linkFromId: String? = null,
     /** #10: a new record's name, from the search it's created from. Ignored when editing. */
     val prefillName: String? = null,
+    /**
+     * In NEWLINK mode: records picked on Link Records before creating this one, linked to
+     * [linkFromId] as well when the new record is saved. [alsoLinkTypeIds] holds their type ids,
+     * in the same order.
+     */
+    val alsoLinkIds: List<String> = emptyList(),
+    val alsoLinkTypeIds: List<Int> = emptyList(),
 )
+
+/** The records to link to the source as well, with their types. */
+fun RecordEditRoute.alsoLinkRecords(): List<Pair<String, RecordType>> =
+    alsoLinkIds.zip(alsoLinkTypeIds).map { (id, typeId) -> id to RecordType.from(typeId) }

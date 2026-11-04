@@ -61,6 +61,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
 import org.gnoseis.ui.record.RecordEditRoute
+import org.gnoseis.ui.record.alsoLinkRecords
 
 @OptIn(ExperimentalMaterial3Api::class)
 class NoteEditViewModel(
@@ -70,6 +71,9 @@ class NoteEditViewModel(
     private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
+    /** Records to link to the source as well when the new record is saved. */
+    private val alsoLink = savedStateHandle.toRoute<RecordEditRoute>().alsoLinkRecords()
+
 
     private val noteId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
@@ -182,6 +186,12 @@ class NoteEditViewModel(
                         record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
                         record2TypeId = RecordType.Note.recordTypeId
                     )
+                )
+                // Records picked on Link Records before creating this one are linked to the source too
+                linkedRecordRepository.linkRecordsTo(
+                    _pageState.value.linkFromId!!,
+                    _pageState.value.linkFromType!!,
+                    alsoLink,
                 )
             }
             return addedNoteId

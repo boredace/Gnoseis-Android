@@ -99,10 +99,23 @@ private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
 
 /**
  * Opens the Edit page for a new record of [type], to be linked to [sourceId] of [sourceType].
- * With [prefillName], the record's name starts as that (#10).
+ * With [prefillName], the record's name starts as that (#10). [alsoLink] (id and type) are
+ * linked to the source as well when the new record is saved.
  */
-private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String, prefillName: String? = null) {
-    navigate(RecordEditRoute(type, null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+private fun NavController.navigateToNewLinkedRecord(
+    type: RecordType,
+    sourceType: RecordType,
+    sourceId: String,
+    prefillName: String? = null,
+    alsoLink: List<Pair<String, RecordType>> = emptyList(),
+) {
+    navigate(
+        RecordEditRoute(
+            type, null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName,
+            alsoLinkIds = alsoLink.map { it.first },
+            alsoLinkTypeIds = alsoLink.map { it.second.recordTypeId },
+        )
+    )
 }
 
 /** Opens the Edit page for a new record of [type]; with [prefillName] (#10), named that. */
@@ -294,8 +307,8 @@ fun NavigationPage(
                     val route = it.toRoute<LinkRecordsRoute>()
                     LinkRecordsPage(
                         onNavMenuClick = { navController.popBackStack()},
-                        navigateToNewLinkedRecordPage = { type, name ->
-                            navController.navigateToNewLinkedRecord(type, route.sourceRecordType, route.sourceRecordId, name)
+                        navigateToNewLinkedRecordPage = { type, name, alsoLink ->
+                            navController.navigateToNewLinkedRecord(type, route.sourceRecordType, route.sourceRecordId, name, alsoLink)
                         },
                     )
                 }

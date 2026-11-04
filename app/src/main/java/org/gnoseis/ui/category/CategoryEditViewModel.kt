@@ -50,6 +50,7 @@ import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.ui.record.RecordEditRoute
+import org.gnoseis.ui.record.alsoLinkRecords
 
 class CategoryEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -58,6 +59,9 @@ class CategoryEditViewModel(
     private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
+    /** Records to link to the source as well when the new record is saved. */
+    private val alsoLink = savedStateHandle.toRoute<RecordEditRoute>().alsoLinkRecords()
+
 
     private val categoryId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
@@ -144,6 +148,12 @@ class CategoryEditViewModel(
                         record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
                         record2TypeId = RecordType.Category.recordTypeId
                     )
+                )
+                // Records picked on Link Records before creating this one are linked to the source too
+                linkedRecordRepository.linkRecordsTo(
+                    _pageState.value.linkFromId!!,
+                    _pageState.value.linkFromType!!,
+                    alsoLink,
                 )
             }
             return addedRecordId

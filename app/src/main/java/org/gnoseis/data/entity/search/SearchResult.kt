@@ -45,10 +45,4 @@ data class SearchResult (
     val jobTitle: String? = null,
     val company: String? = null,
     val updatedAt: Long? = null,
-    var isLinked: Boolean? = false,
-    var isSelected: Boolean? = false
-) {
-    fun select() {
-        isSelected = true
-    }
-}
+)

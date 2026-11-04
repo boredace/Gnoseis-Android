@@ -179,7 +179,8 @@ object AppViewModelProvider {
             LinkRecordsViewModel(
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.linkedRecordRepository,
-                gnoseisApplication().container.searchRepository
+                gnoseisApplication().container.searchRepository,
+                getLinkSourceUseCase(),
             )
         }
         initializer {
