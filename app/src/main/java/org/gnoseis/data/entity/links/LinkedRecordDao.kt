@@ -37,6 +37,7 @@ import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 
 @Dao
 interface LinkedRecordDao {
@@ -61,151 +62,85 @@ interface LinkedRecordDao {
 
 
     // ***************************************
-    // ********** Linked Categories **********
+    // ********** Linked records **************
     // ***************************************
-    @Query(
-        "SELECT category.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :contactId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :contactId) AS lr\n" +
-                "JOIN Category AS category ON category.id = lr.linkedRecordId")
-    fun getLinkedCategoryListByContactId(contactId: String): Flow<List<Category>>
-    @Query(
-        "SELECT category.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :itemId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :itemId) AS lr\n" +
-                "JOIN Category AS category ON category.id = lr.linkedRecordId")
-    fun getLinkedCategoryListByItemId(itemId: String): Flow<List<Category>>
-    @Query(
-        "SELECT category.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :noteId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :noteId) AS lr\n" +
-                "JOIN Category AS category ON category.id = lr.linkedRecordId")
-    fun getLinkedCategoryListByNoteId(noteId: String): Flow<List<Category>>
-    @Query(
-        "SELECT category.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :organizationId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :organizationId) AS lr\n" +
-                "JOIN Category AS category ON category.id = lr.linkedRecordId"  )
-    fun getLinkedCategoryListByOrganizationId(organizationId: String): Flow<List<Category>>
+    // One query per target type. Record ids are UUIDs, so the source record's type doesn't
+    // matter; [typeId] keeps each query to links whose other end is of the target type.
 
+    @Query("""
+        SELECT note.* FROM (
+            SELECT record2Id AS linkedRecordId FROM LinkedRecord
+             WHERE record1Id = :recordId AND record2TypeId = :typeId
+            UNION
+            SELECT record1Id FROM LinkedRecord
+             WHERE record2Id = :recordId AND record1TypeId = :typeId
+        ) AS lr
+        JOIN Note AS note ON note.id = lr.linkedRecordId
+    """)
+    fun getLinkedNotesForRecordId(
+        recordId: String,
+        typeId: Int = RecordType.Note.recordTypeId,
+    ): Flow<List<Note>>
 
-    // *************************************
-    // ********** Linked Contacts **********
-    // *************************************
-    @Query(
-        "SELECT contact.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :categoryId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :categoryId) AS lr\n" +
-                "JOIN Contact AS contact ON contact.id = lr.linkedRecordId")
-    fun getLinkedContactListByCategoryId(categoryId: String): Flow<List<Contact>>
-    @Query(
-        "SELECT contact.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :noteId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :noteId) AS lr\n" +
-                "JOIN Contact AS contact ON contact.id = lr.linkedRecordId")
-    fun getLinkedContactListByNoteId(noteId: String): Flow<List<Contact>>
-    @Query(
-        "SELECT contact.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :itemId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :itemId) AS lr\n" +
-                "JOIN Contact AS contact ON contact.id = lr.linkedRecordId")
-    fun getLinkedContactListByItemId(itemId: String): Flow<List<Contact>>
-    @Query(
-        "SELECT contact.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :organizationId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :organizationId) AS lr\n" +
-                "JOIN Contact AS contact ON contact.id = lr.linkedRecordId")
-    fun getLinkedContactListByOrganizationId(organizationId: String): Flow<List<Contact>>
+    @Query("""
+        SELECT contact.* FROM (
+            SELECT record2Id AS linkedRecordId FROM LinkedRecord
+             WHERE record1Id = :recordId AND record2TypeId = :typeId
+            UNION
+            SELECT record1Id FROM LinkedRecord
+             WHERE record2Id = :recordId AND record1TypeId = :typeId
+        ) AS lr
+        JOIN Contact AS contact ON contact.id = lr.linkedRecordId
+    """)
+    fun getLinkedContactsForRecordId(
+        recordId: String,
+        typeId: Int = RecordType.Contact.recordTypeId,
+    ): Flow<List<Contact>>
 
+    @Query("""
+        SELECT organization.* FROM (
+            SELECT record2Id AS linkedRecordId FROM LinkedRecord
+             WHERE record1Id = :recordId AND record2TypeId = :typeId
+            UNION
+            SELECT record1Id FROM LinkedRecord
+             WHERE record2Id = :recordId AND record1TypeId = :typeId
+        ) AS lr
+        JOIN Organization AS organization ON organization.id = lr.linkedRecordId
+    """)
+    fun getLinkedOrganizationsForRecordId(
+        recordId: String,
+        typeId: Int = RecordType.Organization.recordTypeId,
+    ): Flow<List<Organization>>
 
-    // **********************************
-    // ********** Linked Items **********
-    // **********************************
-    @Query(
-        "SELECT item.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :categoryId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :categoryId) AS lr\n" +
-                "JOIN Item AS item ON item.id = lr.linkedRecordId"  )
-    fun getLinkedItemListByCategoryId(categoryId: String): Flow<List<Item>>
-    @Query(
-        "SELECT item.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :contactId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :contactId) AS lr\n" +
-                "JOIN Item AS item ON item.id = lr.linkedRecordId")
-    fun getLinkedItemListByContactId(contactId: String): Flow<List<Item>>
-    @Query(
-        "SELECT item.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :noteId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :noteId) AS lr\n" +
-                "JOIN Item AS item ON item.id = lr.linkedRecordId")
-    fun getLinkedItemListByNoteId(noteId: String): Flow<List<Item>>
-    @Query(
-        "SELECT item.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :organizationId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :organizationId) AS lr\n" +
-                "JOIN Item AS item ON item.id = lr.linkedRecordId" )
-    fun getLinkedItemListByOrganizationId(organizationId: String): Flow<List<Item>>
+    @Query("""
+        SELECT category.* FROM (
+            SELECT record2Id AS linkedRecordId FROM LinkedRecord
+             WHERE record1Id = :recordId AND record2TypeId = :typeId
+            UNION
+            SELECT record1Id FROM LinkedRecord
+             WHERE record2Id = :recordId AND record1TypeId = :typeId
+        ) AS lr
+        JOIN Category AS category ON category.id = lr.linkedRecordId
+    """)
+    fun getLinkedCategoriesForRecordId(
+        recordId: String,
+        typeId: Int = RecordType.Category.recordTypeId,
+    ): Flow<List<Category>>
 
-
-    // ***********************************
-    // ********** Linked Notes ***********
-    // ***********************************
-    @Query(
-        "SELECT note.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :categoryId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :categoryId) AS lr\n" +
-                "JOIN Note AS note ON note.id = lr.linkedRecordId" )
-    fun getLinkedNoteListByCategoryId(categoryId: String): Flow<List<Note>>
-    @Query(
-        "SELECT note.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :contactId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :contactId) AS lr\n" +
-                "JOIN Note AS note ON note.id = lr.linkedRecordId"  )
-    fun getLinkedNoteListByContactId(contactId: String): Flow<List<Note>>
-    @Query(
-        "SELECT note.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :itemId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :itemId) AS lr\n" +
-                "JOIN Note AS note ON note.id = lr.linkedRecordId"  )
-    fun getLinkedNoteListByItemId(itemId: String): Flow<List<Note>>
-    @Query(
-        "SELECT note.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :organizationId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :organizationId) AS lr\n" +
-                "JOIN Note AS note ON note.id = lr.linkedRecordId"  )
-    fun getLinkedNoteListByOrganizationId(organizationId: String): Flow<List<Note>>
-
-
-    // *******************************************
-    // ********** Linked Organizations ***********
-    // *******************************************
-    @Query(
-        "SELECT organization.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :categoryId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :categoryId) AS lr\n" +
-                "JOIN Organization AS organization ON organization.id = lr.linkedRecordId" )
-    fun getLinkedOrganizationListByCategoryId(categoryId: String): Flow<List<Organization>>
-   @Query(
-        "SELECT organization.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :contactId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :contactId) AS lr\n" +
-                "JOIN Organization AS organization ON organization.id = lr.linkedRecordId" )
-    fun getLinkedOrganizationListByContactId(contactId: String): Flow<List<Organization>>
-    @Query(
-        "SELECT organization.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :noteId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :noteId) AS lr\n" +
-                "JOIN Organization AS organization ON Organization.id = lr.linkedRecordId"  )
-    fun getLinkedOrganizationListByNoteId(noteId: String): Flow<List<Organization>>
-    @Query(
-        "SELECT organization.* \n" +
-                "FROM (SELECT lrt1.record2Id AS linkedRecordId FROM linkedrecord AS lrt1 WHERE record1Id = :itemId UNION\n" +
-                "SELECT lrt2.record1Id AS linkedRecordId FROM linkedrecord AS lrt2 WHERE record2Id = :itemId) AS lr\n" +
-                "JOIN Organization AS organization ON organization.id = lr.linkedRecordId"  )
-    fun getLinkedOrganizationListByItemId(itemId: String): Flow<List<Organization>>
-
-
-
+    @Query("""
+        SELECT item.* FROM (
+            SELECT record2Id AS linkedRecordId FROM LinkedRecord
+             WHERE record1Id = :recordId AND record2TypeId = :typeId
+            UNION
+            SELECT record1Id FROM LinkedRecord
+             WHERE record2Id = :recordId AND record1TypeId = :typeId
+        ) AS lr
+        JOIN Item AS item ON item.id = lr.linkedRecordId
+    """)
+    fun getLinkedItemsForRecordId(
+        recordId: String,
+        typeId: Int = RecordType.Item.recordTypeId,
+    ): Flow<List<Item>>
 
 
     @Query("SELECT guid FROM \n" +

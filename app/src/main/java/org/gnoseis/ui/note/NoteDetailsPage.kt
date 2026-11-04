@@ -54,7 +54,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
@@ -65,11 +64,6 @@ import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
-
-@Serializable
-data class NoteDetailsRoute(
-    val noteId: String
-)
 
 @Composable
 fun NoteDetailsPage(

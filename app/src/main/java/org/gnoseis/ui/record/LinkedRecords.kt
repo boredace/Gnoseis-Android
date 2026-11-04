@@ -63,48 +63,25 @@ data class LinkedRecords(
             ?: linkedItems.find { it.id == id }?.itemName
 }
 
-/** The records linked to the record [recordId] of type [recordType], kept up to date. */
+/**
+ * The records linked to the record [recordId] of type [recordType], kept up to date. The list for
+ * [recordType] itself isn't queried and stays empty, since records of the same type can't be linked.
+ */
 fun linkedRecordsFlow(
     linkedRecordRepository: LinkedRecordRepository,
     recordId: String,
     recordType: RecordType,
 ): Flow<LinkedRecords> = with(linkedRecordRepository) {
-    val notes = when (recordType) {
-        RecordType.Contact -> getLinkedNoteListByContactId(recordId)
-        RecordType.Organization -> getLinkedNoteListByOrganizationId(recordId)
-        RecordType.Category -> getLinkedNoteListByCategoryId(recordId)
-        RecordType.Item -> getLinkedNoteListByItemId(recordId)
-        else -> flowOf(emptyList())
-    }
-    val contacts = when (recordType) {
-        RecordType.Note -> getLinkedContactListByNoteId(recordId)
-        RecordType.Organization -> getLinkedContactListByOrganizationId(recordId)
-        RecordType.Category -> getLinkedContactListByCategoryId(recordId)
-        RecordType.Item -> getLinkedContactListByItemId(recordId)
-        else -> flowOf(emptyList())
-    }
-    val organizations = when (recordType) {
-        RecordType.Note -> getLinkedOrganizationListByNoteId(recordId)
-        RecordType.Contact -> getLinkedOrganizationListByContactId(recordId)
-        RecordType.Category -> getLinkedOrganizationListByCategoryId(recordId)
-        RecordType.Item -> getLinkedOrganizationListByItemId(recordId)
-        else -> flowOf(emptyList())
-    }
-    val categories = when (recordType) {
-        RecordType.Note -> getLinkedCategoryListByNoteId(recordId)
-        RecordType.Contact -> getLinkedCategoryListByContactId(recordId)
-        RecordType.Organization -> getLinkedCategoryListByOrganizationId(recordId)
-        RecordType.Item -> getLinkedCategoryListByItemId(recordId)
-        else -> flowOf(emptyList())
-    }
-    val items = when (recordType) {
-        RecordType.Note -> getLinkedItemListByNoteId(recordId)
-        RecordType.Contact -> getLinkedItemListByContactId(recordId)
-        RecordType.Organization -> getLinkedItemListByOrganizationId(recordId)
-        RecordType.Category -> getLinkedItemListByCategoryId(recordId)
-        else -> flowOf(emptyList())
-    }
-    combine(notes, contacts, organizations, categories, items) { n, c, o, ca, i ->
+    fun <T> linked(type: RecordType, query: (String) -> Flow<List<T>>): Flow<List<T>> =
+        if (type == recordType) flowOf(emptyList()) else query(recordId)
+
+    combine(
+        linked(RecordType.Note, ::getLinkedNotesForRecordId),
+        linked(RecordType.Contact, ::getLinkedContactsForRecordId),
+        linked(RecordType.Organization, ::getLinkedOrganizationsForRecordId),
+        linked(RecordType.Category, ::getLinkedCategoriesForRecordId),
+        linked(RecordType.Item, ::getLinkedItemsForRecordId),
+    ) { n, c, o, ca, i ->
         LinkedRecords(
             linkedNotes = n,
             linkedContacts = c,

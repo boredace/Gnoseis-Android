@@ -50,7 +50,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.enums.NoteEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
@@ -60,6 +60,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import org.gnoseis.ui.record.RecordEditRoute
 
 @OptIn(ExperimentalMaterial3Api::class)
 class NoteEditViewModel(
@@ -70,7 +71,7 @@ class NoteEditViewModel(
 
     ) : ViewModel(){
 
-    private val noteId : String? = savedStateHandle.toRoute<NoteEditRoute>().noteId
+    private val noteId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private var editDate = MutableStateFlow(LocalDateTime.of(
         LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC)*1000)
@@ -99,18 +100,18 @@ class NoteEditViewModel(
     private val _pageState = mutableStateOf(
         PageState(
             isNew = true,
-            pageMode = checkNotNull(savedStateHandle.toRoute<NoteEditRoute>().pageMode),
+            pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
             noteId =  null,
-            linkFromType = savedStateHandle.toRoute<NoteEditRoute>().linkFromType,
-            linkFromId = savedStateHandle.toRoute<NoteEditRoute>().linkFromId,
+            linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
             note = null
         )
     )
     val pageState: State<PageState> = _pageState
 
     init {
-        val route = savedStateHandle.toRoute<NoteEditRoute>()
-        if (_pageState.value.pageMode != NoteEditPageMode.EDIT) {
+        val route = savedStateHandle.toRoute<RecordEditRoute>()
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_NOTE)?.let { title ->
                 _editState.value = _editState.value.copy(
                     editTitle = title,
@@ -121,7 +122,7 @@ class NoteEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == NoteEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -131,10 +132,10 @@ class NoteEditViewModel(
                 noteRepository.getNote(noteId).let {
                     _pageState.value = _pageState.value.copy(
                         isNew = false,
-                        pageMode = checkNotNull(savedStateHandle.toRoute<NoteEditRoute>().pageMode),
+                        pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
                         noteId = it.id,
-                        linkFromType = savedStateHandle.toRoute<NoteEditRoute>().linkFromType,
-                        linkFromId = savedStateHandle.toRoute<NoteEditRoute>().linkFromId,
+                        linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
                         note = it
                     )
 
@@ -169,7 +170,7 @@ class NoteEditViewModel(
             val addedNoteId = noteRepository.getNoteByRowId(addedNoteRowId).id
             if (
                 // Also link to source record
-                _pageState.value.pageMode == NoteEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ){
@@ -255,7 +256,7 @@ class NoteEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: NoteEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val noteId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,

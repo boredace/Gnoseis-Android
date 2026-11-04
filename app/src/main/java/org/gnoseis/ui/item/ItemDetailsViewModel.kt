@@ -44,6 +44,7 @@ import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.ui.record.RecordDetailsViewModel
 import org.gnoseis.data.repository.SettingsRepository
 import org.gnoseis.domain.usecase.DeleteRecordUseCase
+import org.gnoseis.ui.record.RecordDetailsRoute
 
 class ItemDetailsViewModel(
     savedStateHandle: SavedStateHandle,
@@ -51,7 +52,7 @@ class ItemDetailsViewModel(
     linkedRecordRepository: LinkedRecordRepository,
     settingsRepository: SettingsRepository,
 ) : RecordDetailsViewModel(
-    recordId = checkNotNull(savedStateHandle.toRoute<ItemDetailsRoute>().itemId),
+    recordId = checkNotNull(savedStateHandle.toRoute<RecordDetailsRoute>().recordId),
     recordType = RecordType.Item,
     linkedRecordRepository = linkedRecordRepository,
     settingsRepository = settingsRepository,

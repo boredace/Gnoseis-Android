@@ -41,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
@@ -53,11 +52,6 @@ import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
-
-@Serializable
-data class CategoryDetailsRoute(
-    val categoryId: String
-)
 
 @Composable
 fun CategoryDetailsPage(

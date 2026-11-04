@@ -37,7 +37,7 @@ import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
@@ -69,13 +69,13 @@ class ContactViewModelsTest {
 
     private fun editVm(
         contactId: String?,
-        mode: ContactEditPageMode,
+        mode: RecordEditPageMode,
         linkFromType: RecordType? = null,
         linkFromId: String? = null,
     ) = mainDispatcherRule.viewModel {
         ContactEditViewModel(
             SavedStateHandle(
-                mapOf("contactId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
+                mapOf("recordType" to RecordType.Contact, "recordId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
             ),
             c.contactRepository,
             c.linkedRecordRepository,
@@ -108,7 +108,7 @@ class ContactViewModelsTest {
         c.itemRepository.addItem(item)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, item.id, RecordType.Item))
-        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Contact, "recordId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
@@ -133,7 +133,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_lastNameValidation_lengthBounds() {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         fun validFor(name: String): Boolean {
             vm.onEvent(ContactEditPageEvent.NameLastChanged(name))
             return vm.editState.value.isValid
@@ -149,7 +149,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_otherFieldsDoNotAffectValidity() {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(ContactEditPageEvent.NameFirstChanged("Jane"))
         vm.onEvent(ContactEditPageEvent.CompanyChanged("Acme"))
         assertFalse(vm.editState.value.isValid)
@@ -157,7 +157,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_phoneMainIsValidated_butDoesNotBlockSave() = runTest {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(ContactEditPageEvent.NameLastChanged("Doe"))
         vm.onEvent(ContactEditPageEvent.PhoneMainChanged("not a phone"))
 
@@ -169,7 +169,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_clearingOptionalPhoneMain_reportsBlankError() {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(ContactEditPageEvent.PhoneMainChanged("5551234"))
         assertEquals(true, vm.editState.value.phoneMainValidationResult?.successful)
 
@@ -181,7 +181,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_emailIsNotValidated() {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(ContactEditPageEvent.EmailMainChanged("not an email"))
         assertEquals("not an email", vm.editState.value.emailMain)
     }
@@ -190,13 +190,13 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_save_whenInvalid_doesNothing() = runTest {
-        assertNull(editVm(null, ContactEditPageMode.NEW).onSave())
+        assertNull(editVm(null, RecordEditPageMode.NEW).onSave())
         assertTrue(c.contactRepository.getContactsStream().first().isEmpty())
     }
 
     @Test
     fun edit_newMode_saveStoresEveryField() = runTest {
-        val vm = editVm(null, ContactEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         listOf(
             ContactEditPageEvent.NameLastChanged("Doe"),
             ContactEditPageEvent.NameFirstChanged("Jane"),
@@ -231,7 +231,7 @@ class ContactViewModelsTest {
     fun edit_newLinkMode_linksToSource() = runTest {
         val org = Organization(organizationName = "Acme").stamped()
         c.organizationRepository.addOrganization(org)
-        val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, org.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Organization, org.id)
         vm.onEvent(ContactEditPageEvent.NameLastChanged("Doe"))
 
         val id = vm.onSave()!!
@@ -243,7 +243,7 @@ class ContactViewModelsTest {
     fun edit_editMode_loadsAndUpdates() = runTest {
         val contact = Contact(nameLast = "Doe", nameFirst = "Jane", emailMain = "a@x.io").stamped()
         c.contactRepository.addContact(contact)
-        val vm = editVm(contact.id, ContactEditPageMode.EDIT)
+        val vm = editVm(contact.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals("Doe", vm.editState.value.nameLast)
@@ -263,7 +263,7 @@ class ContactViewModelsTest {
     fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
         val source = Organization(organizationName = "Northwind Traders")
         c.organizationRepository.addOrganization(source)
-        val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, source.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Organization, source.id)
 
         waitFor { vm.pageState.value.linkSource != null }
         assertEquals(LinkSource(RecordType.Organization, "Northwind Traders"), vm.pageState.value.linkSource)
@@ -276,8 +276,8 @@ class ContactViewModelsTest {
         c.organizationRepository.addOrganization(source)
         c.contactRepository.addContact(record)
 
-        val newVm = editVm(null, ContactEditPageMode.NEW, RecordType.Organization, source.id)
-        val editVm = editVm(record.id, ContactEditPageMode.EDIT, RecordType.Organization, source.id)
+        val newVm = editVm(null, RecordEditPageMode.NEW, RecordType.Organization, source.id)
+        val editVm = editVm(record.id, RecordEditPageMode.EDIT, RecordType.Organization, source.id)
         waitFor { editVm.pageState.value.contact != null }
 
         assertNull(newVm.pageState.value.linkSource)
@@ -286,7 +286,7 @@ class ContactViewModelsTest {
 
     @Test
     fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
-        val vm = editVm(null, ContactEditPageMode.NEWLINK, RecordType.Organization, "missing-id")
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Organization, "missing-id")
         vm.onEvent(ContactEditPageEvent.NameLastChanged("Doe"))
 
         val id = vm.onSave()!!

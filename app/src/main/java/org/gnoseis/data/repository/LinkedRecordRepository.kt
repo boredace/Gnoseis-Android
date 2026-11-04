@@ -46,79 +46,22 @@ class LinkedRecordRepository(
     private val now: () -> Long = System::currentTimeMillis,
 ) {
 
-    // ********** Linked Categories **********
+    // ********** Linked records, one method per target type **********
 
-    fun getLinkedCategoryListByContactId(contactId: String): Flow<List<Category>> =
-        linkedRecordDao.getLinkedCategoryListByContactId(contactId)
+    fun getLinkedNotesForRecordId(recordId: String): Flow<List<Note>> =
+        linkedRecordDao.getLinkedNotesForRecordId(recordId)
 
-    fun getLinkedCategoryListByItemId(itemId: String): Flow<List<Category>> =
-        linkedRecordDao.getLinkedCategoryListByItemId(itemId)
+    fun getLinkedContactsForRecordId(recordId: String): Flow<List<Contact>> =
+        linkedRecordDao.getLinkedContactsForRecordId(recordId)
 
-    fun getLinkedCategoryListByNoteId(noteId: String): Flow<List<Category>> =
-        linkedRecordDao.getLinkedCategoryListByNoteId(noteId)
+    fun getLinkedOrganizationsForRecordId(recordId: String): Flow<List<Organization>> =
+        linkedRecordDao.getLinkedOrganizationsForRecordId(recordId)
 
-    fun getLinkedCategoryListByOrganizationId(organizationId: String): Flow<List<Category>> =
-        linkedRecordDao.getLinkedCategoryListByOrganizationId(organizationId)
+    fun getLinkedCategoriesForRecordId(recordId: String): Flow<List<Category>> =
+        linkedRecordDao.getLinkedCategoriesForRecordId(recordId)
 
-    // ********** Linked Contacts **********
-
-    fun getLinkedContactListByCategoryId(categoryId: String): Flow<List<Contact>> =
-        linkedRecordDao.getLinkedContactListByCategoryId(categoryId)
-
-    fun getLinkedContactListByItemId(itemId: String): Flow<List<Contact>> =
-        linkedRecordDao.getLinkedContactListByItemId(itemId)
-
-    fun getLinkedContactListByNoteId(noteId: String): Flow<List<Contact>> =
-        linkedRecordDao.getLinkedContactListByNoteId(noteId)
-
-    fun getLinkedContactListByOrganizationId(organizationId: String): Flow<List<Contact>> =
-        linkedRecordDao.getLinkedContactListByOrganizationId(organizationId)
-
-
-    // ********** Linked Items **********
-
-    fun getLinkedItemListByCategoryId(categoryId: String): Flow<List<Item>> =
-        linkedRecordDao.getLinkedItemListByCategoryId(categoryId)
-
-    fun getLinkedItemListByContactId(contactId: String): Flow<List<Item>> =
-        linkedRecordDao.getLinkedItemListByContactId(contactId)
-
-    fun getLinkedItemListByNoteId(noteId: String): Flow<List<Item>> =
-        linkedRecordDao.getLinkedItemListByNoteId(noteId)
-
-    fun getLinkedItemListByOrganizationId(organizationId: String): Flow<List<Item>> =
-        linkedRecordDao.getLinkedItemListByOrganizationId(organizationId)
-
-
-    // ********** Linked Notes ***********
-
-    fun getLinkedNoteListByCategoryId(categoryId: String): Flow<List<Note>> =
-        linkedRecordDao.getLinkedNoteListByCategoryId(categoryId)
-
-    fun getLinkedNoteListByContactId(contactId: String): Flow<List<Note>> =
-        linkedRecordDao.getLinkedNoteListByContactId(contactId)
-
-    fun getLinkedNoteListByItemId(itemId: String): Flow<List<Note>> =
-        linkedRecordDao.getLinkedNoteListByItemId(itemId)
-
-    fun getLinkedNoteListByOrganizationId(organizationId: String): Flow<List<Note>> =
-        linkedRecordDao.getLinkedNoteListByOrganizationId(organizationId)
-
-
-    // ********** Linked Organizations ***********
-
-    fun getLinkedOrganizationListByCategoryId(categoryId: String): Flow<List<Organization>> =
-        linkedRecordDao.getLinkedOrganizationListByCategoryId(categoryId)
-
-    fun getLinkedOrganizationListByContactId(contactId: String): Flow<List<Organization>> =
-        linkedRecordDao.getLinkedOrganizationListByContactId(contactId)
-
-    fun getLinkedOrganizationListByItemId(itemId: String): Flow<List<Organization>> =
-        linkedRecordDao.getLinkedOrganizationListByItemId(itemId)
-
-    fun getLinkedOrganizationListByNoteId(noteId: String): Flow<List<Organization>> =
-        linkedRecordDao.getLinkedOrganizationListByNoteId(noteId)
-
+    fun getLinkedItemsForRecordId(recordId: String): Flow<List<Item>> =
+        linkedRecordDao.getLinkedItemsForRecordId(recordId)
 
 
     fun getLinkedRecordTypesForRecordIdStream(recordId: String): Flow<List<LinkedRecordTypeCount>> =

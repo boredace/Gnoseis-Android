@@ -56,26 +56,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
-import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
-@Serializable
-data class ContactEditRoute(
-    val contactId: String?,
-    val pageMode: ContactEditPageMode,
-    val linkFromType: RecordType? = null,
-    val linkFromId: String? = null,
-    /** #10: a new record's name, from the search it's created from. Ignored when editing. */
-    val prefillName: String? = null,
-)
-
 @Composable
 fun ContactEditPage(
-    pageMode: ContactEditPageMode,
+    pageMode: RecordEditPageMode,
     pageViewModel: ContactEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigation: RecordEditNavigation,
 ) {
@@ -85,13 +74,13 @@ fun ContactEditPage(
 
     RecordEditScaffold(
         recordType = RecordType.Contact,
-        isNew = pageMode != ContactEditPageMode.EDIT,
+        isNew = pageMode != RecordEditPageMode.EDIT,
         linkSource = pageState.linkSource,
         saveEnabled = editState.isValid,
         onSave = {
             coroutineScope.saveRecord(
                 save = pageViewModel::onSave,
-                linksNew = pageMode == ContactEditPageMode.NEWLINK,
+                linksNew = pageMode == RecordEditPageMode.NEWLINK,
                 navigation = navigation,
             )
         },

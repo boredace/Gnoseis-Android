@@ -39,7 +39,7 @@ import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
@@ -70,10 +70,10 @@ class OrganizationViewModelsTest {
         c.close()
     }
 
-    private fun editVm(id: String?, mode: OrganizationEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
+    private fun editVm(id: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
             OrganizationEditViewModel(
-                SavedStateHandle(mapOf("organizationId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                SavedStateHandle(mapOf("recordType" to RecordType.Organization, "recordId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.organizationRepository,
                 c.linkedRecordRepository,
                 c.getLinkSourceUseCase(),
@@ -101,7 +101,7 @@ class OrganizationViewModelsTest {
         c.noteRepository.addNote(note)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
-        val vm = mainDispatcherRule.viewModel { OrganizationDetailsViewModel(SavedStateHandle(mapOf("organizationId" to org.id)), c.organizationRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { OrganizationDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Organization, "recordId" to org.id)), c.organizationRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()
@@ -122,7 +122,7 @@ class OrganizationViewModelsTest {
 
     @Test
     fun edit_validationIsDebounced_andBlankIsInvalid() = runTest {
-        val vm = editVm(null, OrganizationEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
         assertFalse(vm.editState.value.isValid)
         advanceTimeBy(501); runCurrent()
@@ -135,7 +135,7 @@ class OrganizationViewModelsTest {
 
     @Test
     fun edit_save_whenInvalid_doesNothing() = runTest {
-        assertNull(editVm(null, OrganizationEditPageMode.NEW).onSave())
+        assertNull(editVm(null, RecordEditPageMode.NEW).onSave())
         assertTrue(c.organizationRepository.getOrganizationsStream().first().isEmpty())
     }
 
@@ -143,7 +143,7 @@ class OrganizationViewModelsTest {
     fun edit_newLinkMode_savesAndLinks() = runTest {
         val contact = Contact(nameLast = "Doe").stamped()
         c.contactRepository.addContact(contact)
-        val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Contact, contact.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Contact, contact.id)
         vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
         vm.onEvent(OrganizationEditPageEvent.OrganizationDescriptionChanged("desc"))
         vm.onEvent(OrganizationEditPageEvent.Save)
@@ -154,14 +154,14 @@ class OrganizationViewModelsTest {
         val saved = c.organizationRepository.getOrganization(id)
         assertEquals("Acme", saved.organizationName)
         assertEquals("desc", saved.comments)
-        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedOrganizationListByContactId(contact.id).first())
+        assertEquals(listOf(saved), c.linkedRecordRepository.getLinkedOrganizationsForRecordId(contact.id).first())
     }
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
         val org = Organization(organizationName = "Old", comments = "c").stamped()
         c.organizationRepository.addOrganization(org)
-        val vm = editVm(org.id, OrganizationEditPageMode.EDIT)
+        val vm = editVm(org.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals("Old", vm.editState.value.editOrganizationName)
@@ -179,7 +179,7 @@ class OrganizationViewModelsTest {
     fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
         val source = Note(title = "Kickoff")
         c.noteRepository.addNote(source)
-        val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Note, source.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Note, source.id)
 
         waitFor { vm.pageState.value.linkSource != null }
         assertEquals(LinkSource(RecordType.Note, "Kickoff"), vm.pageState.value.linkSource)
@@ -192,8 +192,8 @@ class OrganizationViewModelsTest {
         c.noteRepository.addNote(source)
         c.organizationRepository.addOrganization(record)
 
-        val newVm = editVm(null, OrganizationEditPageMode.NEW, RecordType.Note, source.id)
-        val editVm = editVm(record.id, OrganizationEditPageMode.EDIT, RecordType.Note, source.id)
+        val newVm = editVm(null, RecordEditPageMode.NEW, RecordType.Note, source.id)
+        val editVm = editVm(record.id, RecordEditPageMode.EDIT, RecordType.Note, source.id)
         waitFor { editVm.pageState.value.organization != null }
 
         assertNull(newVm.pageState.value.linkSource)
@@ -202,7 +202,7 @@ class OrganizationViewModelsTest {
 
     @Test
     fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
-        val vm = editVm(null, OrganizationEditPageMode.NEWLINK, RecordType.Note, "missing-id")
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Note, "missing-id")
         vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
         advanceTimeBy(501); runCurrent()
 
