@@ -86,10 +86,10 @@ Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis D
 
 If a released version needs a fix while `main` already holds unreleased work, branch `hotfix/<version>` from that release's tag, set the patch version (for example `0.3.1` and `30_199`), fix it, and release from that branch the same way: tag, build, GitHub release. Then merge the fix into `main`. Releases with nothing unreleased on `main` don't need this: they go through `main` as usual.
 
-Gradle 8.9 needs Java 17 to 22, and Java 21 is the version it's tested with. Recent Android Studio versions come with Java 25, which Gradle 8.9 can't run on. Point `JAVA_HOME` at a Java 21 installation, for example a JetBrains Runtime 21 downloaded through Android Studio.
+The build runs Gradle on Java 21 (set in `gradle/gradle-daemon-jvm.properties`), so a Java 21 must be installed. Any installed Java can start `./gradlew`, and Gradle finds the Java 21 by itself. A JetBrains Runtime 21 downloaded through Android Studio works, as does any other JDK 21.
 
 ## Distribution channels
 
 Each channel signs with its own key, so a copy from one channel can't be updated with an APK from another. To switch channels: Export a backup, uninstall, install the new copy, then Import.
 
-Separate builds per channel (`play`, `fdroid`, `github`) are tracked in #36. F-Droid builds should only follow final tags (`^v[0-9]+\.[0-9]+\.[0-9]+$`), so betas don't reach F-Droid users.
+Separate builds per channel (`play`, `fdroid`, `github`) are tracked in #36. F-Droid builds should only follow final tags (`^v[0-9]+\.[0-9]+\.[0-9]+$`), so betas don't reach F-Droid users. F-Droid's build server needs a Java 21 installed too.

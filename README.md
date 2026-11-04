@@ -40,7 +40,7 @@ Copies from different sources (GitHub, and later Google Play and F-Droid) are si
 
 ## Building
 
-You need the Android SDK and Java 17 to 22 (Java 21 is tested). Gradle 8.9 can't run on the Java 25 that comes with recent Android Studio versions, so point `JAVA_HOME` at a Java 21 installation. To build a debug APK:
+You need the Android SDK and a Java 21 installation. The build runs Gradle on Java 21 (set in `gradle/gradle-daemon-jvm.properties`); any installed Java can start `./gradlew`, and Gradle finds the Java 21 by itself. A JetBrains Runtime 21 downloaded through Android Studio works, as does any other JDK 21. To build a debug APK:
 
 ```
 ./gradlew assembleDebug
