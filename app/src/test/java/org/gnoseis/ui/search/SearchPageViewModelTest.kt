@@ -26,6 +26,7 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.ui.search
 
 import androidx.lifecycle.SavedStateHandle
@@ -37,9 +38,12 @@ import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
+import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.entity.search.SearchResult
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
+import org.gnoseis.testutil.link
 import org.gnoseis.ui.components.CreateFromSearchOffer
 import org.gnoseis.ui.components.CreateFromSearchState
 import org.junit.After
@@ -62,25 +66,35 @@ class SearchPageViewModelTest {
         c.close()
     }
 
-    private fun vm() = mainDispatcherRule.viewModel { SearchPageViewModel(SavedStateHandle(), c.searchRepository) }
+    private fun vm(scope: RecordType? = null) = mainDispatcherRule.viewModel {
+        SearchPageViewModel(
+            SavedStateHandle(scope?.let { mapOf("scopeTypeId" to it.recordTypeId) } ?: emptyMap()),
+            c.searchRepository,
+            c.linkedRecordRepository,
+        )
+    }
 
-    private suspend fun ReceiveTurbine<List<SearchResult>>.awaitResults(predicate: (List<SearchResult>) -> Boolean): List<SearchResult> {
-        var results = awaitItem()
-        while (!predicate(results)) results = awaitItem()
-        return results
+    private suspend fun <T> ReceiveTurbine<T>.awaitUntil(predicate: (T) -> Boolean): T {
+        var value = awaitItem()
+        while (!predicate(value)) value = awaitItem()
+        return value
     }
 
     private val note = Note(title = "Budget meeting")
     private val contact = Contact(nameLast = "Meyer", nameFirst = "Ann")
     private val item = Item(itemName = "Projector")
     private val category = Category(categoryName = "Finance")
+    private val org = Organization(organizationName = "Meetup Org")
 
     private suspend fun seed() {
         c.noteRepository.addNote(note)
         c.contactRepository.addContact(contact)
         c.itemRepository.addItem(item)
         c.categoryRepository.addCategory(category)
+        c.organizationRepository.addOrganization(org)
     }
+
+    private fun ids(results: List<SearchResult>) = results.map { it.recordId }.toSet()
 
     @Test
     fun initialState_isEmpty() = runTest {
@@ -91,11 +105,15 @@ class SearchPageViewModelTest {
     }
 
     @Test
-    fun emptyQuery_showsAllRecords() = runTest {
+    fun noResults_beforeThreeCharacters() = runTest {
         seed()
-        vm().searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            assertEquals(setOf(note.id, contact.id, item.id, category.id), results.map { it.recordId }.toSet())
+        val vm = vm()
+        vm.uiState.test {
+            vm.updateCurrentQuery("me")
+            val state = awaitUntil { it.query == "me" && it.recent.isNotEmpty() }
+            assertTrue(state.results.isEmpty)
+            assertTrue(!state.isSearching)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -104,22 +122,24 @@ class SearchPageViewModelTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            awaitResults { it.isNotEmpty() }
             vm.updateCurrentQuery("MEE")
-            assertEquals(listOf(note.id), awaitResults { it.size == 1 }.map { it.recordId })
+            assertEquals(setOf(note.id, org.id), ids(awaitUntil { it.size == 2 }))
             vm.updateCurrentQuery("zzz")
-            awaitResults { it.isEmpty() }
+            awaitUntil { it.isEmpty() }
         }
     }
 
     @Test
-    fun query_matchesContactDisplayTitle() = runTest {
+    fun query_matchesContactInBothNameOrders() = runTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            awaitResults { it.isNotEmpty() }
             vm.updateCurrentQuery("meyer, a")
-            assertEquals(listOf(contact.id), awaitResults { it.size == 1 }.map { it.recordId })
+            assertEquals(setOf(contact.id), ids(awaitUntil { it.size == 1 }))
+            vm.updateCurrentQuery("zzz")
+            awaitUntil { it.isEmpty() }
+            vm.updateCurrentQuery("ann mey")
+            assertEquals(setOf(contact.id), ids(awaitUntil { it.size == 1 }))
         }
     }
 
@@ -128,14 +148,87 @@ class SearchPageViewModelTest {
         seed()
         val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null)
         c.contactRepository.addContact(lastNameOnly)
-
-        vm().searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            assertTrue(results.any { it.recordId == lastNameOnly.id })
+        val vm = vm()
+        vm.searchResults.test {
+            vm.updateCurrentQuery("solo")
+            assertTrue(awaitUntil { it.isNotEmpty() }.any { it.recordId == lastNameOnly.id })
         }
     }
 
-    // ---------- #10: create from search ----------
+    @Test
+    fun results_bestMatchFirst_thenGroupsInTypeOrder() = runTest {
+        seed()
+        c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, item.id, RecordType.Item))
+        val vm = vm()
+        vm.uiState.test {
+            vm.updateCurrentQuery("meet")
+            val state = awaitUntil { it.results.total == 2 && it.bestMatchLinks.isNotEmpty() }
+            // The organization name starts with the query; the note only has a word that does
+            assertEquals(org.id, state.results.bestMatch?.recordId)
+            assertEquals(listOf(RecordType.Note), state.results.groups.map { it.type })
+            assertEquals(1, state.bestMatchLinks.single { it.recordTypeId == RecordType.Item.recordTypeId }.count)
+            assertEquals(1, state.results.counts[RecordType.Organization])
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun chips_filterTheResultsFound() = runTest {
+        seed()
+        val vm = vm()
+        vm.uiState.test {
+            vm.updateCurrentQuery("meet")
+            awaitUntil { it.results.total == 2 }
+            vm.toggleChip(RecordType.Note)
+            val notesOnly = awaitUntil { it.selectedChips == setOf(RecordType.Note) }
+            assertEquals(note.id, notesOnly.results.bestMatch?.recordId)
+            assertTrue(notesOnly.results.groups.isEmpty())
+            assertEquals(2, notesOnly.results.total) // the chips count all matches
+            vm.toggleChip(null)
+            awaitUntil { it.selectedChips.isEmpty() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun fromHome_allTypes() {
+        val vm = vm()
+        assertEquals(null, vm.scope)
+        assertEquals(emptySet<RecordType>(), vm.uiState.value.selectedChips)
+        assertEquals("Search all records", vm.uiState.value.placeholder)
+        assertEquals(searchTypeOrder, vm.uiState.value.createTypes)
+    }
+
+    @Test
+    fun fromAListPage_startsWithItsType_andCountsTheOthersAsHidden() = runTest {
+        seed()
+        val vm = vm(RecordType.Contact)
+        assertEquals(setOf(RecordType.Contact), vm.uiState.value.selectedChips)
+        assertEquals("Search contacts", vm.uiState.value.placeholder)
+        assertEquals(RecordType.Contact, vm.uiState.value.createTypes.first())
+        vm.uiState.test {
+            vm.updateCurrentQuery("meet")
+            val state = awaitUntil { it.results.total == 2 }
+            assertTrue(state.results.isEmpty)
+            assertEquals(mapOf(RecordType.Note to 1, RecordType.Organization to 1), state.results.hidden)
+            assertEquals(RecordType.Contact, state.scope)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun recentlyChanged_followsTheChips() = runTest {
+        seed()
+        val vm = vm(RecordType.Item)
+        vm.uiState.test {
+            assertEquals(listOf(item.id), awaitUntil { it.recent.isNotEmpty() }.recent.map { it.recordId })
+            vm.toggleChip(null)
+            assertEquals(5, awaitUntil { it.recent.size == 5 }.recent.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ---------- create from search ----------
 
     private suspend fun SearchPageViewModel.settledOffer(query: String): CreateFromSearchOffer {
         updateCurrentQuery(query)
@@ -164,5 +257,12 @@ class SearchPageViewModelTest {
         assertEquals(CreateFromSearchOffer.AfterResults, vm.settledOffer("budget"))
         assertEquals(CreateFromSearchOffer.None, vm.settledOffer(" BUDGET  meeting "))
         assertEquals(CreateFromSearchOffer.None, vm.settledOffer("Meyer, Ann"))
+    }
+
+    @Test
+    fun createOffer_exactMatchHiddenByTheChips_stillCounts() = runTest {
+        seed()
+        val vm = vm(RecordType.Contact)
+        assertEquals(CreateFromSearchOffer.None, vm.settledOffer("projector"))
     }
 }

@@ -26,120 +26,56 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.ui.search
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.enums.RecordType
-import org.gnoseis.ui.components.creatableRecordTypes
-import org.gnoseis.ui.components.CreateFromSearchOffer
-import org.gnoseis.ui.components.CreateFromSearch
-import org.gnoseis.ui.navigation.NavigationDestination
 
-
-object SearchPageDestination : NavigationDestination {
-    override val route = "search_page"
-    override val titleRes = -9
-}
+/**
+ * The Search page. [scopeTypeId] is the record type id of the list page it was opened from;
+ * null (from Home) searches all types.
+ */
+@Serializable
+data class SearchRoute(val scopeTypeId: Int? = null)
 
 @Composable
 fun SearchPage(
     pageViewModel: SearchPageViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navigateToCategoryDetailsPage: (String) -> Unit,
-    navigateToContactDetailsPage: (String) -> Unit,
-    navigateToItemDetailsPage: (String) -> Unit,
-    navigateToNoteDetailsPage: (String) -> Unit,
-    navigateToOrganizationDetailsPage: (String) -> Unit,
+    onBack: () -> Unit,
+    navigateToRecordDetailsPage: (RecordType, String) -> Unit,
     navigateToNewRecordPage: (type: RecordType, name: String) -> Unit,
-    ) {
-    val results by pageViewModel.searchResults.collectAsState()
-    val createFromSearch by pageViewModel.createFromSearch.collectAsState()
+) {
+    val state by pageViewModel.uiState.collectAsState()
+    val search = pageViewModel.search
 
-    // Kept in the view model, so it's still there on coming back from a page this one opened
-    val textTitle by pageViewModel.currentQuery.collectAsState()
-    // #10: only once the query has settled, so the offer doesn't flash while typing
-    val offer = if (createFromSearch.query == textTitle) createFromSearch.offer else CreateFromSearchOffer.None
-    val createBlock = @Composable {
-        CreateFromSearch(
-            query = textTitle,
-            offer = offer,
-            types = creatableRecordTypes,
-            onCreate = { navigateToNewRecordPage(it, textTitle.trim()) },
+    // Kept in the view model, so coming back from a record shows the same place in the list
+    val listState = rememberLazyListState(search.scroll.index, search.scroll.offset)
+    DisposableEffect(listState) {
+        onDispose { search.scroll = SearchScroll(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+    }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        RecordSearch(
+            state = state,
+            onQueryChange = pageViewModel::updateCurrentQuery,
+            onChipClick = pageViewModel::toggleChip,
+            onResultClick = { navigateToRecordDetailsPage(it.recordType, it.recordId) },
+            onCreate = { navigateToNewRecordPage(it, state.query.trim()) },
+            leading = SearchFieldLeading.Back,
+            onBack = onBack,
+            listState = listState,
         )
     }
-
-    val keyboard = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-
-    // focus the search box and open the keyboard when the page opens empty
-    LaunchedEffect(Unit) {
-        if (textTitle.isEmpty()) {
-            focusRequester.requestFocus()
-            keyboard?.show()
-        }
-    }
-
-    Column(
-        modifier = Modifier.padding(10.dp)
-    ) {
-
-        Text(text = "Results: ${results.size}")
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            label = { Text(text = "Search All Records") },
-            value = textTitle,
-            onValueChange = { pageViewModel.updateCurrentQuery(it) },
-            singleLine = true,
-        )
-
-        if (offer == CreateFromSearchOffer.NoResults) {
-            createBlock()
-        } else if(textTitle.length >= SearchPageViewModel.MIN_QUERY_LENGTH) {
-            SearchResultsList(
-                results = results,
-                onResultClick = {
-                    when (it.recordTypeId) {
-                        RecordType.Category.recordTypeId -> navigateToCategoryDetailsPage(it.recordId)
-                        RecordType.Contact.recordTypeId -> navigateToContactDetailsPage(it.recordId)
-                        RecordType.Item.recordTypeId -> navigateToItemDetailsPage(it.recordId)
-                        RecordType.Note.recordTypeId -> navigateToNoteDetailsPage(it.recordId)
-                        RecordType.Organization.recordTypeId -> navigateToOrganizationDetailsPage(it.recordId)
-                    }
-                },
-                footer = if (offer == CreateFromSearchOffer.AfterResults) createBlock else null,
-            )
-        }
-    }
-}
-
-
-@Preview
-@Composable
-fun SearchPagePreview(){
-    SearchPage(
-        navigateToCategoryDetailsPage = {},
-        navigateToContactDetailsPage = {},
-        navigateToItemDetailsPage = {},
-        navigateToNoteDetailsPage = {},
-        navigateToOrganizationDetailsPage = {},
-        navigateToNewRecordPage = { _, _ -> },
-    )
 }
