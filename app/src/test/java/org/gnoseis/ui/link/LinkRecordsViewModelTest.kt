@@ -26,6 +26,7 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.ui.link
 
 import androidx.lifecycle.SavedStateHandle
@@ -43,6 +44,7 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.entity.search.SearchResult
 import org.gnoseis.data.enums.RecordType
+import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.testutil.link
@@ -51,7 +53,6 @@ import org.gnoseis.ui.components.CreateFromSearchOffer
 import org.gnoseis.ui.components.CreateFromSearchState
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -74,6 +75,8 @@ class LinkRecordsViewModelTest {
     private val otherNote = Note(title = "Other note").stamped()
     private val contact = Contact(nameLast = "Doe", nameFirst = "Jane").stamped()
     private val org = Organization(organizationName = "Acme").stamped()
+    private val apple = Organization(organizationName = "Apple Computers").stamped()
+    private val pixel = Item(itemName = "Google Pixel 9").stamped()
     private val item = Item(itemName = "Laptop").stamped()
     private val category = Category(categoryName = "Work").stamped()
 
@@ -82,6 +85,8 @@ class LinkRecordsViewModelTest {
         c.noteRepository.addNote(otherNote)
         c.contactRepository.addContact(contact)
         c.organizationRepository.addOrganization(org)
+        c.organizationRepository.addOrganization(apple)
+        c.itemRepository.addItem(pixel)
         c.itemRepository.addItem(item)
         c.categoryRepository.addCategory(category)
     }
@@ -91,21 +96,36 @@ class LinkRecordsViewModelTest {
             SavedStateHandle(mapOf("sourceRecordId" to sourceId, "sourceRecordType" to sourceType)),
             c.linkedRecordRepository,
             c.searchRepository,
+            c.getLinkSourceUseCase(),
         )
     }
 
-    private suspend fun ReceiveTurbine<List<SearchResult>>.awaitResults(predicate: (List<SearchResult>) -> Boolean): List<SearchResult> {
-        var results = awaitItem()
-        while (!predicate(results)) results = awaitItem()
-        return results
+    private suspend fun <T> ReceiveTurbine<T>.awaitUntil(predicate: (T) -> Boolean): T {
+        var value = awaitItem()
+        while (!predicate(value)) value = awaitItem()
+        return value
     }
+
+    /** Types [query] and waits for its results. */
+    private suspend fun ReceiveTurbine<List<SearchResult>>.search(vm: LinkRecordsViewModel, query: String, until: (List<SearchResult>) -> Boolean) =
+        run {
+            vm.updateCurrentQuery(query)
+            awaitUntil(until)
+        }
+
+    private fun ids(results: List<SearchResult>) = results.map { it.recordId }.toSet()
+
+    private suspend fun linkedIds() = c.linkedRecordRepository.getRecordIdsLinkedToRecordId(note.id).first().toSet()
 
     @Test
     fun results_excludeSourceRecord_andRecordsOfTheSameType() = runTest {
         seed()
-        vm().searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            assertEquals(setOf(contact.id, org.id, item.id, category.id), results.map { it.recordId }.toSet())
+        val vm = vm()
+        vm.searchResults.test {
+            assertEquals(setOf(category.id), ids(search(vm, "work") { it.isNotEmpty() }))
+            // "note" matches both notes, but they're the source and its type
+            assertEquals(emptySet<String>(), ids(search(vm, "note") { it.isEmpty() }))
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -114,105 +134,190 @@ class LinkRecordsViewModelTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            awaitResults { it.isNotEmpty() }
-            vm.updateCurrentQuery("ACM")
-            assertEquals(listOf(org.id), awaitResults { it.size == 1 }.map { it.recordId })
+            assertEquals(setOf(org.id), ids(search(vm, "ACM") { it.size == 1 }))
         }
     }
 
     @Test
-    fun alreadyLinkedResults_areFlagged() = runTest {
+    fun chips_offerOnlyLinkableTypes() {
+        assertEquals(
+            listOf(RecordType.Contact, RecordType.Organization, RecordType.Category, RecordType.Item),
+            vm().uiState.value.chipTypes,
+        )
+        assertEquals("Search records to link", vm().uiState.value.placeholder)
+    }
+
+    @Test
+    fun source_isShownByName() = runTest {
+        seed()
+        val vm = vm()
+        vm.source.test {
+            assertEquals(LinkSource(RecordType.Note, "Source note"), awaitUntil { it != null })
+        }
+    }
+
+    @Test
+    fun alreadyLinked_isMarked_neverBestMatch_andCanNotBeSelected() = runTest {
         seed()
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
         val vm = vm()
-        vm.searchResults.test {
-            awaitResults { it.isNotEmpty() }
-            // A query change re-evaluates results against the (by now loaded) linked ids
-            vm.updateCurrentQuery("Acme")
-            assertEquals(true, awaitResults { it.size == 1 }.single().isLinked)
-            vm.updateCurrentQuery("Work")
-            // Unlinked results carry null (Room ignores the Kotlin default), which the UI treats as false
-            assertNotEquals(true, awaitResults { it.singleOrNull()?.recordId == category.id }.single().isLinked)
+        vm.selection.test { awaitUntil { org.id in it.linkedIds }; cancelAndIgnoreRemainingEvents() }
+        vm.uiState.test {
+            vm.updateCurrentQuery("acme")
+            val state = awaitUntil { it.results.total == 1 }
+            assertEquals(null, state.results.bestMatch)
+            assertEquals(listOf(org.id), state.results.groups.single().results.map { it.recordId })
+            vm.toggleSelectedSearchResult(state.results.groups.single().results.single())
+            assertTrue(vm.selected.value.isEmpty())
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
+    /** Select in one search, erase the query, select in a second search of another type, Link. */
     @Test
-    fun selection_countsAndIsClearedByNewQuery() = runTest {
+    fun selectionSticksAcrossSearches_andLinkLinksAll() = runTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
-            vm.toggleSelectedSearchResult(results.first { it.recordId == item.id })
-            assertEquals(2, vm.selectedCount.intValue)
+            vm.toggleSelectedSearchResult(search(vm, "apple") { it.size == 1 }.single())
+            search(vm, "") { it.isEmpty() }
+            vm.toggleSelectedSearchResult(search(vm, "google") { it.size == 1 }.single())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf(apple.id, pixel.id), vm.selected.value.map { it.recordId })
 
-            vm.toggleSelectedSearchResult(results.first { it.recordId == item.id })
-            assertEquals(1, vm.selectedCount.intValue)
+        vm.linkSelectedResults()
 
-            vm.updateCurrentQuery("x")
-            assertEquals(0, vm.selectedCount.intValue)
+        assertEquals(setOf(apple.id, pixel.id), linkedIds())
+        assertTrue(vm.selected.value.isEmpty())
+    }
+
+    @Test
+    fun selection_keptThroughEmptyAndShortQueries_clearAndChips() = runTest {
+        seed()
+        val vm = vm()
+        vm.searchResults.test {
+            vm.toggleSelectedSearchResult(search(vm, "apple") { it.size == 1 }.single())
+            search(vm, "ap") { it.isEmpty() }
+            assertEquals(listOf(apple.id), vm.selected.value.map { it.recordId })
+            vm.updateCurrentQuery("") // the clear button
+            vm.toggleChip(RecordType.Item)
+            vm.toggleChip(null)
+            search(vm, "laptop") { it.size == 1 }
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf(apple.id), vm.selected.value.map { it.recordId })
+        assertEquals(setOf(apple.id), vm.selection.value.selectedIds)
+    }
+
+    @Test
+    fun selectedRecord_showsCheckedWhenItAppearsAgain() = runTest {
+        seed()
+        val vm = vm()
+        vm.searchResults.test {
+            vm.toggleSelectedSearchResult(search(vm, "apple") { it.size == 1 }.single())
+            search(vm, "google") { it.size == 1 }
+            val again = search(vm, "computers") { it.size == 1 }.single()
+            assertTrue(again.recordId in vm.selection.value.selectedIds)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun linkSelectedResults_createsLinksFromSource() = runTest {
+    fun selection_keepsTheOrderPicked_andUncheckingRemoves() = runTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
-            vm.toggleSelectedSearchResult(results.first { it.recordId == item.id })
-            vm.linkSelectedResults()
+            vm.toggleSelectedSearchResult(search(vm, "google") { it.size == 1 }.single())
+            vm.toggleSelectedSearchResult(search(vm, "apple") { it.size == 1 }.single())
+            vm.toggleSelectedSearchResult(search(vm, "jane") { it.size == 1 }.single())
             cancelAndIgnoreRemainingEvents()
         }
+        assertEquals(listOf(pixel.id, apple.id, contact.id), vm.selected.value.map { it.recordId })
+
+        vm.unselect(apple.id) // unchecked in the selected records sheet
+        assertEquals(listOf(pixel.id, contact.id), vm.selected.value.map { it.recordId })
+    }
+
+    @Test
+    fun linkLinksEverySelectedRecord_visibleOrNot() = runTest {
+        seed()
+        val vm = vm()
+        vm.searchResults.test {
+            vm.toggleSelectedSearchResult(search(vm, "acme") { it.size == 1 }.single())
+            vm.toggleSelectedSearchResult(search(vm, "laptop") { it.size == 1 }.single())
+            search(vm, "zzz") { it.isEmpty() }
+            cancelAndIgnoreRemainingEvents()
+        }
+        vm.linkSelectedResults()
 
         assertEquals(listOf(org), c.linkedRecordRepository.getLinkedOrganizationsForRecordId(note.id).first())
         assertEquals(listOf(item), c.linkedRecordRepository.getLinkedItemsForRecordId(note.id).first())
-        assertEquals(
-            setOf(RecordType.Organization.recordTypeId, RecordType.Item.recordTypeId),
-            c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first().map { it.recordTypeId }.toSet(),
-        )
     }
 
     @Test
     fun linkingAnAlreadyLinkedRecord_doesNotCreateDuplicateLink() = runTest {
         seed()
-        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
         val vm = vm()
         vm.searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
-            vm.linkSelectedResults()
+            vm.toggleSelectedSearchResult(search(vm, "acme") { it.size == 1 }.single())
             cancelAndIgnoreRemainingEvents()
         }
+        // Linked elsewhere while it was selected
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
+        vm.linkSelectedResults()
 
         val counts = c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first()
         assertEquals(1, counts.single { it.recordTypeId == RecordType.Organization.recordTypeId }.count)
     }
 
-    /** #13, path A: the user taps "Link" twice. */
+    /** The user taps "Link" twice. */
     @Test
     fun tappingLinkTwice_createsOneLink_andClearsSelection() = runTest {
         seed()
         val vm = vm()
         vm.searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            vm.toggleSelectedSearchResult(results.first { it.recordId == org.id })
-
-            // Two taps racing each other, then a late third tap
-            val first = async { vm.linkSelectedResults() }
-            val second = async { vm.linkSelectedResults() }
-            awaitAll(first, second)
-            vm.linkSelectedResults()
-
-            assertEquals(0, vm.selectedCount.intValue)
-            assertEquals(true, results.first { it.recordId == org.id }.isLinked)
+            vm.toggleSelectedSearchResult(search(vm, "acme") { it.size == 1 }.single())
             cancelAndIgnoreRemainingEvents()
         }
+        // Two taps racing each other, then a late third tap
+        val first = async { vm.linkSelectedResults() }
+        val second = async { vm.linkSelectedResults() }
+        awaitAll(first, second)
+        vm.linkSelectedResults()
 
+        assertTrue(vm.selected.value.isEmpty())
         val counts = c.linkedRecordRepository.getLinkedRecordTypesForRecordIdStream(note.id).first()
         assertEquals(1, counts.single { it.recordTypeId == RecordType.Organization.recordTypeId }.count)
+    }
+
+    @Test
+    fun selectedForNewRecord_givesTheSelectionWithTypes() = runTest {
+        seed()
+        val vm = vm()
+        vm.searchResults.test {
+            vm.toggleSelectedSearchResult(search(vm, "apple") { it.size == 1 }.single())
+            vm.toggleSelectedSearchResult(search(vm, "google") { it.size == 1 }.single())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(
+            listOf(apple.id to RecordType.Organization, pixel.id to RecordType.Item),
+            vm.selectedForNewRecord(),
+        )
+    }
+
+    @Test
+    fun recentlyChanged_leavesOutTheSourceAndLinkedRecords() = runTest {
+        seed()
+        c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
+        val vm = vm()
+        vm.selection.test { awaitUntil { org.id in it.linkedIds }; cancelAndIgnoreRemainingEvents() }
+        vm.uiState.test {
+            val recent = awaitUntil { it.recent.size == 5 }.recent.map { it.recordId }
+            assertTrue(org.id !in recent)
+            assertTrue(recent.none { it == note.id || it == otherNote.id })
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -220,14 +325,13 @@ class LinkRecordsViewModelTest {
         seed()
         val lastNameOnly = Contact(nameLast = "Solo", nameFirst = null).stamped()
         c.contactRepository.addContact(lastNameOnly)
-
-        vm().searchResults.test {
-            val results = awaitResults { it.isNotEmpty() }
-            assertTrue(results.any { it.recordId == lastNameOnly.id })
+        val vm = vm()
+        vm.searchResults.test {
+            assertTrue(search(vm, "solo") { it.isNotEmpty() }.any { it.recordId == lastNameOnly.id })
         }
     }
 
-    // ---------- #10: create from search ----------
+    // ---------- create from search ----------
 
     private suspend fun LinkRecordsViewModel.settledOffer(query: String): CreateFromSearchOffer {
         updateCurrentQuery(query)
@@ -253,7 +357,7 @@ class LinkRecordsViewModelTest {
     fun createOffer_afterResults_unlessOneMatchesExactly() = runTest {
         seed()
         val vm = vm()
-        assertEquals(CreateFromSearchOffer.AfterResults, vm.settledOffer("ac"))
+        assertEquals(CreateFromSearchOffer.AfterResults, vm.settledOffer("acm"))
         assertEquals(CreateFromSearchOffer.None, vm.settledOffer("acme"))
         assertEquals(CreateFromSearchOffer.None, vm.settledOffer("Jane Doe"))
     }

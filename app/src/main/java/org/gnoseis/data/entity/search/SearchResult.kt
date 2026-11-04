@@ -26,20 +26,23 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.data.entity.search
 
 import java.util.UUID
 
+/**
+ * A record as search shows it: its type and title, how many records it's linked to, and the
+ * stored fields its context line is made of ([noteDate] for a note; [jobTitle] and [company]
+ * for a contact). [updatedAt] is the system time of its last change, null if never stamped.
+ */
 data class SearchResult (
     val recordId: String = UUID.randomUUID().toString(),
     val recordTypeId: Int,
     val recordTitle: String,
-    var isLinked: Boolean? = false,
-    var isSelected: Boolean? = false
-
-
-) {
-    fun select() {
-        isSelected = true
-    }
-}
+    val linkCount: Int = 0,
+    val noteDate: Long? = null,
+    val jobTitle: String? = null,
+    val company: String? = null,
+    val updatedAt: Long? = null,
+)

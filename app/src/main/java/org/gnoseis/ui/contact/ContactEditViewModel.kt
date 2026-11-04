@@ -50,6 +50,7 @@ import org.gnoseis.domain.usecase.ValidateEmail
 import org.gnoseis.domain.usecase.ValidatePhone
 import org.gnoseis.domain.usecase.ValidationResult
 import org.gnoseis.ui.record.RecordEditRoute
+import org.gnoseis.ui.record.alsoLinkRecords
 
 class ContactEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -58,6 +59,9 @@ class ContactEditViewModel(
     private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
+    /** Records to link to the source as well when the new record is saved. */
+    private val alsoLink = savedStateHandle.toRoute<RecordEditRoute>().alsoLinkRecords()
+
     private val contactId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private val validateEmail: ValidateEmail = ValidateEmail()
@@ -226,6 +230,12 @@ class ContactEditViewModel(
                         record1TypeId = _pageState.value.linkFromType!!.recordTypeId,
                         record2TypeId = RecordType.Contact.recordTypeId
                     )
+                )
+                // Records picked on Link Records before creating this one are linked to the source too
+                linkedRecordRepository.linkRecordsTo(
+                    _pageState.value.linkFromId!!,
+                    _pageState.value.linkFromType!!,
+                    alsoLink,
                 )
             }
             return addedContactId

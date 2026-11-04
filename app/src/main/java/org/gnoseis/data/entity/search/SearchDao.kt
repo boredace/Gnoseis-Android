@@ -26,47 +26,74 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.data.entity.search
 
 import androidx.room.Dao
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * How many distinct records the record [idColumn] is linked to, in either direction. A pair
+ * linked more than once counts once, as on the record pages.
+ */
+private const val LINK_COUNT_OF = "(SELECT COUNT(DISTINCT CASE WHEN lr.record1Id = "
+
+/**
+ * Every titled record of every type, as search results: id, title, type id, link count, the
+ * fields search shows as context, and two columns ([matchA], [matchB]) the query is matched on.
+ * A contact's title is "Last, First" and it's matched on either name.
+ */
+private const val ALL_RECORDS =
+    "SELECT t1.id AS recordId, t1.title AS recordTitle, 1 AS recordTypeId, " +
+        LINK_COUNT_OF + "t1.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
+        "WHERE lr.record1Id = t1.id OR lr.record2Id = t1.id) AS linkCount, " +
+        "t1.createDate AS noteDate, NULL AS jobTitle, NULL AS company, t1.updatedAt AS updatedAt, " +
+        "t1.title AS matchA, NULL AS matchB " +
+        "FROM Note AS t1 WHERE t1.title IS NOT NULL " +
+    "UNION ALL " +
+    "SELECT t2.id, t2.nameLast || COALESCE(', ' || t2.nameFirst, ''), 2, " +
+        LINK_COUNT_OF + "t2.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
+        "WHERE lr.record1Id = t2.id OR lr.record2Id = t2.id), " +
+        "NULL, t2.jobTitle, t2.company, t2.updatedAt, t2.nameLast, t2.nameFirst " +
+        "FROM Contact AS t2 " +
+    "UNION ALL " +
+    "SELECT t3.id, t3.organizationName, 3, " +
+        LINK_COUNT_OF + "t3.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
+        "WHERE lr.record1Id = t3.id OR lr.record2Id = t3.id), " +
+        "NULL, NULL, NULL, t3.updatedAt, t3.organizationName, NULL " +
+        "FROM Organization AS t3 " +
+    "UNION ALL " +
+    "SELECT t4.id, t4.categoryName, 4, " +
+        LINK_COUNT_OF + "t4.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
+        "WHERE lr.record1Id = t4.id OR lr.record2Id = t4.id), " +
+        "NULL, NULL, NULL, t4.updatedAt, t4.categoryName, NULL " +
+        "FROM Category AS t4 " +
+    "UNION ALL " +
+    "SELECT t5.id, t5.itemName, 5, " +
+        LINK_COUNT_OF + "t5.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
+        "WHERE lr.record1Id = t5.id OR lr.record2Id = t5.id), " +
+        "NULL, NULL, NULL, t5.updatedAt, t5.itemName, NULL " +
+        "FROM Item AS t5"
+
+private const val RESULT_COLUMNS =
+    "SELECT recordId, recordTitle, recordTypeId, linkCount, noteDate, jobTitle, company, updatedAt FROM ("
+
 @Dao
 interface SearchDao {
 
-    @Query("SELECT *\n" +
-            "  FROM (\n" +
-            "           SELECT t1.id AS recordId,\n" +
-            "                  t1.title AS recordTitle,\n" +
-            "                  1 AS recordTypeId\n" +
-            "             FROM Note AS t1\n" +
-            "            WHERE t1.title LIKE :query\n" +
-            "           UNION\n" +
-            "           SELECT t2.id AS recordId,\n" +
-            "                  t2.NameLast || COALESCE(', ' || t2.NameFirst, '') AS recordTitle,\n" +
-            "                  2 AS recordTypeId\n" +
-            "             FROM Contact AS t2\n" +
-            "            WHERE t2.NameLast LIKE :query OR \n" +
-            "                  t2.NameFirst LIKE :query\n" +
-            "           UNION\n" +
-            "           SELECT t3.id AS recordId,\n" +
-            "                  t3.OrganizationName AS recordTitle,\n" +
-            "                  3 AS recordTypeId\n" +
-            "             FROM Organization AS t3\n" +
-            "            WHERE t3.OrganizationName LIKE :query\n" +
-            "           UNION\n" +
-            "           SELECT t4.id AS recordId,\n" +
-            "                  t4.CategoryName AS recordTitle,\n" +
-            "                  4 AS recordTypeId\n" +
-            "             FROM Category AS t4\n" +
-            "            WHERE t4.CategoryName LIKE :query\n" +
-            "           UNION\n" +
-            "           SELECT t5.id AS recordId,\n" +
-            "                  t5.itemName AS recordTitle,\n" +
-            "                  5 AS recordTypeId\n" +
-            "             FROM Item AS t5\n" +
-            "            WHERE t5.itemName LIKE :query\n" +
-            "       )")
+    /** Records whose title (a contact: either name) is LIKE [query]. */
+    @Query(RESULT_COLUMNS + ALL_RECORDS + ") WHERE matchA LIKE :query OR matchB LIKE :query")
     fun getSearchResultsForQuery(query: String): Flow<List<SearchResult>>
+
+    /**
+     * Up to [limit] records of the type [recordTypeId] with a change time, newest change first,
+     * leaving out [excludeIds].
+     */
+    @Query(
+        RESULT_COLUMNS + ALL_RECORDS + ") WHERE recordTypeId = :recordTypeId " +
+            "AND updatedAt IS NOT NULL AND recordId NOT IN (:excludeIds) " +
+            "ORDER BY updatedAt DESC LIMIT :limit"
+    )
+    fun getRecentlyChanged(recordTypeId: Int, excludeIds: List<String>, limit: Int): Flow<List<SearchResult>>
 }

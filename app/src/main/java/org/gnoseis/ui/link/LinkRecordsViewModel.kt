@@ -26,134 +26,140 @@
 *   commercial license described in the COMMERCIAL_LICENSE file.
 */
 
+
 package org.gnoseis.ui.link
 
-import org.gnoseis.ui.components.searchResultContains
-import org.gnoseis.ui.components.creatableRecordTypes
-import org.gnoseis.ui.components.createFromSearchOffer
-import org.gnoseis.ui.components.SEARCH_SETTLE_MILLIS
-import org.gnoseis.ui.components.CreateFromSearchState
-import org.gnoseis.data.enums.RecordType
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.search.SearchResult
+import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.SearchRepository
+import org.gnoseis.domain.usecase.GetLinkSourceUseCase
+import org.gnoseis.domain.usecase.LinkSource
+import org.gnoseis.ui.components.CreateFromSearchState
+import org.gnoseis.ui.components.creatableRecordTypes
+import org.gnoseis.ui.search.RecordSearchModel
+import org.gnoseis.ui.search.SearchSelection
+import org.gnoseis.ui.search.SearchUiState
+import org.gnoseis.ui.search.recordType
+import org.gnoseis.ui.search.searchChipTypes
 
 class LinkRecordsViewModel(
     savedStateHandle: SavedStateHandle,
     private val linkedRecordRepository: LinkedRecordRepository,
-    private val searchRepository: SearchRepository
-) : ViewModel(){
-    var currentQuery = MutableStateFlow("")
-
+    searchRepository: SearchRepository,
+    getLinkSource: GetLinkSourceUseCase,
+) : ViewModel() {
     private val route = savedStateHandle.toRoute<LinkRecordsRoute>()
 
-    val sourceRecordId = MutableStateFlow(route.sourceRecordId)
-    val sourceRecordTypeId = MutableStateFlow(route.sourceRecordType.recordTypeId)
+    val sourceRecordId: String = route.sourceRecordId
+    val sourceRecordType: RecordType = route.sourceRecordType
 
-    private var alreadyLinked : StateFlow<List<String>> =
-        linkedRecordRepository.getRecordIdsLinkedToRecordId(sourceRecordId.value)
-            .stateIn(
-                viewModelScope,
-                SharingStarted.Eagerly,
-                emptyList()
-            )
+    private val _source = MutableStateFlow<LinkSource?>(null)
 
-    private fun List<SearchResult>.matching(query: String) =
-        filter { searchResultContains(it, query) }
+    /** The record the selected records are linked to, for the "Linking to" card. */
+    val source: StateFlow<LinkSource?> = _source.asStateFlow()
 
-    // Not the source record, nor any record of its type: those can't be linked to it
-    private fun List<SearchResult>.linkable(source: String) =
-        filterNot { it.recordId.contains(source) || it.recordTypeId == sourceRecordTypeId.value }
+    init {
+        viewModelScope.launch { _source.value = getLinkSource(sourceRecordType, sourceRecordId) }
+    }
 
-    @OptIn(FlowPreview::class)
-    var searchResults : StateFlow<List<SearchResult>> =
-        searchRepository.getSearchResultsForQuery("%${currentQuery.value}%")
-            .debounce(1000L)
-            .combine(currentQuery) { list, filter -> list.matching(filter) }
-            .combine(sourceRecordId) { list, source -> list.linkable(source) }
-            .combine(alreadyLinked) { searchResults, linkedIds ->
-                // Combined (not read once) so the flags stay correct whichever loads first
-                searchResults.onEach {
-                    if (linkedIds.contains(it.recordId)) it.isLinked = true
-                }
-            }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                emptyList()
-            )
+    /** The records linked to the source already. */
+    private val linkedIds: StateFlow<Set<String>> =
+        linkedRecordRepository.getRecordIdsLinkedToRecordId(sourceRecordId)
+            .map { it.toSet() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
-    /** #10: the types a new record can be created as and linked: all but the source's. */
-    val createFromSearchTypes: List<RecordType> = creatableRecordTypes - route.sourceRecordType
+    /** The types a new record can be created as and linked: all but the source's. */
+    val createFromSearchTypes: List<RecordType> = creatableRecordTypes - sourceRecordType
 
-    /** #10: what to offer to create, once the query has settled. */
-    @OptIn(FlowPreview::class)
-    val createFromSearch: StateFlow<CreateFromSearchState> =
-        searchRepository.getSearchResultsForQuery("%%")
-            .combine(currentQuery.debounce(SEARCH_SETTLE_MILLIS)) { list, query ->
-                CreateFromSearchState(query, createFromSearchOffer(query, list.matching(query).linkable(route.sourceRecordId)))
-            }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                CreateFromSearchState()
-            )
+    /** The search: every type but the source's, without the source itself. */
+    val search = RecordSearchModel(
+        scope = viewModelScope,
+        searchRepository = searchRepository,
+        linkedRecordRepository = linkedRecordRepository,
+        chipTypes = searchChipTypes(sourceRecordType),
+        placeholder = "Search records to link",
+        createTypes = createFromSearchTypes,
+        excludeIds = setOf(sourceRecordId),
+        linkedIds = linkedIds,
+    )
 
-    var selectedCount = mutableIntStateOf(0)
+    val uiState: StateFlow<SearchUiState> = search.uiState
 
-    fun updateCurrentQuery(newQuery: String) {
-        currentQuery.value = newQuery
-        for (result in searchResults.value) {
-            result.isSelected = false
+    val currentQuery: MutableStateFlow<String> = search.query
+
+    /** Every record that matches the query, whatever the chips show. */
+    val searchResults: StateFlow<List<SearchResult>> = search.matches
+
+    /** What to offer to create, once the query has settled. */
+    val createFromSearch: StateFlow<CreateFromSearchState> = search.createFromSearch
+
+    fun updateCurrentQuery(newQuery: String) = search.updateQuery(newQuery)
+
+    fun toggleChip(type: RecordType?) = search.toggleChip(type)
+
+    // ********** Selection **********
+
+    private val _selected = MutableStateFlow<List<SearchResult>>(emptyList())
+
+    /**
+     * The selected records, in the order they were picked. Kept apart from the results, so
+     * a new query, an erased query or other chips leave it as it is: only unchecking a record
+     * or linking removes it.
+     */
+    val selected: StateFlow<List<SearchResult>> = _selected.asStateFlow()
+
+    /** Which records show as checked, and which as linked already. */
+    val selection: StateFlow<SearchSelection> =
+        combine(_selected, linkedIds) { picked, linked -> SearchSelection(picked.map { it.recordId }.toSet(), linked) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, SearchSelection())
+
+    /** Checks [result], or unchecks it if it's checked. A record linked already can't be checked. */
+    fun toggleSelectedSearchResult(result: SearchResult) {
+        if (result.recordId in linkedIds.value) return
+        _selected.update { picked ->
+            if (picked.any { it.recordId == result.recordId }) picked.filterNot { it.recordId == result.recordId }
+            else picked + result
         }
-        selectedCount.intValue =  searchResults.value.count { it.isSelected == true}
     }
 
-    fun toggleSelectedSearchResult(selectedResult: SearchResult) {
-        searchResults.value.find { it.recordId == selectedResult.recordId }?.isSelected =
-            if (selectedResult.isSelected != true) {
-                 true
-            } else
-            {  false }
-        selectedCount.intValue =  searchResults.value.count { it.isSelected == true}
+    /** Unchecks the record [recordId]. */
+    fun unselect(recordId: String) {
+        _selected.update { picked -> picked.filterNot { it.recordId == recordId } }
     }
+
+    /** The selected records, to link to the source as well when a record created from search is saved. */
+    fun selectedForNewRecord(): List<Pair<String, RecordType>> =
+        _selected.value.filter { it.recordId !in linkedIds.value }.map { it.recordId to it.recordType }
 
     private val linkMutex = Mutex()
 
+    /** Links every selected record to the source, whether the current search shows it or not, then clears the selection. */
     suspend fun linkSelectedResults() {
         // Ignore a second tap on "Link" while the first one is still saving
         if (!linkMutex.tryLock()) return
         try {
-            searchResults.value
-                .filter { it.isSelected == true && it.isLinked != true }
-                .forEach {
-                    linkedRecordRepository.addLinkedRecord(
-                        LinkedRecord(
-                            ownerDbId = "db1",
-                            record1Id = sourceRecordId.value,
-                            record2Id = it.recordId,
-                            record1TypeId = sourceRecordTypeId.value,
-                            record2TypeId = it.recordTypeId
-                        )
-                    )
-                    it.isSelected = false
-                    it.isLinked = true
-                }
-            selectedCount.intValue = 0
+            val picked = _selected.value
+            linkedRecordRepository.linkRecordsTo(
+                sourceRecordId,
+                sourceRecordType,
+                picked.map { it.recordId to it.recordType },
+            )
+            _selected.update { current -> current.filterNot { c -> picked.any { it.recordId == c.recordId } } }
         } finally {
             linkMutex.unlock()
         }

@@ -37,6 +37,7 @@ import org.gnoseis.data.entity.links.LinkedRecordDao
 import org.gnoseis.data.entity.links.LinkedRecordTypeCount
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
+import org.gnoseis.data.enums.RecordType
 
 /**
  * [now] gives the system time (UTC epoch ms) stamped on new links (#50).
@@ -86,6 +87,26 @@ class LinkedRecordRepository(
             createdAt = now(),
         )
 
+
+    /**
+     * Links each of [records] (id and type) to [sourceId] of [sourceType]. Records already linked
+     * to it, and the source itself, are left alone.
+     */
+    suspend fun linkRecordsTo(sourceId: String, sourceType: RecordType, records: List<Pair<String, RecordType>>) {
+        records
+            .filter { (id, _) -> id != sourceId }
+            .forEach { (id, type) ->
+                addLinkedRecord(
+                    LinkedRecord(
+                        ownerDbId = "db1",
+                        record1Id = sourceId,
+                        record2Id = id,
+                        record1TypeId = sourceType.recordTypeId,
+                        record2TypeId = type.recordTypeId,
+                    )
+                )
+            }
+    }
 
     suspend fun deleteLinksToRecordID(id: String): Int =
         linkedRecordDao.deleteLinksToRecordID(id)

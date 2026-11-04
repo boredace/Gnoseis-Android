@@ -40,6 +40,8 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.inMemoryDatabase
+import org.gnoseis.testutil.link
+import org.junit.Assert.assertNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -148,5 +150,82 @@ class SearchDaoTest {
             db.itemDao().addItem(Item(id = "i", itemName = "Laptop"))
             assertEquals(listOf("i"), awaitItem().map { it.recordId })
         }
+    }
+
+    private suspend fun linkCountOf(id: String) = search("%%").single { it.recordId == id }.linkCount
+
+    @Test
+    fun linkCount_isZeroWithoutLinks() = runTest {
+        seed()
+        assertEquals(0, linkCountOf("o"))
+    }
+
+    @Test
+    fun linkCount_countsLinksInBothDirections() = runTest {
+        seed()
+        db.linkedRecordDao().addLinkedRecord(link("o", RecordType.Organization, "c", RecordType.Contact))
+        db.linkedRecordDao().addLinkedRecord(link("n", RecordType.Note, "o", RecordType.Organization))
+
+        assertEquals(2, linkCountOf("o"))
+        assertEquals(1, linkCountOf("c"))
+        assertEquals(1, linkCountOf("n"))
+        assertEquals(0, linkCountOf("i"))
+    }
+
+    @Test
+    fun linkCount_countsAPairLinkedTwiceOnce() = runTest {
+        seed()
+        db.linkedRecordDao().addLinkedRecord(link("o", RecordType.Organization, "c", RecordType.Contact))
+        db.linkedRecordDao().addLinkedRecord(link("c", RecordType.Contact, "o", RecordType.Organization))
+
+        assertEquals(1, linkCountOf("o"))
+    }
+
+    @Test
+    fun results_carryContextFields() = runTest {
+        db.noteDao().addNote(Note(id = "n", title = "Call", createDate = 1_699_920_000_000L, updatedAt = 5L))
+        db.contactDao().addContact(Contact(id = "c", nameLast = "Call", jobTitle = "Buyer", company = "Acme"))
+        db.itemDao().addItem(Item(id = "i", itemName = "Call log"))
+
+        val byId = search("%call%").associateBy { it.recordId }
+
+        assertEquals(1_699_920_000_000L, byId.getValue("n").noteDate)
+        assertEquals(5L, byId.getValue("n").updatedAt)
+        assertNull(byId.getValue("n").jobTitle)
+        assertEquals("Buyer", byId.getValue("c").jobTitle)
+        assertEquals("Acme", byId.getValue("c").company)
+        assertNull(byId.getValue("c").noteDate)
+        assertNull(byId.getValue("i").noteDate)
+        assertNull(byId.getValue("i").company)
+        assertNull(byId.getValue("i").updatedAt)
+    }
+
+    private suspend fun recent(type: RecordType, exclude: List<String> = emptyList(), limit: Int = 5) =
+        dao.getRecentlyChanged(type.recordTypeId, exclude, limit).first().map { it.recordId }
+
+    @Test
+    fun recentlyChanged_newestFirst_onlyThatType_withoutNeverStamped() = runTest {
+        db.itemDao().addItem(Item(id = "old", itemName = "Old", updatedAt = 1L))
+        db.itemDao().addItem(Item(id = "new", itemName = "New", updatedAt = 3L))
+        db.itemDao().addItem(Item(id = "mid", itemName = "Mid", updatedAt = 2L))
+        db.itemDao().addItem(Item(id = "never", itemName = "Never", updatedAt = null))
+        db.organizationDao().addOrganization(Organization(id = "o", organizationName = "Org", updatedAt = 9L))
+
+        assertEquals(listOf("new", "mid", "old"), recent(RecordType.Item))
+    }
+
+    @Test
+    fun recentlyChanged_leavesOutExcludedIds_andRespectsTheLimit() = runTest {
+        (1..7).forEach { db.categoryDao().addCategory(Category(id = "c$it", categoryName = "C$it", updatedAt = it.toLong())) }
+
+        assertEquals(listOf("c7", "c5", "c4"), recent(RecordType.Category, exclude = listOf("c6"), limit = 3))
+    }
+
+    @Test
+    fun recentlyChanged_leavesOutUntitledNotes() = runTest {
+        db.noteDao().addNote(Note(id = "t", title = "Titled", updatedAt = 1L))
+        db.noteDao().addNote(Note(id = "u", title = null, updatedAt = 2L))
+
+        assertEquals(listOf("t"), recent(RecordType.Note))
     }
 }

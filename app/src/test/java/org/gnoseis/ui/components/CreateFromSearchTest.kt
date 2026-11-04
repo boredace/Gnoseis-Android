@@ -70,4 +70,25 @@ class CreateFromSearchTest {
         assertEquals(CreateFromSearchOffer.AfterResults, createFromSearchOffer("Acme", listOf(result("Acme Ltd"))))
         assertEquals(CreateFromSearchOffer.None, createFromSearchOffer("acme", listOf(result("Acme Ltd"), result("ACME"))))
     }
+
+    @Test
+    fun listScopeTypeComesFirst() {
+        assertEquals(
+            listOf(RecordType.Contact, RecordType.Note, RecordType.Organization, RecordType.Category, RecordType.Item),
+            createTypesWithFirst(creatableRecordTypes, RecordType.Contact),
+        )
+        assertEquals(creatableRecordTypes, createTypesWithFirst(creatableRecordTypes, null))
+        val linkable = creatableRecordTypes - RecordType.Note
+        assertEquals(linkable, createTypesWithFirst(linkable, RecordType.Note))
+    }
+
+    @Test
+    fun exactMatchHiddenByTheChips_stillCounts() {
+        // The offer is worked out on all results, whatever the chips show
+        val results = listOf(
+            SearchResult(recordTypeId = RecordType.Item.recordTypeId, recordTitle = "Acme"),
+            SearchResult(recordTypeId = RecordType.Note.recordTypeId, recordTitle = "Acme visit"),
+        )
+        assertEquals(CreateFromSearchOffer.None, createFromSearchOffer("acme", results))
+    }
 }

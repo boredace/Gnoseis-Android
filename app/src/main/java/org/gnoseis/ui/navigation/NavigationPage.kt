@@ -68,7 +68,7 @@ import org.gnoseis.ui.record.RecordDetailsRoute
 import org.gnoseis.ui.record.RecordEditNavigation
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.search.SearchPage
-import org.gnoseis.ui.search.SearchPageDestination
+import org.gnoseis.ui.search.SearchRoute
 import org.gnoseis.ui.settings.BackupSettingsPage
 import org.gnoseis.ui.settings.BackupSettingsPageRoute
 import org.gnoseis.ui.settings.SettingsPage
@@ -99,10 +99,23 @@ private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
 
 /**
  * Opens the Edit page for a new record of [type], to be linked to [sourceId] of [sourceType].
- * With [prefillName], the record's name starts as that (#10).
+ * With [prefillName], the record's name starts as that (#10). [alsoLink] (id and type) are
+ * linked to the source as well when the new record is saved.
  */
-private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String, prefillName: String? = null) {
-    navigate(RecordEditRoute(type, null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+private fun NavController.navigateToNewLinkedRecord(
+    type: RecordType,
+    sourceType: RecordType,
+    sourceId: String,
+    prefillName: String? = null,
+    alsoLink: List<Pair<String, RecordType>> = emptyList(),
+) {
+    navigate(
+        RecordEditRoute(
+            type, null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName,
+            alsoLinkIds = alsoLink.map { it.first },
+            alsoLinkTypeIds = alsoLink.map { it.second.recordTypeId },
+        )
+    )
 }
 
 /** Opens the Edit page for a new record of [type]; with [prefillName] (#10), named that. */
@@ -163,7 +176,7 @@ fun NavigationPage(
                     HomePage(
                         navMenuClick = { navMenuClick() },
                         navigateToSettingsPage = { navController.navigate(SettingsPageRoute()) },
-                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute()) },
                         navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                         navigateToNewRecordPage = { type -> navController.navigateToNewRecord(type) },
                         navigateToRecordListPage = { type ->
@@ -189,7 +202,7 @@ fun NavigationPage(
                     CategoryListPage(
                         navigateToCategoryDetailsPage = { navController.navigateToRecordDetails(RecordType.Category, it) },
                         navigateToCategoryEditPage = { navController.navigate(RecordEditRoute(RecordType.Category, it, RecordEditPageMode.NEW))},
-                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute(RecordType.Category.recordTypeId)) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
@@ -204,7 +217,7 @@ fun NavigationPage(
                     ContactListPage(
                         navigateToContactDetailsPage = { navController.navigateToRecordDetails(RecordType.Contact, it) },
                         navigateToContactEditPage = { navController.navigate(RecordEditRoute(RecordType.Contact, it, RecordEditPageMode.NEW))},
-                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute(RecordType.Contact.recordTypeId)) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
@@ -219,7 +232,7 @@ fun NavigationPage(
                     ItemListPage(
                         navigateToItemDetailsPage = { navController.navigateToRecordDetails(RecordType.Item, it) },
                         navigateToItemEditPage = { navController.navigate(RecordEditRoute(RecordType.Item, it, RecordEditPageMode.NEW)) },
-                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute(RecordType.Item.recordTypeId)) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
@@ -233,7 +246,7 @@ fun NavigationPage(
                     NoteListPage(
                         navigateToNoteDetailsPage = { navController.navigateToRecordDetails(RecordType.Note, it) },
                         navigateToNoteEditPage = {navController.navigate(RecordEditRoute(RecordType.Note, it, RecordEditPageMode.NEW))},
-                        navigateToSearchPage = {navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute(RecordType.Note.recordTypeId)) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
@@ -248,7 +261,7 @@ fun NavigationPage(
                     OrganizationListPage(
                         navigateToOrganizationDetailsPage = { navController.navigateToRecordDetails(RecordType.Organization, it) },
                         navigateToOrganizationEditPage = { navController.navigate(RecordEditRoute(RecordType.Organization, it, RecordEditPageMode.NEW)) },
-                        navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
+                        navigateToSearchPage = { navController.navigate(SearchRoute(RecordType.Organization.recordTypeId)) },
                         navMenuClick = { navMenuClick() }
                     )
                 }
@@ -294,8 +307,8 @@ fun NavigationPage(
                     val route = it.toRoute<LinkRecordsRoute>()
                     LinkRecordsPage(
                         onNavMenuClick = { navController.popBackStack()},
-                        navigateToNewLinkedRecordPage = { type, name ->
-                            navController.navigateToNewLinkedRecord(type, route.sourceRecordType, route.sourceRecordId, name)
+                        navigateToNewLinkedRecordPage = { type, name, alsoLink ->
+                            navController.navigateToNewLinkedRecord(type, route.sourceRecordType, route.sourceRecordId, name, alsoLink)
                         },
                     )
                 }
@@ -306,16 +319,10 @@ fun NavigationPage(
                 //
                 // ********** SEARCH PAGE **********
                 //
-                composable(
-                    route = SearchPageDestination.route,
-
-                ) {
+                composable<SearchRoute> {
                     SearchPage(
-                        navigateToCategoryDetailsPage = { navController.navigateToRecordDetails(RecordType.Category, it) },
-                        navigateToContactDetailsPage = { navController.navigateToRecordDetails(RecordType.Contact, it) },
-                        navigateToItemDetailsPage = { navController.navigateToRecordDetails(RecordType.Item, it) },
-                        navigateToNoteDetailsPage = { navController.navigateToRecordDetails(RecordType.Note, it) },
-                        navigateToOrganizationDetailsPage = { navController.navigateToRecordDetails(RecordType.Organization, it) },
+                        onBack = { navController.popBackStack() },
+                        navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                         navigateToNewRecordPage = { type, name -> navController.navigateToNewRecord(type, name) },
                     )
                 }

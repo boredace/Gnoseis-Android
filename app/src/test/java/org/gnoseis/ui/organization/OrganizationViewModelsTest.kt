@@ -37,6 +37,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.contact.Contact
+import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordEditPageMode
@@ -210,5 +211,39 @@ class OrganizationViewModelsTest {
 
         assertNull(vm.pageState.value.linkSource)
         assertEquals("Acme", c.organizationRepository.getOrganization(id).organizationName)
+    }
+
+    @Test
+    fun edit_newLinkMode_alsoLinksRecordsPickedOnLinkRecords() = runTest {
+        val source = Note(title = "Kickoff").stamped()
+        val contact = Contact(nameLast = "Doe").stamped()
+        val item = Item(itemName = "Laptop").stamped()
+        c.noteRepository.addNote(source)
+        c.contactRepository.addContact(contact)
+        c.itemRepository.addItem(item)
+        val vm = mainDispatcherRule.viewModel {
+            OrganizationEditViewModel(
+                SavedStateHandle(
+                    mapOf(
+                        "recordType" to RecordType.Organization, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK,
+                        "linkFromType" to RecordType.Note, "linkFromId" to source.id,
+                        "alsoLinkIds" to arrayOf(contact.id, item.id),
+                        "alsoLinkTypeIds" to intArrayOf(RecordType.Contact.recordTypeId, RecordType.Item.recordTypeId),
+                    )
+                ),
+                c.organizationRepository,
+                c.linkedRecordRepository,
+                c.getLinkSourceUseCase(),
+            )
+        }
+        vm.onEvent(OrganizationEditPageEvent.OrganizationNameChanged("Acme"))
+        advanceTimeBy(501); runCurrent()
+
+        val id = vm.onSave()!!
+
+        assertEquals(
+            setOf(id, contact.id, item.id),
+            c.linkedRecordRepository.getRecordIdsLinkedToRecordId(source.id).first().toSet(),
+        )
     }
 }
