@@ -38,7 +38,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -191,7 +194,11 @@ fun LinkRecordsScaffold(
             onChipClick = onChipClick,
             onResultClick = onResultClick,
             onCreate = onCreate,
-            modifier = Modifier.padding(innerPadding),
+            // Results stay above the keyboard
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding(),
             leading = SearchFieldLeading.Search,
             selection = selection,
             listState = listState,
@@ -264,6 +271,7 @@ private fun SelectionBar(selected: List<SearchResult>, onOpen: () -> Unit, onLin
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -29,7 +29,10 @@
 
 package org.gnoseis.ui.search
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -76,6 +79,9 @@ fun SearchPage(
             leading = SearchFieldLeading.Back,
             onBack = onBack,
             listState = listState,
+            // The page draws behind the system bars: keep the field below the status bar and
+            // the results above the navigation bar and the keyboard
+            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         )
     }
 }
