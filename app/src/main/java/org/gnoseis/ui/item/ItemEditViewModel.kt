@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.links.LinkedRecord
-import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
@@ -78,7 +78,7 @@ class ItemEditViewModel(
 
     init {
         val route = savedStateHandle.toRoute<ItemEditRoute>()
-        if (_pageState.value.pageMode != ItemEditPageMode.EDIT) {
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_ITEM)?.let { name ->
                 _editState.value = _editState.value.copy(editItemName = name, isValid = validateInput(name))
                 _pageState.value = _pageState.value.copy(namePrefilled = true)
@@ -86,7 +86,7 @@ class ItemEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == ItemEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -162,9 +162,6 @@ class ItemEditViewModel(
         return result
     }
 
-        // TODO: Call onSave from Event above
-
-
     suspend fun onSave(): String? {
         if(
         // Add new Item
@@ -181,7 +178,7 @@ class ItemEditViewModel(
             val addedRecordId = itemRepository.getItemByRowId(addedRecordRowId).id
             if (
             // Also link to source record
-                _pageState.value.pageMode == ItemEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ) {
@@ -214,7 +211,7 @@ class ItemEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: ItemEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val itemId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,

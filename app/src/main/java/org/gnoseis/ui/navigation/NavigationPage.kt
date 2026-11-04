@@ -45,11 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
-import org.gnoseis.data.enums.CategoryEditPageMode
-import org.gnoseis.data.enums.ContactEditPageMode
-import org.gnoseis.data.enums.ItemEditPageMode
-import org.gnoseis.data.enums.NoteEditPageMode
-import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.TestPage
 import org.gnoseis.ui.TestPageDestination
@@ -124,11 +120,11 @@ private fun NavController.navigateToRecordDetails(type: RecordType, id: String) 
 /** Opens the Edit page of the record [id] of [type]. */
 private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
     when (type) {
-        RecordType.Category -> navigate(CategoryEditRoute(id, CategoryEditPageMode.EDIT))
-        RecordType.Contact -> navigate(ContactEditRoute(id, ContactEditPageMode.EDIT))
-        RecordType.Item -> navigate(ItemEditRoute(id, ItemEditPageMode.EDIT))
-        RecordType.Note -> navigate(NoteEditRoute(id, NoteEditPageMode.EDIT))
-        RecordType.Organization -> navigate(OrganizationEditRoute(id, OrganizationEditPageMode.EDIT))
+        RecordType.Category -> navigate(CategoryEditRoute(id, RecordEditPageMode.EDIT))
+        RecordType.Contact -> navigate(ContactEditRoute(id, RecordEditPageMode.EDIT))
+        RecordType.Item -> navigate(ItemEditRoute(id, RecordEditPageMode.EDIT))
+        RecordType.Note -> navigate(NoteEditRoute(id, RecordEditPageMode.EDIT))
+        RecordType.Organization -> navigate(OrganizationEditRoute(id, RecordEditPageMode.EDIT))
         RecordType.LinkedRecord -> Unit
     }
 }
@@ -139,11 +135,11 @@ private fun NavController.navigateToRecordEdit(type: RecordType, id: String) {
  */
 private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType: RecordType, sourceId: String, prefillName: String? = null) {
     when (type) {
-        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
-        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
-        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
-        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
-        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Category -> navigate(CategoryEditRoute(null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Contact -> navigate(ContactEditRoute(null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Item -> navigate(ItemEditRoute(null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Note -> navigate(NoteEditRoute(null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
+        RecordType.Organization -> navigate(OrganizationEditRoute(null, RecordEditPageMode.NEWLINK, sourceType, sourceId, prefillName))
         RecordType.LinkedRecord -> Unit
     }
 }
@@ -151,11 +147,11 @@ private fun NavController.navigateToNewLinkedRecord(type: RecordType, sourceType
 /** #10: opens the Edit page for a new record of [type] named [prefillName]. */
 private fun NavController.navigateToNewRecord(type: RecordType, prefillName: String) {
     when (type) {
-        RecordType.Category -> navigate(CategoryEditRoute(null, CategoryEditPageMode.NEW, prefillName = prefillName))
-        RecordType.Contact -> navigate(ContactEditRoute(null, ContactEditPageMode.NEW, prefillName = prefillName))
-        RecordType.Item -> navigate(ItemEditRoute(null, ItemEditPageMode.NEW, prefillName = prefillName))
-        RecordType.Note -> navigate(NoteEditRoute(null, NoteEditPageMode.NEW, prefillName = prefillName))
-        RecordType.Organization -> navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Category -> navigate(CategoryEditRoute(null, RecordEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Contact -> navigate(ContactEditRoute(null, RecordEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Item -> navigate(ItemEditRoute(null, RecordEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Note -> navigate(NoteEditRoute(null, RecordEditPageMode.NEW, prefillName = prefillName))
+        RecordType.Organization -> navigate(OrganizationEditRoute(null, RecordEditPageMode.NEW, prefillName = prefillName))
         RecordType.LinkedRecord -> Unit
     }
 }
@@ -250,11 +246,11 @@ fun NavigationPage(
                         navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                         navigateToNewRecordPage = { type ->
                             when (type) {
-                                RecordType.Category -> navController.navigate(CategoryEditRoute(null, CategoryEditPageMode.NEW))
-                                RecordType.Contact -> navController.navigate(ContactEditRoute(null, ContactEditPageMode.NEW))
-                                RecordType.Item -> navController.navigate(ItemEditRoute(null, ItemEditPageMode.NEW))
-                                RecordType.Note -> navController.navigate(NoteEditRoute(null, NoteEditPageMode.NEW))
-                                RecordType.Organization -> navController.navigate(OrganizationEditRoute(null, OrganizationEditPageMode.NEW))
+                                RecordType.Category -> navController.navigate(CategoryEditRoute(null, RecordEditPageMode.NEW))
+                                RecordType.Contact -> navController.navigate(ContactEditRoute(null, RecordEditPageMode.NEW))
+                                RecordType.Item -> navController.navigate(ItemEditRoute(null, RecordEditPageMode.NEW))
+                                RecordType.Note -> navController.navigate(NoteEditRoute(null, RecordEditPageMode.NEW))
+                                RecordType.Organization -> navController.navigate(OrganizationEditRoute(null, RecordEditPageMode.NEW))
                                 RecordType.LinkedRecord -> Unit
                             }
                         },
@@ -280,7 +276,7 @@ fun NavigationPage(
                 composable<CategoryListRoute> {
                     CategoryListPage(
                         navigateToCategoryDetailsPage = { navController.navigate(CategoryDetailsRoute(it)) },
-                        navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, CategoryEditPageMode.NEW))},
+                        navigateToCategoryEditPage = { navController.navigate(CategoryEditRoute(it, RecordEditPageMode.NEW))},
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -306,7 +302,7 @@ fun NavigationPage(
                     val args = it.toRoute<ContactListRoute>()
                     ContactListPage(
                         navigateToContactDetailsPage = { navController.navigate(ContactDetailsRoute(it)) },
-                        navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, ContactEditPageMode.NEW))},
+                        navigateToContactEditPage = { navController.navigate(ContactEditRoute(it, RecordEditPageMode.NEW))},
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -332,7 +328,7 @@ fun NavigationPage(
                     val args = it.toRoute<ItemListRoute>()
                     ItemListPage(
                         navigateToItemDetailsPage = { navController.navigate(ItemDetailsRoute(it)) },
-                        navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, ItemEditPageMode.NEW)) },
+                        navigateToItemEditPage = { navController.navigate(ItemEditRoute(it, RecordEditPageMode.NEW)) },
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -357,7 +353,7 @@ fun NavigationPage(
                 composable<NoteListRoute>() {
                     NoteListPage(
                         navigateToNoteDetailsPage = { navController.navigate(NoteDetailsRoute(it)) },
-                        navigateToNoteEditPage = {navController.navigate(NoteEditRoute(it, NoteEditPageMode.NEW))},
+                        navigateToNoteEditPage = {navController.navigate(NoteEditRoute(it, RecordEditPageMode.NEW))},
                         navigateToSearchPage = {navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )
@@ -383,7 +379,7 @@ fun NavigationPage(
                     val args = it.toRoute<OrganizationListRoute>()
                     OrganizationListPage(
                         navigateToOrganizationDetailsPage = { navController.navigate(OrganizationDetailsRoute(it)) },
-                        navigateToOrganizationEditPage = { navController.navigate(OrganizationEditRoute(it, OrganizationEditPageMode.NEW)) },
+                        navigateToOrganizationEditPage = { navController.navigate(OrganizationEditRoute(it, RecordEditPageMode.NEW)) },
                         navigateToSearchPage = { navController.navigate(SearchPageDestination.route) },
                         navMenuClick = { navMenuClick() }
                     )

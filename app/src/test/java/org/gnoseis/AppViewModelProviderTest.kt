@@ -39,11 +39,7 @@ import androidx.lifecycle.ViewModelProvider.NewInstanceFactory.Companion.VIEW_MO
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.gnoseis.data.enums.CategoryEditPageMode
-import org.gnoseis.data.enums.ContactEditPageMode
-import org.gnoseis.data.enums.ItemEditPageMode
-import org.gnoseis.data.enums.NoteEditPageMode
-import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.TestAppContainer
 import org.gnoseis.ui.category.CategoryEditViewModel
@@ -110,11 +106,11 @@ class AppViewModelProviderTest {
         val link = arrayOf("linkFromType" to RecordType.Note, "linkFromId" to "note-id")
 
         val vms = listOf(
-            createWithRoute(CategoryEditViewModel::class.java, "categoryId" to null, "pageMode" to CategoryEditPageMode.NEWLINK, *link),
-            createWithRoute(ContactEditViewModel::class.java, "contactId" to null, "pageMode" to ContactEditPageMode.NEWLINK, *link),
-            createWithRoute(ItemEditViewModel::class.java, "itemId" to null, "pageMode" to ItemEditPageMode.NEWLINK, *link),
-            createWithRoute(NoteEditViewModel::class.java, "noteId" to null, "pageMode" to NoteEditPageMode.NEWLINK, *link),
-            createWithRoute(OrganizationEditViewModel::class.java, "organizationId" to null, "pageMode" to OrganizationEditPageMode.NEWLINK, *link),
+            createWithRoute(CategoryEditViewModel::class.java, "categoryId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(ContactEditViewModel::class.java, "contactId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(ItemEditViewModel::class.java, "itemId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(NoteEditViewModel::class.java, "noteId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(OrganizationEditViewModel::class.java, "organizationId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
         )
 
         assertEquals(

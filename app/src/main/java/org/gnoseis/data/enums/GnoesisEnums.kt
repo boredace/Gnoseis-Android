@@ -45,31 +45,8 @@ enum class RecordType(val recordTypeId: Int) {
     }
 }
 
-enum class CategoryEditPageMode {
-    NEW,
-    EDIT,
-    NEWLINK
-}
-
-enum class ContactEditPageMode {
-    NEW,
-    EDIT,
-    NEWLINK
-}
-
-enum class ItemEditPageMode {
-    NEW,
-    EDIT,
-    NEWLINK
-}
-
-enum class NoteEditPageMode {
-    NEW,
-    EDIT,
-    NEWLINK
-}
-
-enum class OrganizationEditPageMode {
+/** Whether an Edit page creates a record, edits one, or creates one linked to another record. */
+enum class RecordEditPageMode {
     NEW,
     EDIT,
     NEWLINK

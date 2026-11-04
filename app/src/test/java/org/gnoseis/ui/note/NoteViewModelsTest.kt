@@ -39,7 +39,7 @@ import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.data.enums.NoteEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
@@ -74,7 +74,7 @@ class NoteViewModelsTest {
         c.close()
     }
 
-    private fun editVm(noteId: String?, mode: NoteEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
+    private fun editVm(noteId: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
             NoteEditViewModel(
                 SavedStateHandle(mapOf("noteId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
@@ -133,7 +133,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_newMode_initialState_defaultsDateToTodayUtcMidnight() {
-        val vm = editVm(null, NoteEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         assertTrue(vm.pageState.value.isNew)
         assertFalse(vm.editState.value.isValid)
         assertEquals(todayUtcMidnightMillis(), vm.editState.value.editDate)
@@ -141,7 +141,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_validIfTitleOrContentPresent_afterDebounce() = runTest {
-        val vm = editVm(null, NoteEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
 
         vm.updateTitle("t")
         assertFalse(vm.editState.value.isValid)
@@ -159,13 +159,13 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_save_whenInvalid_doesNothing() = runTest {
-        assertNull(editVm(null, NoteEditPageMode.NEW).onSave())
+        assertNull(editVm(null, RecordEditPageMode.NEW).onSave())
         assertTrue(c.noteRepository.getNotesStream().first().isEmpty())
     }
 
     @Test
     fun edit_newMode_saveUsesSelectedDate() = runTest {
-        val vm = editVm(null, NoteEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.updateTitle("t")
         vm.updateTextContent("body")
         vm.updateDate(86_400_000L)
@@ -183,7 +183,7 @@ class NoteViewModelsTest {
     fun edit_newLinkMode_savesAndLinks() = runTest {
         val contact = Contact(nameLast = "Doe").stamped()
         c.contactRepository.addContact(contact)
-        val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, contact.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Contact, contact.id)
         vm.updateTitle("call notes")
         advanceTimeBy(501); runCurrent()
 
@@ -196,7 +196,7 @@ class NoteViewModelsTest {
     fun edit_editMode_loadsAndUpdates() = runTest {
         val note = Note(title = "Old", textContents = "body", createDateTime = 5_000, createDate = 0).stamped()
         c.noteRepository.addNote(note)
-        val vm = editVm(note.id, NoteEditPageMode.EDIT)
+        val vm = editVm(note.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals("Old", vm.editState.value.editTitle)
@@ -220,7 +220,7 @@ class NoteViewModelsTest {
         val createDate = 1_699_920_000_000L
         val note = Note(title = "Old", createDateTime = createDateTime, createDate = createDate).stamped()
         c.noteRepository.addNote(note)
-        val vm = editVm(note.id, NoteEditPageMode.EDIT)
+        val vm = editVm(note.id, RecordEditPageMode.EDIT)
         waitFor { !vm.pageState.value.isNew }
 
         vm.updateTitle("New")
@@ -236,7 +236,7 @@ class NoteViewModelsTest {
     fun edit_editMode_savingAfterPickingDate_updatesCreateDate() = runTest {
         val note = Note(title = "Old", createDateTime = 1_700_000_123_456L, createDate = 1_699_920_000_000L).stamped()
         c.noteRepository.addNote(note)
-        val vm = editVm(note.id, NoteEditPageMode.EDIT)
+        val vm = editVm(note.id, RecordEditPageMode.EDIT)
         waitFor { !vm.pageState.value.isNew }
 
         val picked = 1_710_000_000_000L
@@ -254,7 +254,7 @@ class NoteViewModelsTest {
     fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
         val source = Contact(nameFirst = "Anna", nameLast = "Kowalski")
         c.contactRepository.addContact(source)
-        val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, source.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Contact, source.id)
 
         waitFor { vm.pageState.value.linkSource != null }
         assertEquals(LinkSource(RecordType.Contact, "Anna Kowalski"), vm.pageState.value.linkSource)
@@ -267,8 +267,8 @@ class NoteViewModelsTest {
         c.contactRepository.addContact(source)
         c.noteRepository.addNote(record)
 
-        val newVm = editVm(null, NoteEditPageMode.NEW, RecordType.Contact, source.id)
-        val editVm = editVm(record.id, NoteEditPageMode.EDIT, RecordType.Contact, source.id)
+        val newVm = editVm(null, RecordEditPageMode.NEW, RecordType.Contact, source.id)
+        val editVm = editVm(record.id, RecordEditPageMode.EDIT, RecordType.Contact, source.id)
         waitFor { editVm.pageState.value.note != null }
 
         assertNull(newVm.pageState.value.linkSource)
@@ -277,7 +277,7 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
-        val vm = editVm(null, NoteEditPageMode.NEWLINK, RecordType.Contact, "missing-id")
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Contact, "missing-id")
         vm.updateTitle("call notes")
         advanceTimeBy(501); runCurrent()
 

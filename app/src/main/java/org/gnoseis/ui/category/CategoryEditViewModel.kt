@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.links.LinkedRecord
-import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
@@ -79,7 +79,7 @@ class CategoryEditViewModel(
 
     init {
         val route = savedStateHandle.toRoute<CategoryEditRoute>()
-        if (_pageState.value.pageMode != CategoryEditPageMode.EDIT) {
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_CATEGORY)?.let { name ->
                 _editState.value = _editState.value.copy(editCategoryName = name, isValid = validateInput(name))
                 _pageState.value = _pageState.value.copy(namePrefilled = true)
@@ -87,7 +87,7 @@ class CategoryEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == CategoryEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -131,7 +131,7 @@ class CategoryEditViewModel(
             val addedRecordId = categoryRepository.getCategoryByRowId(addedRecordRowId).id
             if (
             // Also link to source record
-                _pageState.value.pageMode == CategoryEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ){
@@ -199,7 +199,7 @@ class CategoryEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: CategoryEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val categoryId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,

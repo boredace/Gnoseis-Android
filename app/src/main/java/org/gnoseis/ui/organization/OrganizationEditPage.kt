@@ -59,14 +59,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ORGANIZATION
-import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
 data class OrganizationEditRoute(
     val organizationId: String?,
-    val pageMode: OrganizationEditPageMode,
+    val pageMode: RecordEditPageMode,
     val linkFromType: RecordType? = null,
     val linkFromId: String? = null,
     /** #10: a new record's name, from the search it's created from. Ignored when editing. */
@@ -75,7 +75,7 @@ data class OrganizationEditRoute(
 
 @Composable
 fun OrganizationEditPage(
-    pageMode: OrganizationEditPageMode,
+    pageMode: RecordEditPageMode,
     pageViewModel: OrganizationEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigation: RecordEditNavigation,
 ) {
@@ -85,13 +85,13 @@ fun OrganizationEditPage(
 
     RecordEditScaffold(
         recordType = RecordType.Organization,
-        isNew = pageMode != OrganizationEditPageMode.EDIT,
+        isNew = pageMode != RecordEditPageMode.EDIT,
         linkSource = pageState.linkSource,
         saveEnabled = editState.isValid,
         onSave = {
             coroutineScope.saveRecord(
                 save = pageViewModel::onSave,
-                linksNew = pageMode == OrganizationEditPageMode.NEWLINK,
+                linksNew = pageMode == RecordEditPageMode.NEWLINK,
                 navigation = navigation,
             )
         },

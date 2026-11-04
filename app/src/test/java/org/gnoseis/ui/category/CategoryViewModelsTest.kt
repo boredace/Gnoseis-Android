@@ -40,7 +40,7 @@ import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
@@ -74,7 +74,7 @@ class CategoryViewModelsTest {
 
     private fun editVm(
         categoryId: String?,
-        mode: CategoryEditPageMode,
+        mode: RecordEditPageMode,
         linkFromType: RecordType? = null,
         linkFromId: String? = null,
     ) = mainDispatcherRule.viewModel {
@@ -161,17 +161,17 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_newMode_initialState() {
-        val vm = editVm(null, CategoryEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
 
         assertTrue(vm.pageState.value.isNew)
-        assertEquals(CategoryEditPageMode.NEW, vm.pageState.value.pageMode)
+        assertEquals(RecordEditPageMode.NEW, vm.pageState.value.pageMode)
         assertFalse(vm.editState.value.isValid)
         assertNull(vm.editState.value.editCategoryName)
     }
 
     @Test
     fun edit_save_whenInvalid_doesNothing() = runTest {
-        val vm = editVm(null, CategoryEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
 
         assertNull(vm.onSave())
         assertTrue(c.categoryRepository.getCategoriesStream().first().isEmpty())
@@ -179,7 +179,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_nameValidation_isDebounced500ms() = runTest {
-        val vm = editVm(null, CategoryEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
 
         vm.updateCategoryName("Work")
         assertEquals("Work", vm.editState.value.editCategoryName)
@@ -197,7 +197,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_descriptionChange_revalidatesName() = runTest {
-        val vm = editVm(null, CategoryEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.updateCategoryName("Work")
         vm.updateCategoryDescription("desc") // cancels the name debounce job
         advanceTimeBy(501); runCurrent()
@@ -208,7 +208,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_newMode_saveInsertsCategory() = runTest {
-        val vm = editVm(null, CategoryEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.updateCategoryName("Work")
         vm.updateCategoryDescription("desc")
         advanceTimeBy(501); runCurrent()
@@ -226,7 +226,7 @@ class CategoryViewModelsTest {
     fun edit_newLinkMode_saveAlsoLinksToSourceRecord() = runTest {
         val note = Note(title = "n").stamped()
         c.noteRepository.addNote(note)
-        val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Note, note.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Note, note.id)
         vm.updateCategoryName("Linked")
         advanceTimeBy(501); runCurrent()
 
@@ -240,7 +240,7 @@ class CategoryViewModelsTest {
     fun edit_editMode_loadsExistingAndSaveUpdates() = runTest {
         val cat = Category(categoryName = "Old", comments = "c").stamped()
         c.categoryRepository.addCategory(cat)
-        val vm = editVm(cat.id, CategoryEditPageMode.EDIT)
+        val vm = editVm(cat.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals(cat, vm.pageState.value.category)
@@ -261,7 +261,7 @@ class CategoryViewModelsTest {
     fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
         val source = Item(itemName = "Laptop")
         c.itemRepository.addItem(source)
-        val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Item, source.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Item, source.id)
 
         waitFor { vm.pageState.value.linkSource != null }
         assertEquals(LinkSource(RecordType.Item, "Laptop"), vm.pageState.value.linkSource)
@@ -274,8 +274,8 @@ class CategoryViewModelsTest {
         c.itemRepository.addItem(source)
         c.categoryRepository.addCategory(record)
 
-        val newVm = editVm(null, CategoryEditPageMode.NEW, RecordType.Item, source.id)
-        val editVm = editVm(record.id, CategoryEditPageMode.EDIT, RecordType.Item, source.id)
+        val newVm = editVm(null, RecordEditPageMode.NEW, RecordType.Item, source.id)
+        val editVm = editVm(record.id, RecordEditPageMode.EDIT, RecordType.Item, source.id)
         waitFor { editVm.pageState.value.category != null }
 
         assertNull(newVm.pageState.value.linkSource)
@@ -284,7 +284,7 @@ class CategoryViewModelsTest {
 
     @Test
     fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
-        val vm = editVm(null, CategoryEditPageMode.NEWLINK, RecordType.Item, "missing-id")
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Item, "missing-id")
         vm.updateCategoryName("Linked")
         advanceTimeBy(501); runCurrent()
 

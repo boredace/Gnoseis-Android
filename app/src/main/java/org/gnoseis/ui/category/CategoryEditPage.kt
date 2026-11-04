@@ -55,14 +55,14 @@ import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_CATEGORY
 import org.gnoseis.data.entity.category.Category
-import org.gnoseis.data.enums.CategoryEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
 data class CategoryEditRoute(
     val categoryId: String?,
-    val pageMode: CategoryEditPageMode,
+    val pageMode: RecordEditPageMode,
     val linkFromType: RecordType? = null,
     val linkFromId: String? = null,
     /** #10: a new record's name, from the search it's created from. Ignored when editing. */
@@ -73,7 +73,7 @@ const val TAG = "CategoryEditPage"
 
 @Composable
 fun CategoryEditPage(
-    pageMode: CategoryEditPageMode,
+    pageMode: RecordEditPageMode,
     pageViewModel: CategoryEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigation: RecordEditNavigation,
 ) {
@@ -83,13 +83,13 @@ fun CategoryEditPage(
 
     RecordEditScaffold(
         recordType = RecordType.Category,
-        isNew = pageMode != CategoryEditPageMode.EDIT,
+        isNew = pageMode != RecordEditPageMode.EDIT,
         linkSource = pageState.linkSource,
         saveEnabled = editState.isValid,
         onSave = {
             coroutineScope.saveRecord(
                 save = pageViewModel::onSave,
-                linksNew = pageMode == CategoryEditPageMode.NEWLINK,
+                linksNew = pageMode == RecordEditPageMode.NEWLINK,
                 navigation = navigation,
             )
         },

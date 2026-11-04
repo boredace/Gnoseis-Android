@@ -50,7 +50,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.enums.NoteEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
@@ -110,7 +110,7 @@ class NoteEditViewModel(
 
     init {
         val route = savedStateHandle.toRoute<NoteEditRoute>()
-        if (_pageState.value.pageMode != NoteEditPageMode.EDIT) {
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_NOTE)?.let { title ->
                 _editState.value = _editState.value.copy(
                     editTitle = title,
@@ -121,7 +121,7 @@ class NoteEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == NoteEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -169,7 +169,7 @@ class NoteEditViewModel(
             val addedNoteId = noteRepository.getNoteByRowId(addedNoteRowId).id
             if (
                 // Also link to source record
-                _pageState.value.pageMode == NoteEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ){
@@ -255,7 +255,7 @@ class NoteEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: NoteEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val noteId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,

@@ -60,14 +60,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import org.gnoseis.AppViewModelProvider
 import org.gnoseis.data.constants.TITLE_LENGTH_ITEM
-import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 
 @Serializable
 data class ItemEditRoute(
     val itemId: String?,
-    val pageMode: ItemEditPageMode,
+    val pageMode: RecordEditPageMode,
     val linkFromType: RecordType? = null,
     val linkFromId: String? = null,
     /** #10: a new record's name, from the search it's created from. Ignored when editing. */
@@ -77,7 +77,7 @@ data class ItemEditRoute(
 const val TAG = "ItemEditPage"
 @Composable
 fun ItemEditPage(
-    pageMode: ItemEditPageMode,
+    pageMode: RecordEditPageMode,
     pageViewModel: ItemEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigation: RecordEditNavigation,
 ) {
@@ -87,13 +87,13 @@ fun ItemEditPage(
 
     RecordEditScaffold(
         recordType = RecordType.Item,
-        isNew = pageMode != ItemEditPageMode.EDIT,
+        isNew = pageMode != RecordEditPageMode.EDIT,
         linkSource = pageState.linkSource,
         saveEnabled = editState.isValid,
         onSave = {
             coroutineScope.saveRecord(
                 save = pageViewModel::onSave,
-                linksNew = pageMode == ItemEditPageMode.NEWLINK,
+                linksNew = pageMode == RecordEditPageMode.NEWLINK,
                 navigation = navigation,
             )
         },

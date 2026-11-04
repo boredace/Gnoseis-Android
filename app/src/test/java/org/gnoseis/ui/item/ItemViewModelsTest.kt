@@ -39,7 +39,7 @@ import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.entity.category.Category
 import org.gnoseis.data.entity.item.Item
 import org.gnoseis.data.entity.note.Note
-import org.gnoseis.data.enums.ItemEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.testutil.MainDispatcherRule
@@ -70,7 +70,7 @@ class ItemViewModelsTest {
         c.close()
     }
 
-    private fun editVm(itemId: String?, mode: ItemEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
+    private fun editVm(itemId: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
             ItemEditViewModel(
                 SavedStateHandle(mapOf("itemId" to itemId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
@@ -122,7 +122,7 @@ class ItemViewModelsTest {
 
     @Test
     fun edit_validationIsDebounced_andBlankIsInvalid() = runTest {
-        val vm = editVm(null, ItemEditPageMode.NEW)
+        val vm = editVm(null, RecordEditPageMode.NEW)
         vm.onEvent(ItemEditPageEvent.ItemNameChanged("Laptop"))
         assertFalse(vm.editState.value.isValid)
         advanceTimeBy(501); runCurrent()
@@ -135,7 +135,7 @@ class ItemViewModelsTest {
 
     @Test
     fun edit_save_whenInvalid_doesNothing() = runTest {
-        assertNull(editVm(null, ItemEditPageMode.NEW).onSave())
+        assertNull(editVm(null, RecordEditPageMode.NEW).onSave())
         assertTrue(c.itemRepository.getItemsStream().first().isEmpty())
     }
 
@@ -143,7 +143,7 @@ class ItemViewModelsTest {
     fun edit_newLinkMode_savesAndLinks() = runTest {
         val cat = Category(categoryName = "Hardware").stamped()
         c.categoryRepository.addCategory(cat)
-        val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, cat.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Category, cat.id)
         vm.onEvent(ItemEditPageEvent.ItemNameChanged("Laptop"))
         vm.onEvent(ItemEditPageEvent.ItemDescriptionChanged("16GB"))
         vm.onEvent(ItemEditPageEvent.Save)
@@ -161,7 +161,7 @@ class ItemViewModelsTest {
     fun edit_editMode_loadsAndUpdates() = runTest {
         val item = Item(itemName = "Old", comments = "c").stamped()
         c.itemRepository.addItem(item)
-        val vm = editVm(item.id, ItemEditPageMode.EDIT)
+        val vm = editVm(item.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals("Old", vm.editState.value.editItemName)
@@ -180,7 +180,7 @@ class ItemViewModelsTest {
     fun edit_newLinkMode_pageStateHasLinkSource() = runTest {
         val source = Category(categoryName = "Hardware")
         c.categoryRepository.addCategory(source)
-        val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, source.id)
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Category, source.id)
 
         waitFor { vm.pageState.value.linkSource != null }
         assertEquals(LinkSource(RecordType.Category, "Hardware"), vm.pageState.value.linkSource)
@@ -193,8 +193,8 @@ class ItemViewModelsTest {
         c.categoryRepository.addCategory(source)
         c.itemRepository.addItem(record)
 
-        val newVm = editVm(null, ItemEditPageMode.NEW, RecordType.Category, source.id)
-        val editVm = editVm(record.id, ItemEditPageMode.EDIT, RecordType.Category, source.id)
+        val newVm = editVm(null, RecordEditPageMode.NEW, RecordType.Category, source.id)
+        val editVm = editVm(record.id, RecordEditPageMode.EDIT, RecordType.Category, source.id)
         waitFor { editVm.pageState.value.item != null }
 
         assertNull(newVm.pageState.value.linkSource)
@@ -203,7 +203,7 @@ class ItemViewModelsTest {
 
     @Test
     fun edit_newLinkMode_missingSource_hasNoLinkSource_andSaveStillAdds() = runTest {
-        val vm = editVm(null, ItemEditPageMode.NEWLINK, RecordType.Category, "missing-id")
+        val vm = editVm(null, RecordEditPageMode.NEWLINK, RecordType.Category, "missing-id")
         vm.onEvent(ItemEditPageEvent.ItemNameChanged("Laptop"))
         advanceTimeBy(501); runCurrent()
 

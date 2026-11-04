@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.organization.Organization
-import org.gnoseis.data.enums.OrganizationEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.OrganizationRepository
@@ -80,7 +80,7 @@ class OrganizationEditViewModel(
 
     init {
         val route = savedStateHandle.toRoute<OrganizationEditRoute>()
-        if (_pageState.value.pageMode != OrganizationEditPageMode.EDIT) {
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_ORGANIZATION)?.let { name ->
                 _editState.value = _editState.value.copy(editOrganizationName = name, isValid = validateInput(name))
                 _pageState.value = _pageState.value.copy(namePrefilled = true)
@@ -88,7 +88,7 @@ class OrganizationEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == OrganizationEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -180,7 +180,7 @@ class OrganizationEditViewModel(
             val addedRecordId = organizationRepository.getOrganizationByRowId(addedRecordRowId).id
             if (
             // Also link to source record
-                _pageState.value.pageMode == OrganizationEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ) {
@@ -213,7 +213,7 @@ class OrganizationEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: OrganizationEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val organizationId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,

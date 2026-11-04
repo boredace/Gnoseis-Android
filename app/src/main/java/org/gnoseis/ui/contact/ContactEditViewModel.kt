@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 import org.gnoseis.data.constants.TITLE_LENGTH_CONTACT
 import org.gnoseis.data.entity.contact.Contact
 import org.gnoseis.data.entity.links.LinkedRecord
-import org.gnoseis.data.enums.ContactEditPageMode
+import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.data.repository.ContactRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
@@ -87,7 +87,7 @@ class ContactEditViewModel(
 
     init {
         val route = savedStateHandle.toRoute<ContactEditRoute>()
-        if (_pageState.value.pageMode != ContactEditPageMode.EDIT) {
+        if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillContactName(route.prefillName)?.let { name ->
                 _editState.value = _editState.value.copy(
                     nameFirst = name.nameFirst,
@@ -99,7 +99,7 @@ class ContactEditViewModel(
         }
         val linkFromType = _pageState.value.linkFromType
         val linkFromId = _pageState.value.linkFromId
-        if (_pageState.value.pageMode == ContactEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
+        if (_pageState.value.pageMode == RecordEditPageMode.NEWLINK && linkFromType != null && linkFromId != null) {
             viewModelScope.launch {
                 _pageState.value = _pageState.value.copy(linkSource = getLinkSource(linkFromType, linkFromId))
             }
@@ -213,7 +213,7 @@ class ContactEditViewModel(
             val addedContactId = contactRepository.getContactByRowId(addedContactRowId).id
 
             if ( // Also link to source record
-                _pageState.value.pageMode == ContactEditPageMode.NEWLINK &&
+                _pageState.value.pageMode == RecordEditPageMode.NEWLINK &&
                 _pageState.value.linkFromId != null &&
                 _pageState.value.linkFromType != null
             ) {
@@ -257,7 +257,7 @@ class ContactEditViewModel(
 
     data class PageState(
         val isNew: Boolean = true,
-        val pageMode: ContactEditPageMode? = null,
+        val pageMode: RecordEditPageMode? = null,
         val contactId: String? = null,
         val linkFromType: RecordType? = null,
         val linkFromId: String? = null,
