@@ -70,10 +70,11 @@ val creatableRecordTypes = listOf(
 
 private val spaces = Regex("\\s+")
 
-private fun normalized(text: String) = text.trim().replace(spaces, " ").lowercase()
+/** [text] as search compares it: trimmed, runs of spaces as one, lower case. */
+internal fun normalized(text: String) = text.trim().replace(spaces, " ").lowercase()
 
 /** A contact's title shows as "Last, First"; this is it as "First Last". Null for other records. */
-private fun firstLastTitle(result: SearchResult): String? {
+internal fun firstLastTitle(result: SearchResult): String? {
     val title = result.recordTitle
     return if (result.recordTypeId == RecordType.Contact.recordTypeId && ", " in title) {
         "${title.substringAfter(", ")} ${title.substringBefore(", ")}"
