@@ -259,4 +259,11 @@ class SearchLogicTest {
         // "Hartley, Ann" found by "ann hart"
         assertEquals(listOf(0..3, 9..11), highlightRanges(r("c", "Hartley, Ann", RecordType.Contact), "ann hart"))
     }
+
+    @Test
+    fun noMatchLine_namesTheSelectedTypes() {
+        assertEquals("contacts", selectedNames(setOf(RecordType.Contact)))
+        assertEquals("notes or contacts", selectedNames(setOf(RecordType.Contact, RecordType.Note)))
+        assertEquals("notes, contacts or items", selectedNames(setOf(RecordType.Item, RecordType.Contact, RecordType.Note)))
+    }
 }

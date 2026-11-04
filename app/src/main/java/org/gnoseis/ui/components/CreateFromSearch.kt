@@ -37,7 +37,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -67,6 +68,10 @@ val creatableRecordTypes = listOf(
     RecordType.Category,
     RecordType.Item,
 )
+
+/** [types] with [first] moved to the front, when it's one of them (search opened from a list page). */
+fun createTypesWithFirst(types: List<RecordType>, first: RecordType?): List<RecordType> =
+    if (first != null && first in types) listOf(first) + (types - first) else types
 
 private val spaces = Regex("\\s+")
 
@@ -154,17 +159,28 @@ fun CreateFromSearch(
                 overflow = TextOverflow.Ellipsis,
             )
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier.fillMaxWidth(),
+                maxItemsInEachRow = 2,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 types.forEach { type ->
-                    OutlinedButton(onClick = { onCreate(type) }) {
+                    val typeColors = recordTypeColors(type)
+                    FilledTonalButton(
+                        onClick = { onCreate(type) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = typeColors.fill,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    ) {
                         RecordTypeIcon(
                             type = type,
-                            colorFilter = ColorFilter.tint(recordTypeColors(type).outline),
+                            colorFilter = ColorFilter.tint(typeColors.outline),
                             size = 18.dp,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = singularName(type))
+                        Text(text = singularName(type), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
