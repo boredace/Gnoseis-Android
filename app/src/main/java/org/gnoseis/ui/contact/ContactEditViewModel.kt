@@ -49,6 +49,7 @@ import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.domain.usecase.ValidateEmail
 import org.gnoseis.domain.usecase.ValidatePhone
 import org.gnoseis.domain.usecase.ValidationResult
+import org.gnoseis.ui.record.RecordEditRoute
 
 class ContactEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -57,7 +58,7 @@ class ContactEditViewModel(
     private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
-    private val contactId : String? = savedStateHandle.toRoute<ContactEditRoute>().contactId
+    private val contactId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private val validateEmail: ValidateEmail = ValidateEmail()
     private val validatePhone: ValidatePhone = ValidatePhone()
@@ -76,17 +77,17 @@ class ContactEditViewModel(
     private val _pageState = mutableStateOf(
         PageState(
             isNew = true,
-            pageMode = checkNotNull(savedStateHandle.toRoute<ContactEditRoute>().pageMode),
+            pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
             contactId =  null,
-            linkFromType = savedStateHandle.toRoute<ContactEditRoute>().linkFromType,
-            linkFromId = savedStateHandle.toRoute<ContactEditRoute>().linkFromId,
+            linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
             contact = null
         )
     )
     val pageState: State<PageState> = _pageState
 
     init {
-        val route = savedStateHandle.toRoute<ContactEditRoute>()
+        val route = savedStateHandle.toRoute<RecordEditRoute>()
         if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillContactName(route.prefillName)?.let { name ->
                 _editState.value = _editState.value.copy(
@@ -109,10 +110,10 @@ class ContactEditViewModel(
                 contactRepository.getContact(contactId).let {
                     _pageState.value = _pageState.value.copy(
                         isNew = false,
-                        pageMode = checkNotNull(savedStateHandle.toRoute<ContactEditRoute>().pageMode),
+                        pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
                         contactId = it.id,
-                        linkFromType = savedStateHandle.toRoute<ContactEditRoute>().linkFromType,
-                        linkFromId = savedStateHandle.toRoute<ContactEditRoute>().linkFromId,
+                        linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
                         contact = it
                     )
 

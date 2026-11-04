@@ -81,7 +81,7 @@ class CategoryViewModelsTest {
         CategoryEditViewModel(
             SavedStateHandle(
                 mapOf(
-                    "categoryId" to categoryId,
+                    "recordType" to RecordType.Category, "recordId" to categoryId,
                     "pageMode" to mode,
                     "linkFromType" to linkFromType,
                     "linkFromId" to linkFromId,
@@ -119,7 +119,7 @@ class CategoryViewModelsTest {
         c.linkedRecordRepository.addLinkedRecord(link(cat.id, RecordType.Category, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, cat.id, RecordType.Category))
 
-        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Category, "recordId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.categoryDetailsPageState.test {
             var state = awaitItem()
@@ -143,7 +143,7 @@ class CategoryViewModelsTest {
         c.categoryRepository.addCategory(cat)
         c.contactRepository.addContact(contact)
         c.linkedRecordRepository.addLinkedRecord(link(cat.id, RecordType.Category, contact.id, RecordType.Contact))
-        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("categoryId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { CategoryDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Category, "recordId" to cat.id)), c.categoryRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.categoryDetailsPageState.test {
             var state = awaitItem()

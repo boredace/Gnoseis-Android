@@ -77,7 +77,7 @@ class NoteViewModelsTest {
     private fun editVm(noteId: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
             NoteEditViewModel(
-                SavedStateHandle(mapOf("noteId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                SavedStateHandle(mapOf("recordType" to RecordType.Note, "recordId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.noteRepository,
                 c.linkedRecordRepository,
                 c.getLinkSourceUseCase(),
@@ -112,7 +112,7 @@ class NoteViewModelsTest {
         c.organizationRepository.addOrganization(org)
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, note.id, RecordType.Note))
-        val vm = mainDispatcherRule.viewModel { NoteDetailsViewModel(SavedStateHandle(mapOf("noteId" to note.id)), c.noteRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { NoteDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Note, "recordId" to note.id)), c.noteRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()

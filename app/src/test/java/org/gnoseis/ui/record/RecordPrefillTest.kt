@@ -70,24 +70,24 @@ class RecordPrefillTest {
         c.close()
     }
 
-    private fun route(idKey: String, id: String?, mode: Any, prefill: String?, linkFromType: RecordType? = null, linkFromId: String? = null) =
-        SavedStateHandle(mapOf(idKey to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId, "prefillName" to prefill))
+    private fun route(recordType: RecordType, id: String?, mode: Any, prefill: String?, linkFromType: RecordType? = null, linkFromId: String? = null) =
+        SavedStateHandle(mapOf("recordType" to recordType, "recordId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId, "prefillName" to prefill))
 
     private fun noteVm(mode: RecordEditPageMode, prefill: String?, id: String? = null) = mainDispatcherRule.viewModel {
-        NoteEditViewModel(route("noteId", id, mode, prefill), c.noteRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
+        NoteEditViewModel(route(RecordType.Note, id, mode, prefill), c.noteRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
     }
     private fun contactVm(mode: RecordEditPageMode, prefill: String?) = mainDispatcherRule.viewModel {
-        ContactEditViewModel(route("contactId", null, mode, prefill), c.contactRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
+        ContactEditViewModel(route(RecordType.Contact, null, mode, prefill), c.contactRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
     }
     private fun orgVm(mode: RecordEditPageMode, prefill: String?) = mainDispatcherRule.viewModel {
-        OrganizationEditViewModel(route("organizationId", null, mode, prefill), c.organizationRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
+        OrganizationEditViewModel(route(RecordType.Organization, null, mode, prefill), c.organizationRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
     }
     private fun itemVm(mode: RecordEditPageMode, prefill: String?) = mainDispatcherRule.viewModel {
-        ItemEditViewModel(route("itemId", null, mode, prefill), c.itemRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
+        ItemEditViewModel(route(RecordType.Item, null, mode, prefill), c.itemRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
     }
     private fun categoryVm(mode: RecordEditPageMode, prefill: String?, id: String? = null, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
-            CategoryEditViewModel(route("categoryId", id, mode, prefill, linkFromType, linkFromId), c.categoryRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
+            CategoryEditViewModel(route(RecordType.Category, id, mode, prefill, linkFromType, linkFromId), c.categoryRepository, c.linkedRecordRepository, c.getLinkSourceUseCase())
         }
 
     // ---------- Mapping ----------

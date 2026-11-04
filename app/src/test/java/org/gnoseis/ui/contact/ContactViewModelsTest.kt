@@ -75,7 +75,7 @@ class ContactViewModelsTest {
     ) = mainDispatcherRule.viewModel {
         ContactEditViewModel(
             SavedStateHandle(
-                mapOf("contactId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
+                mapOf("recordType" to RecordType.Contact, "recordId" to contactId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)
             ),
             c.contactRepository,
             c.linkedRecordRepository,
@@ -108,7 +108,7 @@ class ContactViewModelsTest {
         c.itemRepository.addItem(item)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(contact.id, RecordType.Contact, item.id, RecordType.Item))
-        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { ContactDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Contact, "recordId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()

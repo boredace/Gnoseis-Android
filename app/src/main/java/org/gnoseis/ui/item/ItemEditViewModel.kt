@@ -49,6 +49,7 @@ import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
+import org.gnoseis.ui.record.RecordEditRoute
 
 class ItemEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -57,7 +58,7 @@ class ItemEditViewModel(
     private val getLinkSource: GetLinkSourceUseCase,
 
     ) : ViewModel(){
-    private val itemId : String? = savedStateHandle.toRoute<ItemEditRoute>().itemId
+    private val itemId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private val _editState = mutableStateOf(
         EditState()
@@ -67,17 +68,17 @@ class ItemEditViewModel(
     private val _pageState = mutableStateOf(
         PageState(
             isNew = true,
-            pageMode = checkNotNull(savedStateHandle.toRoute<ItemEditRoute>().pageMode),
+            pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
             itemId =  null,
-            linkFromType = savedStateHandle.toRoute<ItemEditRoute>().linkFromType,
-            linkFromId = savedStateHandle.toRoute<ItemEditRoute>().linkFromId,
+            linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
             item = null
         )
     )
     val pageState: State<PageState> = _pageState
 
     init {
-        val route = savedStateHandle.toRoute<ItemEditRoute>()
+        val route = savedStateHandle.toRoute<RecordEditRoute>()
         if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_ITEM)?.let { name ->
                 _editState.value = _editState.value.copy(editItemName = name, isValid = validateInput(name))
@@ -97,10 +98,10 @@ class ItemEditViewModel(
 
                     _pageState.value = _pageState.value.copy(
                         isNew = false,
-                        pageMode = checkNotNull(savedStateHandle.toRoute<ItemEditRoute>().pageMode),
+                        pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
                         itemId = it.id,
-                        linkFromType = savedStateHandle.toRoute<ItemEditRoute>().linkFromType,
-                        linkFromId = savedStateHandle.toRoute<ItemEditRoute>().linkFromId,
+                        linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
                         item = it
                     )
 

@@ -49,6 +49,7 @@ import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.OrganizationRepository
 import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
+import org.gnoseis.ui.record.RecordEditRoute
 
 class OrganizationEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -58,7 +59,7 @@ class OrganizationEditViewModel(
 
     ) : ViewModel(){
 
-    private val organizationId : String? = savedStateHandle.toRoute<OrganizationEditRoute>().organizationId
+    private val organizationId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private val _editState = mutableStateOf(
         EditState()
@@ -69,17 +70,17 @@ class OrganizationEditViewModel(
     private val _pageState = mutableStateOf(
         PageState(
             isNew = true,
-            pageMode = checkNotNull(savedStateHandle.toRoute<OrganizationEditRoute>().pageMode),
+            pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
             organizationId =  null,
-            linkFromType = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromType,
-            linkFromId = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromId,
+            linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
             organization = null
         )
     )
     val pageState: State<PageState> = _pageState
 
     init {
-        val route = savedStateHandle.toRoute<OrganizationEditRoute>()
+        val route = savedStateHandle.toRoute<RecordEditRoute>()
         if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_ORGANIZATION)?.let { name ->
                 _editState.value = _editState.value.copy(editOrganizationName = name, isValid = validateInput(name))
@@ -99,10 +100,10 @@ class OrganizationEditViewModel(
 
                     _pageState.value = _pageState.value.copy(
                         isNew = false,
-                        pageMode = checkNotNull(savedStateHandle.toRoute<OrganizationEditRoute>().pageMode),
+                        pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
                         organizationId = it.id,
-                        linkFromType = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromType,
-                        linkFromId = savedStateHandle.toRoute<OrganizationEditRoute>().linkFromId,
+                        linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
                         organization = it
                     )
 

@@ -73,7 +73,7 @@ class OrganizationViewModelsTest {
     private fun editVm(id: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
         mainDispatcherRule.viewModel {
             OrganizationEditViewModel(
-                SavedStateHandle(mapOf("organizationId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
+                SavedStateHandle(mapOf("recordType" to RecordType.Organization, "recordId" to id, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.organizationRepository,
                 c.linkedRecordRepository,
                 c.getLinkSourceUseCase(),
@@ -101,7 +101,7 @@ class OrganizationViewModelsTest {
         c.noteRepository.addNote(note)
         c.linkedRecordRepository.addLinkedRecord(link(org.id, RecordType.Organization, contact.id, RecordType.Contact))
         c.linkedRecordRepository.addLinkedRecord(link(note.id, RecordType.Note, org.id, RecordType.Organization))
-        val vm = mainDispatcherRule.viewModel { OrganizationDetailsViewModel(SavedStateHandle(mapOf("organizationId" to org.id)), c.organizationRepository, c.linkedRecordRepository, c.settingsRepository) }
+        val vm = mainDispatcherRule.viewModel { OrganizationDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Organization, "recordId" to org.id)), c.organizationRepository, c.linkedRecordRepository, c.settingsRepository) }
 
         vm.linkedRecords.test {
             var linked = awaitItem()

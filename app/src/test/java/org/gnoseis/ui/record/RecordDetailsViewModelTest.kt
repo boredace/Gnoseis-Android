@@ -80,7 +80,7 @@ class RecordDetailsViewModelTest {
     }
 
     private fun detailsVm() = mainDispatcherRule.viewModel {
-        ContactDetailsViewModel(SavedStateHandle(mapOf("contactId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository)
+        ContactDetailsViewModel(SavedStateHandle(mapOf("recordType" to RecordType.Contact, "recordId" to contact.id)), c.contactRepository, c.linkedRecordRepository, c.settingsRepository)
     }
 
     @Test

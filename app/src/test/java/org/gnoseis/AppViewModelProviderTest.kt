@@ -106,11 +106,11 @@ class AppViewModelProviderTest {
         val link = arrayOf("linkFromType" to RecordType.Note, "linkFromId" to "note-id")
 
         val vms = listOf(
-            createWithRoute(CategoryEditViewModel::class.java, "categoryId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
-            createWithRoute(ContactEditViewModel::class.java, "contactId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
-            createWithRoute(ItemEditViewModel::class.java, "itemId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
-            createWithRoute(NoteEditViewModel::class.java, "noteId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
-            createWithRoute(OrganizationEditViewModel::class.java, "organizationId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(CategoryEditViewModel::class.java, "recordType" to RecordType.Category, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(ContactEditViewModel::class.java, "recordType" to RecordType.Contact, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(ItemEditViewModel::class.java, "recordType" to RecordType.Item, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(NoteEditViewModel::class.java, "recordType" to RecordType.Note, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
+            createWithRoute(OrganizationEditViewModel::class.java, "recordType" to RecordType.Organization, "recordId" to null, "pageMode" to RecordEditPageMode.NEWLINK, *link),
         )
 
         assertEquals(

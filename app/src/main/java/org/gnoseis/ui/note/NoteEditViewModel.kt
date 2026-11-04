@@ -60,6 +60,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import org.gnoseis.ui.record.RecordEditRoute
 
 @OptIn(ExperimentalMaterial3Api::class)
 class NoteEditViewModel(
@@ -70,7 +71,7 @@ class NoteEditViewModel(
 
     ) : ViewModel(){
 
-    private val noteId : String? = savedStateHandle.toRoute<NoteEditRoute>().noteId
+    private val noteId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
     private var editDate = MutableStateFlow(LocalDateTime.of(
         LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC)*1000)
@@ -99,17 +100,17 @@ class NoteEditViewModel(
     private val _pageState = mutableStateOf(
         PageState(
             isNew = true,
-            pageMode = checkNotNull(savedStateHandle.toRoute<NoteEditRoute>().pageMode),
+            pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
             noteId =  null,
-            linkFromType = savedStateHandle.toRoute<NoteEditRoute>().linkFromType,
-            linkFromId = savedStateHandle.toRoute<NoteEditRoute>().linkFromId,
+            linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+            linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
             note = null
         )
     )
     val pageState: State<PageState> = _pageState
 
     init {
-        val route = savedStateHandle.toRoute<NoteEditRoute>()
+        val route = savedStateHandle.toRoute<RecordEditRoute>()
         if (_pageState.value.pageMode != RecordEditPageMode.EDIT) {
             prefillName(route.prefillName, TITLE_LENGTH_NOTE)?.let { title ->
                 _editState.value = _editState.value.copy(
@@ -131,10 +132,10 @@ class NoteEditViewModel(
                 noteRepository.getNote(noteId).let {
                     _pageState.value = _pageState.value.copy(
                         isNew = false,
-                        pageMode = checkNotNull(savedStateHandle.toRoute<NoteEditRoute>().pageMode),
+                        pageMode = checkNotNull(savedStateHandle.toRoute<RecordEditRoute>().pageMode),
                         noteId = it.id,
-                        linkFromType = savedStateHandle.toRoute<NoteEditRoute>().linkFromType,
-                        linkFromId = savedStateHandle.toRoute<NoteEditRoute>().linkFromId,
+                        linkFromType = savedStateHandle.toRoute<RecordEditRoute>().linkFromType,
+                        linkFromId = savedStateHandle.toRoute<RecordEditRoute>().linkFromId,
                         note = it
                     )
 
