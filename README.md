@@ -16,8 +16,8 @@ Gnoseis is a high performance Android native CRM application that can be also us
 - **Notes**: a title and text. The list shows the newest first, grouped by the day they were written.
 - **Organizations, categories and items**: a name and comments, for companies, tags such as "Clients" or "Follow-up", and things you want to keep track of.
 - **Link anything to anything**: connect a note to the people, organizations, categories and items it is about. Each record's page has a tab for every type of linked record, with a count, so you can go from a contact to their notes, or from a category to everything in it.
-- **Create linked records in one step**: from any record, add a new linked note, contact, category or item, or search for an existing record to link.
-- **Search** across all record types by name or title.
+- **Create linked records in one step**: from any record, add a new linked note, contact, category or item, or search for existing records to link, picking several across searches and linking them all at once.
+- **Search** across all record types by name or title, from Home or from any list page. Results show each record's type colour and a line of context, the best match comes first, and filter chips with match counts narrow them to one or more types. Before you type, search shows the records you changed most recently.
 - **Backup and restore**: export the whole database to a file in a location you choose, and import it again later or on another device. Import checks that the file is a valid Gnoseis backup, upgrades backups from older versions, and leaves your data untouched if anything is wrong. Backup files are not encrypted yet, so keep them somewhere safe.
 - **Private by design**: all data stays on your device. The app has no internet permission, and Android cloud backup and device-to-device transfer are turned off for its data.
 
