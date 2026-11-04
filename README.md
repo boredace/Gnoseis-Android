@@ -2,24 +2,25 @@
 Gnoseis is a high performance Android native CRM application that can be also used as an all-purpose knowledge manager. It stores all data securely on device and in future will allow secure cloud-free synchronization.
 
 <p align="center">
-  <img src="docs/screenshots/notes.png" alt="Notes list grouped by date" width="260">
-  &nbsp;
-  <img src="docs/screenshots/contact.png" alt="Contact details with phones, emails and linked-record tabs" width="260">
-  &nbsp;
-  <img src="docs/screenshots/linking.png" alt="Creating or linking related records from an organization" width="260">
+  <img src="docs/readme-screens.png" alt="Gnoseis in dark mode: the Home page with the most linked records, a contact with linked-record tabs, and search results with a best match" width="880">
 </p>
+
+More screenshots of the current release are in [screenshots](screenshots/).
 
 ## Features
 
-- **Five kinds of records**: contacts, organizations, notes, categories and items.
+- **Five kinds of records**: contacts, organizations, notes, categories and items. Each type has its own colour, used everywhere in the app.
 - **Contacts**: first and last name, job title, company, main, mobile, home and work phone numbers and email addresses, and free-form comments. The list is sorted A–Z with letter headings.
 - **Notes**: a title and text. The list shows the newest first, grouped by the day they were written.
 - **Organizations, categories and items**: a name and comments, for companies, tags such as "Clients" or "Follow-up", and things you want to keep track of.
-- **Link anything to anything**: connect a note to the people, organizations, categories and items it is about. Each record's page has a tab for every type of linked record, with a count, so you can go from a contact to their notes, or from a category to everything in it.
-- **Create linked records in one step**: from any record, add a new linked note, contact, category or item, or search for existing records to link, picking several across searches and linking them all at once.
-- **Search** across all record types by name or title, from Home or from any list page. Results show each record's type colour and a line of context, the best match comes first, and filter chips with match counts narrow them to one or more types. Before you type, search shows the records you changed most recently.
+- **Home page**: search, add a new record of any type, see your most linked records as a bubble chart (bigger bubble, more links) and your latest notes, and get an overview with a count of each record type and a chart of the notes you wrote over the last two weeks. Home also points out notes that aren't linked to anything yet, and reminds you when your data has changed since your last backup.
+- **Link anything to anything**: connect a note to the people, organizations, categories and items it is about. Each record's page has a tab for every type of linked record, with a count, so you can go from a contact to their notes, or from a category to everything in it. Long-press a linked record to unlink it.
+- **Create linked records in one step**: from any record, add a new linked note, contact, category or item, or search for existing records to link, picking several across searches and linking them all at once. The page always shows which record the new or selected records will be linked to.
+- **Search** across all record types by name or title, from Home or from any list page. Results show each record's type colour and a line of context, the best match comes first, and filter chips with match counts narrow them to one or more types. Before you type, search shows the records you changed most recently. If what you're looking for isn't there, Gnoseis offers to create a new record with the name you typed.
 - **Backup and restore**: export the whole database to a file in a location you choose, and import it again later or on another device. Import checks that the file is a valid Gnoseis backup, upgrades backups from older versions, and leaves your data untouched if anything is wrong. Backup files are not encrypted yet, so keep them somewhere safe.
 - **Private by design**: all data stays on your device. The app has no internet permission, and Android cloud backup and device-to-device transfer are turned off for its data.
+
+What changed in each version is in the [release notes](https://github.com/boredace/Gnoseis-Android/releases).
 
 ## Roadmap
 The next couple releases are planned using Milestones. To track progress see [here](https://github.com/boredace/Gnoseis-Android/milestones?direction=asc&sort=title&state=open).
