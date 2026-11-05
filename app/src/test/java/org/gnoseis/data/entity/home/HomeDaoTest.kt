@@ -202,6 +202,37 @@ class HomeDaoTest {
         assertEquals(4, dao.getUnlinkedNoteCount().first())
     }
 
+    /** #52: returns every linked record, not just the top 10. */
+    @Test
+    fun mostLinkedAll_returnsBeyondTen_records() = runTest {
+        // Create 12 contacts with varying link counts
+        for (i in 1..12) {
+            db.contactDao().addContact(Contact(id = "c$i", nameLast = "User$i"))
+        }
+        note("n")
+        // c1-c4: 3 links each; c5-c8: 2 links each; c9-c12: 1 link each
+        for (c in listOf("c1", "c2", "c3", "c4")) {
+            addLink(c, RecordType.Contact, "n", RecordType.Note)
+            db.noteDao().addNote(Note(id = "n${c}_2")); addLink(c, RecordType.Contact, "n${c}_2", RecordType.Note)
+            db.noteDao().addNote(Note(id = "n${c}_3")); addLink(c, RecordType.Contact, "n${c}_3", RecordType.Note)
+        }
+        for (c in listOf("c5", "c6", "c7", "c8")) {
+            addLink(c, RecordType.Contact, "n", RecordType.Note)
+            db.noteDao().addNote(Note(id = "n${c}_2")); addLink(c, RecordType.Contact, "n${c}_2", RecordType.Note)
+        }
+        for (c in listOf("c9", "c10", "c11", "c12")) {
+            addLink(c, RecordType.Contact, "n", RecordType.Note)
+        }
+
+        val result = dao.getMostLinkedAll(null).first()
+        assertEquals(12, result.size)
+        // 3-link group first (tied by name: c1 < c2 < c3 < c4), then 2-link, then 1-link
+        // Note: alphabetical order makes "c10" < "c11" < "c12" < "c9"
+        assertEquals(listOf("c1", "c2", "c3", "c4"), result.subList(0, 4).map { it.id })
+        assertEquals(listOf("c5", "c6", "c7", "c8"), result.subList(4, 8).map { it.id })
+        assertEquals(listOf("c10", "c11", "c12", "c9"), result.subList(8, 12).map { it.id })
+    }
+
     @Test
     fun changeCountSince_countsCreatedAndEditedRecordsAndLinks_butNotNullTimes() = runTest {
         db.noteDao().addNote(Note(id = "before", createdAt = 50, updatedAt = 50))

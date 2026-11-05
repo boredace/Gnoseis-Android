@@ -63,6 +63,21 @@ interface HomeDao {
     fun getMostLinked(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>>
 
     /**
+     * All linked records ranked by link count (no limit). Same rules as [getMostLinked].
+     */
+    @Query(
+        "SELECT r.id, r.name, r.recordTypeId, COUNT(*) AS linkCount FROM (" +
+                "SELECT id, TRIM(COALESCE(nameFirst, '') || ' ' || COALESCE(nameLast, '')) AS name, 2 AS recordTypeId FROM Contact " +
+                "UNION ALL SELECT id, COALESCE(organizationName, ''), 3 FROM Organization " +
+                "UNION ALL SELECT id, COALESCE(categoryName, ''), 4 FROM Category " +
+                "UNION ALL SELECT id, COALESCE(itemName, ''), 5 FROM Item" +
+                ") AS r JOIN LinkedRecord AS l ON l.record1Id = r.id OR l.record2Id = r.id " +
+                "WHERE :recordTypeId IS NULL OR r.recordTypeId = :recordTypeId " +
+                "GROUP BY r.id ORDER BY linkCount DESC, r.name COLLATE NOCASE, r.id LIMIT -1"
+    )
+    fun getMostLinkedAll(recordTypeId: Int?): Flow<List<LinkedRecordCount>>
+
+    /**
      * For contacts, organizations, categories and items, the number of links with at least one
      * end of that type (links from notes too). A link between two records of the same type counts
      * once. Types with no links are left out.
