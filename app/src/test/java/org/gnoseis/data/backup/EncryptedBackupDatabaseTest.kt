@@ -39,11 +39,11 @@ import kotlinx.coroutines.test.runTest
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.repository.DatabaseRepository
+import org.gnoseis.data.repository.ExportResult
 import org.gnoseis.testutil.waitFor
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -86,7 +86,7 @@ class EncryptedBackupDatabaseTest {
     @Test
     fun roundTrip_realBackup() = runTest {
         db().noteDao().addNote(Note(title = "Encrypted round trip"))
-        assertTrue(DatabaseRepository(context).exportDatabase(Uri.fromFile(plainBackup)))
+        assertEquals(ExportResult.Plain, DatabaseRepository(context).exportDatabase(Uri.fromFile(plainBackup)))
         val masterKey = ByteArray(32).also(SecureRandom()::nextBytes)
         val kdfSalt = ByteArray(32).also(SecureRandom()::nextBytes)
 

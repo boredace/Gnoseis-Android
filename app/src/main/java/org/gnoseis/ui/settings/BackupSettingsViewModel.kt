@@ -35,6 +35,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import org.gnoseis.data.repository.DatabaseRepository
+import org.gnoseis.data.repository.ExportResult
+import org.gnoseis.data.repository.ImportResult
 
 class BackupSettingsViewModel(
     private val databaseRepository: DatabaseRepository
@@ -55,20 +57,24 @@ class BackupSettingsViewModel(
 
     fun exportDatabase(destination: Uri): Boolean {
         viewModelScope.launch {
-            databaseRepository.exportDatabase(destination).let{
-                _exportSuccess.value = it
-                _exportFailed.value = !it
+            // Until the encryption screens arrive (#66), any written backup counts as success
+            val written = databaseRepository.exportDatabase(destination).let {
+                it == ExportResult.Plain || it == ExportResult.Encrypted
             }
+            _exportSuccess.value = written
+            _exportFailed.value = !written
         }
         return false
     }
 
     fun importDatabase(path: Uri): Boolean {
         viewModelScope.launch {
-            databaseRepository.importDatabase(path).let{
-                _importSuccess.value = it
-                _importFailed.value = !it
+            val restored = databaseRepository.importDatabase(path).let { result ->
+                (result as? ImportResult.Restored)?.keepOffer?.clear()
+                result is ImportResult.Restored
             }
+            _importSuccess.value = restored
+            _importFailed.value = !restored
         }
         return false
     }
