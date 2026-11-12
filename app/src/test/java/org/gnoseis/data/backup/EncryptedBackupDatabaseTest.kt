@@ -108,8 +108,11 @@ class EncryptedBackupDatabaseTest {
      */
     @Test
     fun sharedFile_madeByAndroid_decrypts() {
+        val normalised = BackupPassphrase.normalise(SHARED_PASSPHRASE.toCharArray()) as BackupPassphrase.Normalised
+        assertArrayEquals(SHARED_PASSPHRASE.toByteArray(Charsets.UTF_8), normalised.bytes)
+
         val input = javaClass.classLoader!!.getResourceAsStream("backup/encrypted-v1-android.backup")
-        input.use { EncryptedBackup.decrypt(it, decrypted, SHARED_PASSPHRASE.toByteArray(Charsets.UTF_8)) }
+        input.use { EncryptedBackup.decrypt(it, decrypted, normalised.bytes) }
 
         SQLiteDatabase.openDatabase(decrypted.path, null, SQLiteDatabase.OPEN_READONLY).use {
             assertEquals(3, it.version)
