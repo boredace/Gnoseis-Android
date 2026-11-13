@@ -1,0 +1,35 @@
+{
+  "description": "Gnoseis backup passphrase normalising list, version 1, written by hand from design doc 08 section 5.1 (refuse unpaired surrogates and noncharacters, NFKC, fixed White_Space list trimmed and collapsed to U+0020, UTF-8). expectedHex is the normalised UTF-8, or \"refused\". meetsMinimum: at least 12 code points after normalising (false when refused). Shared byte for byte by Gnoseis-Android (original) and Gnoseis-Windows.",
+  "entries": [
+    { "input": "abc def", "expectedHex": "61626320646566", "meetsMinimum": false },
+    { "input": "  abc   def  ", "expectedHex": "61626320646566", "meetsMinimum": false },
+    { "input": "abc\r\ndef\tghi", "expectedHex": "6162632064656620676869", "meetsMinimum": false },
+    { "input": "café", "expectedHex": "636166c3a9", "meetsMinimum": false },
+    { "input": "café", "expectedHex": "636166c3a9", "meetsMinimum": false },
+    { "input": "ＡＢＣ", "expectedHex": "414243", "meetsMinimum": false },
+    { "input": "Ⅻ", "expectedHex": "584949", "meetsMinimum": false },
+    { "input": "ﬁ", "expectedHex": "6669", "meetsMinimum": false },
+    { "input": "a\u0085b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a　b", "expectedHex": "612062", "meetsMinimum": false },
+    { "input": "a\u001Cb", "expectedHex": "611c62", "meetsMinimum": false },
+    { "input": "a\u001Fb", "expectedHex": "611f62", "meetsMinimum": false },
+    { "input": "a​b", "expectedHex": "61e2808b62", "meetsMinimum": false },
+    { "input": "a﻿b", "expectedHex": "61efbbbf62", "meetsMinimum": false },
+    { "input": "a᠎b", "expectedHex": "61e1a08e62", "meetsMinimum": false },
+    { "input": "´abc", "expectedHex": "cc81616263", "meetsMinimum": false },
+    { "input": "\uD800abc", "expectedHex": "refused", "meetsMinimum": false },
+    { "input": "abc\uDC00", "expectedHex": "refused", "meetsMinimum": false },
+    { "input": "abc￾", "expectedHex": "refused", "meetsMinimum": false },
+    { "input": "﷐abc", "expectedHex": "refused", "meetsMinimum": false },
+    { "input": "🿿", "expectedHex": "refused", "meetsMinimum": false },
+    { "input": "😀", "expectedHex": "f09f9880", "meetsMinimum": false },
+    { "input": "abcdefghijk😀", "expectedHex": "6162636465666768696a6bf09f9880", "meetsMinimum": true },
+    { "input": "abcdefghijk", "expectedHex": "6162636465666768696a6b", "meetsMinimum": false },
+    { "input": "abacus abdomen abdominal abide \nabiding ability ablaze able \nabnormal abrasion abrasive abreast \nabridge abroad abruptly absence \nabsentee absently absinthe absolute ", "expectedHex": "616261637573206162646f6d656e206162646f6d696e616c2061626964652061626964696e67206162696c6974792061626c617a652061626c652061626e6f726d616c206162726173696f6e20616272617369766520616272656173742061627269646765206162726f6164206162727570746c7920616273656e636520616273656e74656520616273656e746c7920616273696e746865206162736f6c757465", "meetsMinimum": true }
+  ]
+}
