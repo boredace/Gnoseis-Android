@@ -129,6 +129,7 @@ fun HomePage(
     navigateToRecordListPage: (RecordType) -> Unit,
     navigateToLinkRecordsPage: (noteId: String) -> Unit,
     navigateToBackupSettingsPage: () -> Unit,
+    navigateToMostLinkedPage: (typeId: Int?) -> Unit,
 ) {
     val pageState by pageViewModel.homePageState.collectAsState()
     HomePageScaffold(
@@ -142,6 +143,7 @@ fun HomePage(
         navigateToRecordListPage = navigateToRecordListPage,
         navigateToLinkRecordsPage = navigateToLinkRecordsPage,
         navigateToBackupSettingsPage = navigateToBackupSettingsPage,
+        navigateToMostLinkedPage = navigateToMostLinkedPage,
     )
 }
 
@@ -158,6 +160,7 @@ fun HomePageScaffold(
     navigateToRecordListPage: (RecordType) -> Unit = {},
     navigateToLinkRecordsPage: (String) -> Unit = {},
     navigateToBackupSettingsPage: () -> Unit = {},
+    navigateToMostLinkedPage: (typeId: Int?) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -192,7 +195,7 @@ fun HomePageScaffold(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             DateAndSearch(pageState.today, navigateToSearchPage)
-            MostLinked(pageState, setMostLinkedTypeId, navigateToRecordDetailsPage)
+            MostLinked(pageState, setMostLinkedTypeId, navigateToRecordDetailsPage, navigateToMostLinkedPage)
             AddNew(navigateToNewRecordPage)
             RecentNotes(
                 notes = pageState.recentNotes,
@@ -266,6 +269,7 @@ private fun MostLinked(
     pageState: HomePageState,
     setMostLinkedTypeId: (Int?) -> Unit,
     navigateToRecordDetailsPage: (RecordType, String) -> Unit,
+    navigateToMostLinkedPage: (typeId: Int?) -> Unit,
 ) {
     val filterTypeId = pageState.mostLinkedTypeId
     val nothingLinked = pageState.isLoaded && pageState.mostLinked.isEmpty() && filterTypeId == null
@@ -308,21 +312,29 @@ private fun MostLinked(
                 links = pageState.mostLinkedLinks,
                 onClick = { navigateToRecordDetailsPage(RecordType.from(it.recordTypeId), it.id) },
             )
-            if (filterTypeId == null) {
-                Legend(pageState.mostLinked)
+            // Only with bubbles: hidden before the first values arrive and in both empty states.
+            if (pageState.isLoaded && pageState.mostLinked.isNotEmpty()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (filterTypeId == null) {
+                        Legend(pageState.mostLinked, Modifier.weight(1f))
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    TextButton(onClick = { navigateToMostLinkedPage(filterTypeId) }) { Text("See all") }
+                }
             }
         }
     }
 }
 
-/** A caption below the cluster naming the colour of each type among the shown bubbles. Not interactive. */
+/** A caption below the cluster naming the colour of each type among the shown bubbles, left of "See all". Not interactive. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Legend(records: List<LinkedRecordCount>) {
+private fun Legend(records: List<LinkedRecordCount>, modifier: Modifier = Modifier) {
     val shownTypeIds = records.map { it.recordTypeId }.toSet()
     FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         BUBBLE_TYPES.filter { it.recordTypeId in shownTypeIds }.forEach { type ->
             Row(

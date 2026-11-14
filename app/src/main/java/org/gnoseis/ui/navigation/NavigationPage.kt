@@ -193,6 +193,7 @@ fun NavigationPage(
                         },
                         navigateToLinkRecordsPage = { navController.navigate(LinkRecordsRoute(it, RecordType.Note)) },
                         navigateToBackupSettingsPage = { navController.navigate(BackupSettingsPageRoute()) },
+                        navigateToMostLinkedPage = { navController.navigate(MostLinkedRoute(it)) },
                     )
                 }
 
