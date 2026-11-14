@@ -59,6 +59,8 @@ import org.gnoseis.ui.item.ItemListPage
 import org.gnoseis.ui.item.ItemListRoute
 import org.gnoseis.ui.link.LinkRecordsRoute
 import org.gnoseis.ui.link.LinkRecordsPage
+import org.gnoseis.ui.mostlinked.MostLinkedPage
+import org.gnoseis.ui.mostlinked.MostLinkedRoute
 import org.gnoseis.ui.note.NoteListPage
 import org.gnoseis.ui.note.NoteListRoute
 import org.gnoseis.ui.organization.OrganizationListPage
@@ -324,6 +326,17 @@ fun NavigationPage(
                         onBack = { navController.popBackStack() },
                         navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                         navigateToNewRecordPage = { type, name -> navController.navigateToNewRecord(type, name) },
+                    )
+                }
+
+                //
+                // ********** MOST LINKED PAGE **********
+                //
+                // The view model reads the route's type from its SavedStateHandle.
+                composable<MostLinkedRoute> {
+                    MostLinkedPage(
+                        onBack = { navController.popBackStack() },
+                        navigateToRecordDetailsPage = { type, id -> navController.navigateToRecordDetails(type, id) },
                     )
                 }
 
