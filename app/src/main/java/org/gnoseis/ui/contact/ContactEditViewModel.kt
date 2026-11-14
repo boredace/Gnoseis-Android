@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -51,6 +51,8 @@ import org.gnoseis.domain.usecase.ValidatePhone
 import org.gnoseis.domain.usecase.ValidationResult
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
+import org.gnoseis.data.text.lineBreaksToSave
+import org.gnoseis.data.text.normalizeLineBreaks
 
 class ContactEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -135,7 +137,7 @@ class ContactEditViewModel(
                         emailMobile = it.emailMobile,
                         emailHome = it.emailHome,
                         emailMain = it.emailMain,
-                        comments = it.comments
+                        comments = it.comments?.let(::normalizeLineBreaks)
                     )
                 }
             }
@@ -212,7 +214,7 @@ class ContactEditViewModel(
                     emailHome = _editState.value.emailHome,
                     emailMobile = _editState.value.emailMobile,
                     emailWork = _editState.value.emailWork,
-                    comments = _editState.value.comments
+                    comments = lineBreaksToSave(_editState.value.comments, null)
                 )
             )
             val addedContactId = contactRepository.getContactByRowId(addedContactRowId).id
@@ -257,7 +259,7 @@ class ContactEditViewModel(
                     emailHome = _editState.value.emailHome,
                     emailMobile = _editState.value.emailMobile,
                     emailWork = _editState.value.emailWork,
-                    comments = _editState.value.comments
+                    comments = lineBreaksToSave(_editState.value.comments, _pageState.value.contact!!.comments)
                 )
             )
             return null

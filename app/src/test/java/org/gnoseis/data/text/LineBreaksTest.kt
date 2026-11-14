@@ -29,6 +29,8 @@
 package org.gnoseis.data.text
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class LineBreaksTest {
@@ -61,8 +63,24 @@ class LineBreaksTest {
 
     @Test
     fun otherSeparators_areLeftAlone() =
-        assertEquals("a b c\u0085d", normalizeLineBreaks("a b c\u0085d"))
+        assertEquals("a\u2028b\u2029c\u0085d", normalizeLineBreaks("a\u2028b\u2029c\u0085d"))
 
     @Test
     fun emptyString_staysEmpty() = assertEquals("", normalizeLineBreaks(""))
+
+    @Test
+    fun save_editedText_hasLineFeedsOnly() = assertEquals("a\nb\nc", lineBreaksToSave("a\r\nb\rc", "old"))
+
+    @Test
+    fun save_textEqualOnceNormalised_keepsTheStoredString() =
+        assertSame("a\rb\r\nc", lineBreaksToSave("a\nb\nc", "a\rb\r\nc"))
+
+    @Test
+    fun save_newRecord_hasLineFeedsOnly() = assertEquals("a\nb", lineBreaksToSave("a\r\nb", null))
+
+    @Test
+    fun save_noText_staysNull() {
+        assertNull(lineBreaksToSave(null, null))
+        assertNull(lineBreaksToSave(null, "a\rb")) // cleared, which is a change
+    }
 }

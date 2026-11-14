@@ -35,3 +35,14 @@ package org.gnoseis.data.text
  */
 fun normalizeLineBreaks(text: String): String =
     if (text.indexOf('\r') < 0) text else text.replace("\r\n", "\n").replace('\r', '\n')
+
+/**
+ * The text to save for an edited multi-line field (#67): [edited] with line feeds only. When
+ * [edited] equals the [stored] text once both are normalised, the result is [stored] exactly as
+ * it is, so saving a record without touching its text isn't a change, whatever line breaks the
+ * stored text has. [stored] is null for a new record.
+ */
+fun lineBreaksToSave(edited: String?, stored: String?): String? {
+    val normalized = edited?.let(::normalizeLineBreaks)
+    return if (stored != null && normalized == normalizeLineBreaks(stored)) stored else normalized
+}

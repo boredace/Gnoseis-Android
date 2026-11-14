@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import org.gnoseis.testutil.TEST_NOW
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -246,6 +247,58 @@ class NoteViewModelsTest {
         val saved = c.noteRepository.getNote(note.id)
         assertEquals(picked, saved.createDateTime)
         assertEquals(picked, saved.createDate)
+    }
+
+    // ---------- Edit: line breaks (#67) ----------
+
+    @Test
+    fun edit_textWithCarriageReturns_loadsWithLineFeeds() = runTest {
+        val stored = Note(title = "Old", textContents = "one\rtwo\r\nthree")
+        c.database.noteDao().addNote(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+
+        waitFor { !vm.pageState.value.isNew }
+        assertEquals("one\ntwo\nthree", vm.editState.value.editTextContent)
+    }
+
+    @Test
+    fun edit_savingUneditedText_keepsStoredLineBreaksAndUpdatedAt() = runTest {
+        val stored = Note(title = "Old", textContents = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.noteDao().addNote(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        assertNull(vm.onSave())
+
+        assertEquals(stored, c.noteRepository.getNote(stored.id))
+    }
+
+    @Test
+    fun edit_savingEditedText_writesLineFeedsOnly() = runTest {
+        val stored = Note(title = "Old", textContents = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.noteDao().addNote(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        vm.updateTextContent(vm.editState.value.editTextContent + "\r\nfour")
+        advanceTimeBy(501); runCurrent()
+        assertNull(vm.onSave())
+
+        val saved = c.noteRepository.getNote(stored.id)
+        assertEquals("one\ntwo\nthree\nfour", saved.textContents)
+        assertEquals(TEST_NOW, saved.updatedAt)
+    }
+
+    @Test
+    fun edit_newRecord_textWithCarriageReturns_isStoredWithLineFeeds() = runTest {
+        val vm = editVm(null, RecordEditPageMode.NEW)
+        vm.updateTitle("Name")
+        vm.updateTextContent("one\r\ntwo\rthree")
+        advanceTimeBy(501); runCurrent()
+
+        val saved = c.noteRepository.getNote(vm.onSave()!!)
+
+        assertEquals("one\ntwo\nthree", saved.textContents)
     }
 
     // ---------- Edit: link source (#7) ----------

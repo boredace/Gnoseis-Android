@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -51,6 +51,8 @@ import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
+import org.gnoseis.data.text.lineBreaksToSave
+import org.gnoseis.data.text.normalizeLineBreaks
 
 class ItemEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -112,7 +114,7 @@ class ItemEditViewModel(
                     _editState.value = _editState.value.copy(
                         isValid = true,
                         editItemName = it.itemName,
-                        editItemDescription = it.comments,
+                        editItemDescription = it.comments?.let(::normalizeLineBreaks),
                     )
                 }
             }
@@ -177,7 +179,7 @@ class ItemEditViewModel(
                 Item(
                     ownerDbId = "db1",
                     itemName = _editState.value.editItemName!!, // assuming cannot be valid if null
-                    comments = _editState.value.editItemDescription,
+                    comments = lineBreaksToSave(_editState.value.editItemDescription, null),
                 )
             )
             val addedRecordId = itemRepository.getItemByRowId(addedRecordRowId).id
@@ -212,7 +214,7 @@ class ItemEditViewModel(
         ) {
             itemRepository.updateItem(_pageState.value.item!!.copy(
                 itemName = _editState.value.editItemName!!,  // assuming cannot be valid if null
-                comments = _editState.value.editItemDescription,
+                comments = lineBreaksToSave(_editState.value.editItemDescription, _pageState.value.item!!.comments),
             ))
             return null
         } else {

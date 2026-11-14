@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -51,6 +51,8 @@ import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
+import org.gnoseis.data.text.lineBreaksToSave
+import org.gnoseis.data.text.normalizeLineBreaks
 
 class OrganizationEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -114,7 +116,7 @@ class OrganizationEditViewModel(
                     _editState.value = _editState.value.copy(
                         isValid = true,
                         editOrganizationName = it.organizationName,
-                        editOrganizationDescription = it.comments,
+                        editOrganizationDescription = it.comments?.let(::normalizeLineBreaks),
                     )
                 }
             }
@@ -179,7 +181,7 @@ class OrganizationEditViewModel(
                 Organization(
                     ownerDbId = "db1",
                     organizationName = _editState.value.editOrganizationName!!, // assuming cannot be valid if null
-                    comments = _editState.value.editOrganizationDescription,
+                    comments = lineBreaksToSave(_editState.value.editOrganizationDescription, null),
                 )
             )
             val addedRecordId = organizationRepository.getOrganizationByRowId(addedRecordRowId).id
@@ -214,7 +216,7 @@ class OrganizationEditViewModel(
         ) {
             organizationRepository.updateOrganization(_pageState.value.organization!!.copy(
                 organizationName = _editState.value.editOrganizationName!!,  // assuming cannot be valid if null
-                comments = _editState.value.editOrganizationDescription,
+                comments = lineBreaksToSave(_editState.value.editOrganizationDescription, _pageState.value.organization!!.comments),
             ))
             return null
         } else {

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -62,6 +62,8 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
+import org.gnoseis.data.text.lineBreaksToSave
+import org.gnoseis.data.text.normalizeLineBreaks
 
 @OptIn(ExperimentalMaterial3Api::class)
 class NoteEditViewModel(
@@ -146,7 +148,7 @@ class NoteEditViewModel(
                     _editState.value = _editState.value.copy(
                         isValid = true,
                         editTitle = it.title?:"",
-                        editTextContent = it.textContents?:"",
+                        editTextContent = normalizeLineBreaks(it.textContents?:""),
                         editDate = it.createDateTime,
                     )
                     _datePickerState.value.selectedDateMillis = it.createDate
@@ -165,7 +167,7 @@ class NoteEditViewModel(
                 Note(
                     ownerDbId = "db1",
                     title = _editState.value.editTitle,
-                    textContents =_editState.value.editTextContent,
+                    textContents = lineBreaksToSave(_editState.value.editTextContent, null),
                     createDate = _editState.value.editDate,
                     createDateTime = _editState.value.editDate
                         ?: 0 //TODO: Right now this is only date (time set to GMT 00:00) but in future need to enable time picker and pupulate this with acutal date/time
@@ -203,7 +205,7 @@ class NoteEditViewModel(
             val note = _pageState.value.note!!
             noteRepository.updateNote(note.copy(
                 title = _editState.value.editTitle,
-                textContents = _editState.value.editTextContent,
+                textContents = lineBreaksToSave(_editState.value.editTextContent, note.textContents),
                 // keep the stored dates unless the user picked a new one
                 createDate = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDate,
                 createDateTime = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDateTime,
