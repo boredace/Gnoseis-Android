@@ -44,8 +44,9 @@ class HomeRepository(
     fun getRecordCountsStream(): Flow<RecordCounts> = homeDao.getRecordCounts()
     fun getMostLinkedStream(limit: Int, recordTypeId: Int?): Flow<List<LinkedRecordCount>> =
         homeDao.getMostLinked(limit, recordTypeId)
+    /** Every linked record, ranked as [getMostLinkedStream] ranks them (SQLite: LIMIT -1 is no limit). */
     fun getMostLinkedAllStream(recordTypeId: Int?): Flow<List<LinkedRecordCount>> =
-        homeDao.getMostLinkedAll(recordTypeId)
+        homeDao.getMostLinked(-1, recordTypeId)
     fun getLinksPerTypeStream(): Flow<List<TypeLinkCount>> = homeDao.getLinksPerType()
     fun getLinksAmongStream(recordIds: List<String>): Flow<List<LinkEnds>> =
         if (recordIds.isEmpty()) flowOf(emptyList()) else homeDao.getLinksAmong(recordIds)

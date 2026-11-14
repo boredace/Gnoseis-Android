@@ -224,13 +224,36 @@ class HomeDaoTest {
             addLink(c, RecordType.Contact, "n", RecordType.Note)
         }
 
-        val result = dao.getMostLinkedAll(null).first()
+        val result = dao.getMostLinked(-1, null).first()
         assertEquals(12, result.size)
         // 3-link group first (tied by name: c1 < c2 < c3 < c4), then 2-link, then 1-link
         // Note: alphabetical order makes "c10" < "c11" < "c12" < "c9"
         assertEquals(listOf("c1", "c2", "c3", "c4"), result.subList(0, 4).map { it.id })
         assertEquals(listOf("c5", "c6", "c7", "c8"), result.subList(4, 8).map { it.id })
         assertEquals(listOf("c10", "c11", "c12", "c9"), result.subList(8, 12).map { it.id })
+    }
+
+    /** #52: the full list for one type goes beyond 10, leaves out other types, and breaks ties by name. */
+    @Test
+    fun mostLinkedAll_ofOneType_returnsBeyondTen_onlyThatType_tiesByName() = runTest {
+        // Names run opposite to ids, so a tie broken by id would come out in the wrong order.
+        for (i in 1..11) {
+            db.categoryDao().addCategory(Category(id = "g$i", categoryName = "Cat %02d".format(12 - i)))
+        }
+        db.contactDao().addContact(Contact(id = "c", nameLast = "Doe"))
+        note("n1"); note("n2"); note("n3")
+        for (i in 1..11) addLink("g$i", RecordType.Category, "n1", RecordType.Note)
+        addLink("g1", RecordType.Category, "n2", RecordType.Note)
+        addLink("c", RecordType.Contact, "n1", RecordType.Note)
+        addLink("c", RecordType.Contact, "n2", RecordType.Note)
+        addLink("c", RecordType.Contact, "n3", RecordType.Note)
+
+        val categories = dao.getMostLinked(-1, RecordType.Category.recordTypeId).first()
+        assertEquals(listOf("g1") + (11 downTo 2).map { "g$it" }, categories.map { it.id })
+        assertEquals(listOf(2) + List(10) { 1 }, categories.map { it.linkCount })
+
+        assertEquals(listOf("c", "g1"), dao.getMostLinked(-1, null).first().take(2).map { it.id })
+        assertEquals(12, dao.getMostLinked(-1, null).first().size)
     }
 
     @Test
