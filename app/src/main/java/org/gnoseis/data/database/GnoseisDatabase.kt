@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -55,6 +55,9 @@ import org.gnoseis.data.entity.settings.Settings
 import org.gnoseis.data.entity.settings.SettingsDao
 import org.gnoseis.data.entity.sharing.Incoming
 import org.gnoseis.data.entity.sharing.SharedRecord
+import org.gnoseis.data.time.NoteTimes
+import java.time.Instant
+import java.time.ZoneId
 
 @Database(
     entities = [
@@ -69,7 +72,7 @@ import org.gnoseis.data.entity.sharing.SharedRecord
         Settings::class,
         SharedRecord::class
     ],
-    version = 3
+    version = 4
 )
 abstract class GnoseisDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
@@ -135,13 +138,42 @@ abstract class GnoseisDatabase : RoomDatabase() {
         }
 
         /**
+         * #68: note times move from the local clock time stored as if it were UTC to UTC.
+         * Each note's createDateTime and createDate are rewritten by [NoteTimes.upgradeFromV3]
+         * in [zone], the device's time zone when the file is upgraded (a live database opened
+         * for the first time by this version, or an older backup being restored). Data only:
+         * no table or column changes. Every other column, updatedAt included, stays as it is.
+         */
+        internal class Migration3To4(
+            private val zone: () -> ZoneId = { ZoneId.systemDefault() },
+        ) : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val zone = zone()
+                val notes = db.query("SELECT id, createDateTime FROM Note").use {
+                    buildList { while (it.moveToNext()) add(it.getString(0) to it.getLong(1)) }
+                }
+                notes.forEach { (id, old) ->
+                    val times = NoteTimes.upgradeFromV3(old, zone)
+                    db.execSQL(
+                        "UPDATE Note SET createDateTime = ?, createDate = ? WHERE id = ?",
+                        arrayOf<Any>(times.createDateTime, times.createDate, id),
+                    )
+                }
+            }
+        }
+
+        /**
          * Every schema change must bump `version` and add a Migration here. Each version's
          * schema is exported to app/schemas and MigrationTest opens every one of them.
          * Declared after the migrations it lists, which are initialized in order.
          */
-        internal val MIGRATIONS: Array<Migration> = arrayOf(
+        internal val MIGRATIONS: Array<Migration> = migrations()
+
+        /** [MIGRATIONS] with the note time upgrade (#68) in a fixed [zone], for tests. */
+        internal fun migrations(zone: () -> ZoneId = { ZoneId.systemDefault() }): Array<Migration> = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
+            Migration3To4(zone),
         )
 
         /**
@@ -159,13 +191,18 @@ abstract class GnoseisDatabase : RoomDatabase() {
             put("updatedAt", updatedAt)
         }
 
+        const val DATABASE_NAME = "gnoseis_data"
+
         @Volatile
         private var Instance: GnoseisDatabase? = null
 
         fun getDatabase(context: Context): GnoseisDatabase {
             // if the Instance is not null, return it, otherwise create a new database instance.
             return Instance ?: synchronized(this) {
-                Room.databaseBuilder(context, GnoseisDatabase::class.java, "gnoseis_data")
+                // #68: a copy of the file as it was, before Room upgrades it to version 4. If
+                // the copy fails this throws, and the database isn't opened or upgraded.
+                BeforeV4Copy.keep(context.getDatabasePath(DATABASE_NAME))
+                Room.databaseBuilder(context, GnoseisDatabase::class.java, DATABASE_NAME)
                     /**
                      * No fallbackToDestructiveMigration(): it silently deletes all user data
                      * whenever no migration path exists (#18). Opening a database without a
@@ -176,8 +213,10 @@ abstract class GnoseisDatabase : RoomDatabase() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             // #20: inside the transaction that creates the schema, so the
-                            // note is there before the first query
+                            // note is there before the first query. #68: a new note nobody
+                            // changed, so its time is the moment it's saved.
                             val now = System.currentTimeMillis()
+                            val times = NoteTimes.forNow(Instant.ofEpochMilli(now), ZoneId.systemDefault())
                             db.insert(
                                 "Note",
                                 SQLiteDatabase.CONFLICT_ABORT,
@@ -185,6 +224,8 @@ abstract class GnoseisDatabase : RoomDatabase() {
                                     ownerDbId = "yyy",
                                     title = "This is a default note",
                                     textContents = "This note is created when application was initialized. Feel free to delete or edit it as you please.",
+                                    createDateTime = times.createDateTime,
+                                    createDate = times.createDate,
                                     createdAt = now,
                                     updatedAt = now,
                                 ).toContentValues()

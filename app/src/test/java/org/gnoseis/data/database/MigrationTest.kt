@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.time.ZoneId
 
 /**
  * #18: every schema exported to app/schemas must open with the current GnoseisDatabase using
@@ -178,6 +179,80 @@ class MigrationTest {
             assertEquals("from v$version", List(6) { 0 }, counts)
             assertEquals("from v$version", 0, settingsRows)
         }
+    }
+
+    /**
+     * #68: note times are rewritten from the local clock time stored as UTC to UTC, in the
+     * upgrading device's zone (here America/Toronto), from v3 and from v1. Nothing else changes.
+     */
+    @Test
+    fun migrationTo4_convertsNoteTimes_andKeepsEverythingElse() {
+        val toronto = ZoneId.of("America/Toronto")
+        // v3 createDateTime, v3 createDate, v4 createDateTime, v4 createDate (the shared examples)
+        val notes = mapOf(
+            "summer" to listOf(1784125800000, 1784073600000, 1784140200000, 1784088000000),
+            "winter" to listOf(1768487400000, 1768435200000, 1768505400000, 1768453200000),
+            "no-time" to listOf(1794614400000, 1794614400000, 1794632400000, 1794632400000),
+            "gap" to listOf(1772937000000, 1772928000000, 1772955000000, 1772946000000),
+            "overlap" to listOf(1793496600000, 1793491200000, 1793511000000, 1793505600000),
+        )
+        for (version in listOf(1, 3)) {
+            val path = context.getDatabasePath(dbName(version)).apply { parentFile!!.mkdirs() }
+            createFromSchema(path, version)
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                val stamps = if (version >= 3) ", createdAt, updatedAt" else ""
+                notes.forEach { (id, t) ->
+                    val values = if (version >= 3) ", 11, 22" else ""
+                    db.execSQL(
+                        "INSERT INTO Note (id, ownerDbId, title, textContents, createDateTime, createDate$stamps) " +
+                                "VALUES ('$id', 'db1', 'title $id', 'text $id', ${t[0]}, ${t[1]}$values)"
+                    )
+                }
+                db.execSQL("INSERT INTO Contact (id, ownerDbId, nameLast) VALUES ('c', 'db1', 'Doe')")
+                db.execSQL(
+                    "INSERT INTO LinkedRecord (id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId) " +
+                            "VALUES ('l', 'db1', 'c', 'summer', 2, 1)"
+                )
+                if (version >= 3) db.execSQL("INSERT INTO Settings (settingId, settingName, valueInt) VALUES (1, 'lastBackupAt', 33)")
+            }
+
+            val db = Room.databaseBuilder(context, GnoseisDatabase::class.java, dbName(version))
+                .addMigrations(*GnoseisDatabase.migrations { toronto })
+                .build()
+            val sql = db.openHelper.writableDatabase // runs migrations, then validates
+            fun rows(query: String) = sql.query(query).use { c ->
+                buildList { while (c.moveToNext()) add((0 until c.columnCount).joinToString("|") { c.getString(it) ?: "null" }) }
+            }
+            val noteRows = rows("SELECT id, ownerDbId, title, textContents, createDateTime, createDate, createdAt, updatedAt FROM Note ORDER BY id")
+            val linkRows = rows("SELECT id, ownerDbId, record1Id, record2Id, record1TypeId, record2TypeId, createdAt FROM LinkedRecord")
+            val contactRows = rows("SELECT id, nameLast, createdAt, updatedAt FROM Contact")
+            val settingsRows = rows("SELECT settingId, settingName, valueInt, valueText FROM Settings")
+            val dbVersion = sql.version
+            db.close()
+
+            val stamps = if (version >= 3) "11|22" else "null|null"
+            assertEquals("from v$version", 4, dbVersion)
+            assertEquals(
+                "from v$version",
+                notes.toSortedMap().map { (id, t) -> "$id|db1|title $id|text $id|${t[2]}|${t[3]}|$stamps" },
+                noteRows,
+            )
+            assertEquals("from v$version", listOf("l|db1|c|summer|2|1|null"), linkRows)
+            assertEquals("from v$version", listOf("c|Doe|null|null"), contactRows)
+            assertEquals(
+                "from v$version",
+                if (version >= 3) listOf("1|lastBackupAt|33|null") else emptyList<String>(),
+                settingsRows,
+            )
+        }
+    }
+
+    /** #68: the v4 schema has the same tables as v3, so the identity hash is unchanged. */
+    @Test
+    fun schema4_hasTheSameIdentityHashAsSchema3() {
+        fun hash(version: Int) =
+            JSONObject(File(schemaDir, "$version.json").readText()).getJSONObject("database").getString("identityHash")
+        assertEquals(hash(3), hash(4))
     }
 
     private fun dbName(version: Int) = "migration-from-$version"

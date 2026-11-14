@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ import org.gnoseis.data.backup.StoredBackupKey
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.note.Note
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.withDefaultZone
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -123,6 +124,49 @@ class SharedPlainBackupTest {
             assertEquals(EXPECTED_COUNTS, counts())
         } finally {
             named.delete()
+        }
+    }
+
+    /**
+     * #68: both files are at version 3, so restoring converts their note times in the restoring
+     * device's zone, here America/Toronto (EST, -05:00, on those days). updatedAt is unchanged.
+     */
+    @Test
+    fun androidFile_restores_withNoteTimesConverted() = runTest {
+        assertNoteTimesConverted(
+            ANDROID_FILE,
+            mapOf(
+                // title prefix to v4 createDateTime, createDate, createdAt, updatedAt
+                "This" to listOf(1794557789071, 1794546000000, 1794539789070, 1794539789070),
+                "Zür" to listOf(1794557789192, 1794546000000, null, null),
+                "Two" to listOf(1794557789192, 1794546000000, null, null),
+            ),
+        )
+    }
+
+    @Test
+    fun windowsFile_restores_withNoteTimesConverted() = runTest {
+        assertNoteTimesConverted(
+            WINDOWS_FILE,
+            mapOf(
+                "This" to listOf(1794532614928, 1794459600000, 1794539814929, 1794539814929),
+                "Zür" to listOf(1794557814936, 1794546000000, 1794539814937, 1794539814937),
+                "Two" to listOf(1794557814942, 1794546000000, 1794539814942, 1794539814942),
+            ),
+        )
+    }
+
+    private suspend fun assertNoteTimesConverted(name: String, expected: Map<String, List<Long?>>) {
+        backup.writeBytes(resource(name))
+
+        val result = withDefaultZone("America/Toronto") { repository.importDatabase(Uri.fromFile(backup)) }
+
+        assertEquals(ImportResult.Restored(encrypted = false), result)
+        val notes = db().noteDao().getNotes().first()
+        assertEquals(expected.keys, notes.map { note -> expected.keys.single { note.title!!.startsWith(it) } }.toSet())
+        expected.forEach { (prefix, times) ->
+            val note = notes.single { it.title!!.startsWith(prefix) }
+            assertEquals(prefix, times, listOf(note.createDateTime, note.createDate, note.createdAt, note.updatedAt))
         }
     }
 
