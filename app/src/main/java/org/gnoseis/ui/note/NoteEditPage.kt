@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -76,9 +76,22 @@ import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
+import androidx.compose.material3.rememberDatePickerState
 import java.text.SimpleDateFormat
-import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.Date
+
+/**
+ * Material's DatePicker works in UTC: a picked date is UTC midnight of that date, in epoch ms.
+ * The note's local day goes in and comes out through UTC, never through the device's zone,
+ * or the day would be off by one west or east of UTC (#68).
+ */
+internal fun datePickerMillis(day: LocalDate): Long = day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+/** The day picked in Material's DatePicker, from its UTC [millis]. */
+internal fun datePickerDay(millis: Long): LocalDate =
+    java.time.Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +102,6 @@ fun NoteEditPage(
 ) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
-    val datePickerState by pageViewModel.datePickerState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     RecordEditScaffold(
@@ -109,7 +121,6 @@ fun NoteEditPage(
         KeyboardAware {
             NoteEditBody(
                 editState = editState,
-                datePickerState = datePickerState,
                 onDateChanged = { pageViewModel.updateDate(it) },
                 onTextContentChange = { pageViewModel.updateTextContent(it) },
                 onTitleChange = { pageViewModel.updateTitle(it) },
@@ -123,8 +134,7 @@ fun NoteEditPage(
 @Composable
 fun NoteEditBody(
     editState: NoteEditViewModel.EditState,
-    datePickerState: DatePickerState,
-    onDateChanged: (Long) -> Unit,
+    onDateChanged: (LocalDate) -> Unit,
     onTextContentChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     titlePrefilled: Boolean = false,
@@ -177,7 +187,7 @@ fun NoteEditBody(
             OutlinedButton(
                 onClick = { showDatePicker.value = true },
             ) {
-                Text(text="${Instant.ofEpochMilli(editState.editDate).toString().substring(0,10)}")
+                Text(text = editState.editDay.toString())
             }
             Spacer(modifier = Modifier.width(10.dp))
 //            OutlinedButton(
@@ -190,13 +200,9 @@ fun NoteEditBody(
 
         if(showDatePicker.value){
             MyDatePickerDialog(
-                datePickerState = datePickerState,
-                onDateSelected = {
-                    Log.i("XXX2", "onDateSelected | it = $it")
-                    val selectedDateTime = Instant.ofEpochMilli(it?:0)
-                    Log.i("xxx2", "onDateSelected | Instant.ofEpochMillis =  $selectedDateTime")
-                    Log.i("xxx2", "onDateSelected | Instant.toEpochMillis =  ${selectedDateTime.toEpochMilli()}")
-                    onDateChanged(selectedDateTime.toEpochMilli())
+                datePickerState = rememberDatePickerState(initialSelectedDateMillis = datePickerMillis(editState.editDay)),
+                onDateSelected = { millis ->
+                    millis?.let { onDateChanged(datePickerDay(it)) }
                     showDatePicker.value = false
                 },
                 onDismiss = {
@@ -310,7 +316,6 @@ fun NoteEditPagePreview() {
             ) {
                 NoteEditBody(
                     editState = NoteEditViewModel.EditState(isValid = true),
-                    datePickerState = DatePickerState(locale = CalendarLocale.getDefault()),
                     onDateChanged = {},
                     onTextContentChange = {},
                     onTitleChange = {},

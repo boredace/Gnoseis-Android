@@ -31,9 +31,6 @@ package org.gnoseis.ui.note
 import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.ui.record.prefillName
 import android.util.Log
-import androidx.compose.material3.CalendarLocale
-import androidx.compose.material3.DatePickerState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -44,9 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.gnoseis.data.entity.links.LinkedRecord
 import org.gnoseis.data.entity.note.Note
@@ -56,50 +50,44 @@ import org.gnoseis.data.repository.LinkedRecordRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
+import org.gnoseis.data.time.NoteTimes
+import org.gnoseis.data.time.StoredNoteTimes
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
 import org.gnoseis.data.text.lineBreaksToSave
 import org.gnoseis.data.text.normalizeLineBreaks
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * #68: the note's day and time are edited as the local day and time in the device's time zone
+ * ([zone]) and saved by [NoteTimes]. [now] is the system time (UTC epoch ms).
+ */
 class NoteEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val noteRepository: NoteRepository,
     private val linkedRecordRepository: LinkedRecordRepository,
     private val getLinkSource: GetLinkSourceUseCase,
-
-    ) : ViewModel(){
+    private val now: () -> Long = System::currentTimeMillis,
+    private val zone: () -> ZoneId = { ZoneId.systemDefault() },
+) : ViewModel(){
     /** Records to link to the source as well when the new record is saved. */
     private val alsoLink = savedStateHandle.toRoute<RecordEditRoute>().alsoLinkRecords()
 
 
     private val noteId : String? = savedStateHandle.toRoute<RecordEditRoute>().recordId
 
-    private var editDate = MutableStateFlow(LocalDateTime.of(
-        LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC)*1000)
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    private var _datePickerState = MutableStateFlow(DatePickerState(
-        locale = CalendarLocale.getDefault(),
-        initialSelectedDateMillis = LocalDateTime.of(
-            LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC)*1000
-    ))
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    var datePickerState = _datePickerState.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-        DatePickerState(
-            locale = CalendarLocale.getDefault(),
-            )
-        )
+    /** The day and time the editor opened with: a new note's opening moment, or the note's. */
+    private var shownAtStart: LocalDateTime =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(now()), zone()).truncatedTo(ChronoUnit.MINUTES)
 
     private val _editState = mutableStateOf(EditState(
-        editDate = editDate.value
+        editDay = shownAtStart.toLocalDate(),
+        editTime = shownAtStart.toLocalTime(),
     ))
     val editState: State<EditState> = _editState
 
@@ -145,13 +133,16 @@ class NoteEditViewModel(
                         note = it
                     )
 
+                    shownAtStart = NoteTimes.shown(it.createDateTime, zone()).truncatedTo(ChronoUnit.MINUTES)
                     _editState.value = _editState.value.copy(
                         isValid = true,
                         editTitle = it.title?:"",
                         editTextContent = normalizeLineBreaks(it.textContents?:""),
-                        editDate = it.createDateTime,
+                        editDay = shownAtStart.toLocalDate(),
+                        editTime = shownAtStart.toLocalTime(),
+                        isDayChanged = false,
+                        isTimeChanged = false,
                     )
-                    _datePickerState.value.selectedDateMillis = it.createDate
                 }
             }
         }
@@ -163,14 +154,20 @@ class NoteEditViewModel(
             _editState.value.isValid &&
             _pageState.value.isNew
         ) {
+            val edit = _editState.value
+            // Nothing changed: the moment of saving. Otherwise the day and time on the buttons.
+            val times = if (edit.isDayChanged || edit.isTimeChanged) {
+                NoteTimes.toStored(edit.editDay, edit.editTime, zone())
+            } else {
+                NoteTimes.forNow(Instant.ofEpochMilli(now()), zone())
+            }
             val addedNoteRowId = noteRepository.addNote(
                 Note(
                     ownerDbId = "db1",
-                    title = _editState.value.editTitle,
-                    textContents = lineBreaksToSave(_editState.value.editTextContent, null),
-                    createDate = _editState.value.editDate,
-                    createDateTime = _editState.value.editDate
-                        ?: 0 //TODO: Right now this is only date (time set to GMT 00:00) but in future need to enable time picker and pupulate this with acutal date/time
+                    title = edit.editTitle,
+                    textContents = lineBreaksToSave(edit.editTextContent, null),
+                    createDate = times.createDate,
+                    createDateTime = times.createDateTime,
                 )
             )
             val addedNoteId = noteRepository.getNoteByRowId(addedNoteRowId).id
@@ -203,28 +200,40 @@ class NoteEditViewModel(
             !_pageState.value.isNew
         ) {
             val note = _pageState.value.note!!
+            val edit = _editState.value
+            // Both stored columns stay exactly as they are unless the day or time was changed
+            val times = NoteTimes.edited(
+                StoredNoteTimes(createDateTime = note.createDateTime, createDate = note.createDate),
+                pickedDay = edit.editDay.takeIf { edit.isDayChanged },
+                pickedTime = edit.editTime.takeIf { edit.isTimeChanged },
+                zone = zone(),
+            )
             noteRepository.updateNote(note.copy(
-                title = _editState.value.editTitle,
-                textContents = lineBreaksToSave(_editState.value.editTextContent, note.textContents),
-                // keep the stored dates unless the user picked a new one
-                createDate = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDate,
-                createDateTime = if (_editState.value.isDateChanged) _editState.value.editDate else note.createDateTime,
+                title = edit.editTitle,
+                textContents = lineBreaksToSave(edit.editTextContent, note.textContents),
+                createDate = times.createDate,
+                createDateTime = times.createDateTime,
             ))
             return null
         } else {
             return null
         }
     }
-    fun updateDate(it: Long) {
+    /** The day picked in the date picker. Changed only if it differs from the day at the start. */
+    fun updateDate(day: LocalDate) {
         _editState.value = _editState.value.copy(
-        editDate = it,
-        isDateChanged = true,
+            editDay = day,
+            isDayChanged = day != shownAtStart.toLocalDate(),
         )
-        //        dateTimeHolder.value.dateString = Instant.ofEpochMilli(it).toString()
     }
-    fun updateTime(h: Int, m: Int) {
-//        dateTimeHolder.value.localHour = h
-//        dateTimeHolder.value.localMinute = m
+
+    /** The time picked in the time picker. Changed only if it differs from the time at the start. */
+    fun updateTime(time: LocalTime) {
+        val picked = time.truncatedTo(ChronoUnit.MINUTES)
+        _editState.value = _editState.value.copy(
+            editTime = picked,
+            isTimeChanged = picked != shownAtStart.toLocalTime(),
+        )
     }
 
     fun updateTitle(it: String) {
@@ -282,19 +291,10 @@ class NoteEditViewModel(
         val isValid: Boolean = false,
         val editTitle: String? = null,
         val editTextContent: String? = null,
-        val editDate: Long = 0L,
-        val isDateChanged: Boolean = false,
-//        val selectedDate: Long? = 0L,
-//        val selectedTime: Long? = 0L,
+        /** The local day and time (to the minute) on the date and time buttons. */
+        val editDay: LocalDate = LocalDate.of(2000, 1, 1),
+        val editTime: LocalTime = LocalTime.MIDNIGHT,
+        val isDayChanged: Boolean = false,
+        val isTimeChanged: Boolean = false,
     )
-
-    data class DateTimeHolder(
-        var dateMillis: Long = 0L,
-//        var localHour: Int? = 0,
-//        var localMinute: Int? = 0,
-    )
-
-    companion object {
-        private const val TIMEOUT_MILLIS = 5_000L
-    }
 }
