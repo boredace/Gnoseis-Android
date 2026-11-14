@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ package org.gnoseis.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import org.gnoseis.data.entity.home.DayCount
+
 import org.gnoseis.data.entity.home.HomeDao
 import org.gnoseis.data.entity.home.LinkEnds
 import org.gnoseis.data.entity.home.LinkedRecordCount
@@ -51,8 +51,8 @@ class HomeRepository(
     fun getLinksAmongStream(recordIds: List<String>): Flow<List<LinkEnds>> =
         if (recordIds.isEmpty()) flowOf(emptyList()) else homeDao.getLinksAmong(recordIds)
     fun getRecentNotesStream(limit: Int): Flow<List<NoteSummary>> = homeDao.getRecentNotes(limit)
-    fun getNotesPerDayStream(fromDay: Long, toDay: Long): Flow<List<DayCount>> =
-        homeDao.getNotesPerDay(fromDay, toDay)
+    fun getNoteTimesStream(from: Long, until: Long): Flow<List<Long>> =
+        homeDao.getNoteTimesBetween(from, until)
     fun getUnlinkedNotesStream(limit: Int): Flow<List<NoteSummary>> = homeDao.getUnlinkedNotes(limit)
     fun getUnlinkedNoteCountStream(): Flow<Int> = homeDao.getUnlinkedNoteCount()
     fun getChangeCountSinceStream(since: Long): Flow<Int> = homeDao.getChangeCountSince(since)

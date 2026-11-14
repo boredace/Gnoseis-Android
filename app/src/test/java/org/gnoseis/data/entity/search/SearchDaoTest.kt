@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -183,7 +183,7 @@ class SearchDaoTest {
 
     @Test
     fun results_carryContextFields() = runTest {
-        db.noteDao().addNote(Note(id = "n", title = "Call", createDate = 1_699_920_000_000L, updatedAt = 5L))
+        db.noteDao().addNote(Note(id = "n", title = "Call", createDateTime = 1_699_920_000_000L, createDate = 1L, updatedAt = 5L))
         db.contactDao().addContact(Contact(id = "c", nameLast = "Call", jobTitle = "Buyer", company = "Acme"))
         db.itemDao().addItem(Item(id = "i", itemName = "Call log"))
 

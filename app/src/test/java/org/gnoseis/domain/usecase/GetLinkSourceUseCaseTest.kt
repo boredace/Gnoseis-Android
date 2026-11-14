@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import org.gnoseis.data.entity.note.Note
 import org.gnoseis.data.entity.organization.Organization
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.TestAppContainer
+import org.gnoseis.testutil.withDefaultZone
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -90,7 +91,7 @@ class GetLinkSourceUseCaseTest {
 
     @Test
     fun noteWithTitle_usesTitle() = runTest {
-        val note = Note(title = "Meeting notes", createDate = NOTE_DATE)
+        val note = Note(title = "Meeting notes", createDateTime = NOTE_TIME)
         c.noteRepository.addNote(note)
 
         assertEquals(LinkSource(RecordType.Note, "Meeting notes"), useCase()(RecordType.Note, note.id))
@@ -98,13 +99,27 @@ class GetLinkSourceUseCaseTest {
 
     @Test
     fun noteWithoutTitle_usesItsDate() = runTest {
-        val untitled = Note(title = null, textContents = "text", createDate = NOTE_DATE)
-        val blank = Note(title = "  ", createDate = NOTE_DATE)
+        val untitled = Note(title = null, textContents = "text", createDateTime = NOTE_TIME)
+        val blank = Note(title = "  ", createDateTime = NOTE_TIME)
         c.noteRepository.addNote(untitled)
         c.noteRepository.addNote(blank)
 
-        assertEquals(LinkSource(RecordType.Note, "2026-10-28"), useCase()(RecordType.Note, untitled.id))
-        assertEquals(LinkSource(RecordType.Note, "2026-10-28"), useCase()(RecordType.Note, blank.id))
+        withDefaultZone("Asia/Tokyo") {
+            assertEquals(LinkSource(RecordType.Note, "2026-10-28"), useCase()(RecordType.Note, untitled.id))
+            assertEquals(LinkSource(RecordType.Note, "2026-10-28"), useCase()(RecordType.Note, blank.id))
+        }
+    }
+
+    /** #68: the day is the note's local day in the device's time zone. */
+    @Test
+    fun noteWithoutTitle_usesItsLocalDay() = runTest {
+        val untitled = Note(title = null, textContents = "text", createDateTime = NOTE_TIME)
+        c.noteRepository.addNote(untitled)
+
+        // 2026-10-27 at 20:30 in Toronto
+        withDefaultZone("America/Toronto") {
+            assertEquals(LinkSource(RecordType.Note, "2026-10-27"), useCase()(RecordType.Note, untitled.id))
+        }
     }
 
     @Test
@@ -132,7 +147,7 @@ class GetLinkSourceUseCaseTest {
     }
 
     private companion object {
-        /** 2026-10-28 at UTC midnight, the day the note list shows. */
-        const val NOTE_DATE = 1_793_145_600_000L
+        /** 2026-10-28 00:30 UTC: 09:30 that day in Tokyo, 20:30 the day before in Toronto. */
+        const val NOTE_TIME = 1_793_147_400_000L
     }
 }

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ data class SearchResult (
     val recordTypeId: Int,
     val recordTitle: String,
     val linkCount: Int = 0,
+    /** A note's createDateTime (UTC epoch ms), shown as its local day (#68). */
     val noteDate: Long? = null,
     val jobTitle: String? = null,
     val company: String? = null,

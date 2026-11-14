@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ private const val ALL_RECORDS =
     "SELECT t1.id AS recordId, t1.title AS recordTitle, 1 AS recordTypeId, " +
         LINK_COUNT_OF + "t1.id THEN lr.record2Id ELSE lr.record1Id END) FROM LinkedRecord AS lr " +
         "WHERE lr.record1Id = t1.id OR lr.record2Id = t1.id) AS linkCount, " +
-        "t1.createDate AS noteDate, NULL AS jobTitle, NULL AS company, t1.updatedAt AS updatedAt, " +
+        "t1.createDateTime AS noteDate, NULL AS jobTitle, NULL AS company, t1.updatedAt AS updatedAt, " +
         "t1.title AS matchA, NULL AS matchB " +
         "FROM Note AS t1 WHERE t1.title IS NOT NULL " +
     "UNION ALL " +

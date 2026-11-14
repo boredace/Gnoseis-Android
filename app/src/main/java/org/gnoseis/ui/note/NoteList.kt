@@ -48,9 +48,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.gnoseis.data.entity.note.Note
-import java.time.Instant
+import org.gnoseis.data.time.NoteTimes
+import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import org.gnoseis.ui.record.displayText
 
@@ -68,14 +68,18 @@ fun NoteList(
         modifier = Modifier.padding(start = 15.dp, end = 15.dp)//.scrollable(ScrollableState)
     ){
         if (showHeaders) {
-            val noteGroups = notes.sortedByDescending { it.createDate }.groupBy { it.createDate }
-            noteGroups.forEach { (header, notes) ->
+            // #68: grouped by the note's local day, newest first
+            val zone = ZoneId.systemDefault()
+            val noteGroups = notes
+                .sortedWith(compareByDescending<Note> { it.createDateTime }.thenBy { it.id })
+                .groupBy { NoteTimes.shownDay(it.createDateTime, zone) }
+            noteGroups.forEach { (day, notes) ->
                 stickyHeader {
                     NoteListHeader(
-                        headerText = header
+                        day = day
                     )
                 }
-                items(notes.sortedByDescending { it.createDateTime }) { note ->
+                items(notes) { note ->
                     NoteListItem(
                         id = note.id,
                         title = note.title ?: "",
@@ -103,11 +107,8 @@ fun NoteList(
 
 @Composable
 fun NoteListHeader(
-    headerText: Long
+    day: LocalDate
 ){
-    val zonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(headerText), ZoneId.of("GMT"))
-//    val zonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(headerText), ZoneId.systemDefault())
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -116,13 +117,13 @@ fun NoteListHeader(
     ) {
         Box() {
             Text(
-                text = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                text = day.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
                 )
         }
         Box() {
-            Text(text = zonedDateTime.format(DateTimeFormatter.ofPattern("E")),
+            Text(text = day.format(DateTimeFormatter.ofPattern("E")),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.secondary
             )
