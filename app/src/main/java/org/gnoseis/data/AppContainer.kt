@@ -29,6 +29,7 @@
 package org.gnoseis.data
 
 import android.content.Context
+import org.gnoseis.data.backup.StoredBackupKey
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.repository.CategoryRepository
 import org.gnoseis.data.repository.ContactRepository
@@ -42,6 +43,8 @@ import org.gnoseis.data.repository.SearchRepository
 import org.gnoseis.data.repository.SettingsRepository
 
 interface  AppContainer {
+    /** This device's stored backup key (#66); one instance per app. */
+    val backupKey: StoredBackupKey
     val databaseRepository: DatabaseRepository
     val categoryRepository: CategoryRepository
     val contactRepository: ContactRepository
@@ -61,10 +64,14 @@ class AppDataContainer(
     private val now: () -> Long = System::currentTimeMillis,
 ) : AppContainer {
 
+    override val backupKey: StoredBackupKey by lazy {
+        StoredBackupKey.forDevice(context)
+    }
     override val databaseRepository: DatabaseRepository by lazy {
         DatabaseRepository(
             context,
             now,
+            backupKey,
         )
     }
     override val categoryRepository: CategoryRepository by lazy{

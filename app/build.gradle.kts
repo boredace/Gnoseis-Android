@@ -145,6 +145,9 @@ dependencies {
 
     implementation("androidx.compose.material:material-icons-extended-android:1.7.6")
 
+    // Backup encryption: Argon2id only, used directly (no security provider registered)
+    implementation("org.bouncycastle:bcprov-jdk18on:1.87")
+
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0")

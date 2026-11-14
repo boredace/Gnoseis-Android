@@ -34,6 +34,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import org.gnoseis.data.backup.EffWordList
 import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.ui.category.CategoryDetailsViewModel
 import org.gnoseis.ui.category.CategoryEditViewModel
@@ -54,12 +55,20 @@ import org.gnoseis.ui.organization.OrganizationEditViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
 import org.gnoseis.ui.search.SearchPageViewModel
 import org.gnoseis.ui.settings.BackupSettingsViewModel
+import org.gnoseis.ui.settings.PassphraseSetupViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             BackupSettingsViewModel(
-                gnoseisApplication().container.databaseRepository
+                gnoseisApplication().container.databaseRepository,
+                gnoseisApplication().container.backupKey,
+            )
+        }
+        initializer {
+            PassphraseSetupViewModel(
+                gnoseisApplication().container.backupKey,
+                words = { EffWordList.load(gnoseisApplication()) },
             )
         }
         initializer {

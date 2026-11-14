@@ -54,6 +54,7 @@ import org.gnoseis.ui.note.NoteListViewModel
 import org.gnoseis.ui.organization.OrganizationEditViewModel
 import org.gnoseis.ui.organization.OrganizationListViewModel
 import org.gnoseis.ui.settings.BackupSettingsViewModel
+import org.gnoseis.ui.settings.PassphraseSetupViewModel
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -87,6 +88,7 @@ class AppViewModelProviderTest {
             ItemListViewModel::class.java,
             NoteListViewModel::class.java,
             OrganizationListViewModel::class.java,
+            PassphraseSetupViewModel::class.java,
         ).forEach { clazz ->
             assertTrue(clazz.isInstance(create(clazz)))
         }

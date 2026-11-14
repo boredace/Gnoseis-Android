@@ -1,0 +1,12 @@
+EFF large word list
+Copyright Electronic Frontier Foundation (https://www.eff.org/dice)
+
+Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
+
+This work is licensed under the Creative Commons Attribution 4.0
+International License (CC BY 4.0), as stated at https://www.eff.org/copyright.
+To view a copy of this license, visit
+https://creativecommons.org/licenses/by/4.0/
+
+Gnoseis ships the list unchanged as app/src/main/res/raw/eff_large_wordlist.txt
+and uses it to generate backup passphrases.

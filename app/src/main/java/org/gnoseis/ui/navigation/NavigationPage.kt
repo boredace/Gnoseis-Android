@@ -71,6 +71,8 @@ import org.gnoseis.ui.search.SearchPage
 import org.gnoseis.ui.search.SearchRoute
 import org.gnoseis.ui.settings.BackupSettingsPage
 import org.gnoseis.ui.settings.BackupSettingsPageRoute
+import org.gnoseis.ui.settings.PassphraseSetupPage
+import org.gnoseis.ui.settings.PassphraseSetupRoute
 import org.gnoseis.ui.settings.SettingsPage
 import org.gnoseis.ui.settings.SettingsPageRoute
 
@@ -359,9 +361,13 @@ fun NavigationPage(
                 composable<BackupSettingsPageRoute> {
                     BackupSettingsPage(
                         onNavMenuClick = { navController.popBackStack() },
-                        onImportClicked = {}
-
+                        onImportClicked = {},
+                        onSetUpPassphrase = { navController.navigate(PassphraseSetupRoute()) },
                         )
+                }
+
+                composable<PassphraseSetupRoute> {
+                    PassphraseSetupPage(onClose = { navController.popBackStack() })
                 }
             }
         }

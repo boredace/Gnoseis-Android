@@ -1,0 +1,4 @@
+# Kept byte for byte: the word list is EFF's file as published
+app/src/main/res/raw/eff_large_wordlist.txt -text
+# Test files shared byte for byte with Gnoseis-Windows: never convert line endings
+app/src/test/resources/backup/* -text

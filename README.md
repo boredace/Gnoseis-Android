@@ -17,7 +17,7 @@ More screenshots of the current release are in [screenshots](screenshots/).
 - **Link anything to anything**: connect a note to the people, organizations, categories and items it is about. Each record's page has a tab for every type of linked record, with a count, so you can go from a contact to their notes, or from a category to everything in it. Long-press a linked record to unlink it.
 - **Create linked records in one step**: from any record, add a new linked note, contact, category or item, or search for existing records to link, picking several across searches and linking them all at once. The page always shows which record the new or selected records will be linked to.
 - **Search** across all record types by name or title, from Home or from any list page. Results show each record's type colour and a line of context, the best match comes first, and filter chips with match counts narrow them to one or more types. Before you type, search shows the records you changed most recently. If what you're looking for isn't there, Gnoseis offers to create a new record with the name you typed.
-- **Backup and restore**: export the whole database to a file in a location you choose, and import it again later or on another device. Import checks that the file is a valid Gnoseis backup, upgrades backups from older versions, and leaves your data untouched if anything is wrong. Backup files are not encrypted yet, so keep them somewhere safe.
+- **Backup and restore**: export the whole database to a file in a location you choose, and import it again later or on another device. Import checks that the file is a valid Gnoseis backup, upgrades backups from older versions, and leaves your data untouched if anything is wrong. Backups can be encrypted with a backup passphrase, either 20 generated words or one you choose. An encrypted backup is encrypted with AES-256, can only be opened with its passphrase, and uses no cryptography that quantum computers are known to break. A lost passphrase can't be recovered. Plain backups still work as before. The file format is described in [docs/backup-format.md](docs/backup-format.md).
 - **Private by design**: all data stays on your device. The app has no internet permission, and Android cloud backup and device-to-device transfer are turned off for its data.
 
 What changed in each version is in the [release notes](https://github.com/boredace/Gnoseis-Android/releases).
@@ -57,5 +57,11 @@ Gnoseis is dual-licensed:
 2. **Commercial License**: For proprietary, closed-source, or commercial use, a commercial license is required. See [COMMERCIAL_LICENSE](COMMERCIAL_LICENSE). This file includes contact information.
 
 By contributing to this project, you agree to license your contributions under both licenses.
+
+### Third-party components
+
+- [Bouncy Castle](https://www.bouncycastle.org), for Argon2id: MIT License, see [third_party/bouncycastle/LICENSE.md](third_party/bouncycastle/LICENSE.md).
+- The [EFF large word list](https://www.eff.org/dice), for generated backup passphrases: © Electronic Frontier Foundation, CC BY 4.0, see [third_party/eff-wordlist/NOTICE.txt](third_party/eff-wordlist/NOTICE.txt).
+- The [Fraunces](https://github.com/undercasetype/Fraunces) font, on the splash screen: SIL Open Font License 1.1, see [third_party/fonts/Fraunces-OFL.txt](third_party/fonts/Fraunces-OFL.txt).
 
 The screenshots show fictional sample data.

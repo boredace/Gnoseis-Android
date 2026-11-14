@@ -38,19 +38,31 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.gnoseis.data.backup.BackupDecryptException
+import org.gnoseis.data.backup.BackupFormat
+import org.gnoseis.data.backup.BackupHeader
+import org.gnoseis.data.backup.BackupKeys
+import org.gnoseis.data.backup.BackupPassphrase
+import org.gnoseis.data.backup.EncryptedBackup
+import org.gnoseis.data.backup.StoredBackupKey
+import org.gnoseis.data.backup.readFully
 import org.gnoseis.data.database.GnoseisDatabase
 import org.gnoseis.data.entity.settings.SettingKey
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
 
 /**
  * Backs up and restores the app database while it stays open, so the DAOs and screens that
  * hold the [GnoseisDatabase] instance keep working and no restart is needed.
  * [now] gives the system time (UTC epoch ms) saved as lastBackupAt (#51).
+ * [backupKey] is this device's stored backup key; while it is set, backups are encrypted (#66).
  */
 class DatabaseRepository (
     private val context: Context,
     private val now: () -> Long = System::currentTimeMillis,
+    private val backupKey: StoredBackupKey = StoredBackupKey.forDevice(context),
 ){
     /**
      * Writes a self-contained copy of the database to [destination], a file the user chose with
@@ -59,8 +71,18 @@ class DatabaseRepository (
      *
      * #51: the copy holds lastBackupAt = the time of this export. The live database gets the
      * same time only once the copy is written, so a failed export changes nothing.
+     *
+     * #66: while backup encryption is on, the copy is encrypted straight into [destination]
+     * with the stored key, unless [plain] asks for an unencrypted backup. The plain copy only
+     * ever exists in the private cache folder. If the stored key can't be opened, nothing is
+     * written rather than falling back to a plain file.
      */
-    suspend fun exportDatabase(destination: Uri) : Boolean = withContext(Dispatchers.IO) {
+    suspend fun exportDatabase(destination: Uri, plain: Boolean = false) : ExportResult = withContext(Dispatchers.IO) {
+        val key = if (plain) null else when (val state = backupKey.state()) {
+            StoredBackupKey.Off -> null
+            StoredBackupKey.Unreadable -> return@withContext ExportResult.KeyUnreadable
+            is StoredBackupKey.On -> state
+        }
         val temp = File.createTempFile(EXPORT_TEMP_PREFIX, ".db", context.cacheDir)
         val lastBackup = SettingKey.LAST_BACKUP_AT.row(now())
         try {
@@ -94,44 +116,87 @@ class DatabaseRepository (
             // "wt" truncates, so overwriting a longer file leaves no trailing bytes
             val output = context.contentResolver.openOutputStream(destination, "wt")
                 ?: throw FileNotFoundException("Cannot write to $destination")
-            temp.inputStream().use { input -> output.use { input.copyTo(it) } }
+            output.use {
+                if (key == null) {
+                    temp.inputStream().use { input -> input.copyTo(it) }
+                } else {
+                    EncryptedBackup.encrypt(temp, it, key.masterKey, key.kdfSalt, key.kdf)
+                }
+            }
             db.settingsDao().upsert(lastBackup)
-            true
+            if (key == null) ExportResult.Plain else ExportResult.Encrypted
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            ExportResult.Failed
         } finally {
             deleteDatabaseFiles(temp)
+            key?.clear()
         }
     }
 
     /**
      * Replaces all data with the backup in [selectedFile]. A backup from an older database
      * version is migrated first, on a temporary copy. If the file cannot be read, is not a valid
-     * Gnoseis backup, cannot be migrated, or comes from a newer database version, nothing is
-     * changed and false is returned. The selected file itself is never modified.
+     * Gnoseis backup, cannot be migrated, or comes from a newer version, nothing is changed and
+     * the result says why. The selected file itself is never modified.
+     *
+     * #66: the first 8 bytes decide whether the file is encrypted, never its name. An encrypted
+     * backup is decrypted into the private cache folder with the stored key if it fits, otherwise
+     * with [passphrase] (NeedsPassphrase when there is none); then the same checks, migration and
+     * copy run on it. The caller owns [passphrase] and clears it.
      */
-    suspend fun importDatabase(selectedFile: Uri) : Boolean = withContext(Dispatchers.IO) {
+    suspend fun importDatabase(selectedFile: Uri, passphrase: CharArray? = null) : ImportResult = withContext(Dispatchers.IO) {
         val temp = File.createTempFile(IMPORT_TEMP_PREFIX, ".db", context.cacheDir)
+        var keepOffer: KeepOffer? = null
         try {
-            val input = context.contentResolver.openInputStream(selectedFile)
-                ?: return@withContext false
-            input.use { source -> temp.outputStream().use { source.copyTo(it) } }
+            val opened = try {
+                context.contentResolver.openInputStream(selectedFile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            } ?: return@withContext ImportResult.Failed
+            var encrypted = false
+            try {
+                opened.buffered().use { input ->
+                    input.mark(MAGIC_SIZE)
+                    val start = ByteArray(MAGIC_SIZE).let { it.copyOf(input.readFully(it)) }
+                    input.reset()
+                    if (BackupFormat.hasMagic(start)) {
+                        encrypted = true
+                        when (val decryption = decryptInto(input, temp, passphrase)) {
+                            is Decryption.Done -> keepOffer = decryption.keepOffer
+                            is Decryption.Refused -> return@withContext decryption.result
+                        }
+                    } else {
+                        temp.outputStream().use { input.copyTo(it) }
+                    }
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                return@withContext ImportResult.Failed
+            }
 
             val db = GnoseisDatabase.getDatabase(context)
             val liveVersion = db.openHelper.writableDatabase.version
-            val backupVersion = SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { backup ->
-                if (!isIntactRoomDatabase(backup)) return@withContext false
-                backup.version
+            try {
+                val backupVersion = SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { backup ->
+                    if (!isIntactRoomDatabase(backup)) return@withContext ImportResult.NotABackup
+                    backup.version
+                }
+                // #31: bring an older backup up to date with the migrations the app runs at startup.
+                // Only the temporary copy is changed; a newer backup cannot be migrated down.
+                if (backupVersion < 1) return@withContext ImportResult.NotABackup
+                if (backupVersion > liveVersion) return@withContext ImportResult.NewerFormat
+                if (backupVersion < liveVersion) migrateBackup(temp)
+            } catch (e: Exception) {
+                // Not an SQLite file, or no migration path
+                e.printStackTrace()
+                return@withContext ImportResult.NotABackup
             }
-            // #31: bring an older backup up to date with the migrations the app runs at startup.
-            // Only the temporary copy is changed; a newer backup cannot be migrated down.
-            if (backupVersion < 1 || backupVersion > liveVersion) return@withContext false
-            if (backupVersion < liveVersion) migrateBackup(temp)
 
             SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { backup ->
                 if (!isCompatibleBackup(backup, db.openHelper.writableDatabase)) {
-                    return@withContext false
+                    return@withContext ImportResult.NotABackup
                 }
                 // Room's invalidation tracker sees these writes, so open screens refresh.
                 db.runInTransaction {
@@ -143,13 +208,81 @@ class DatabaseRepository (
                     }
                 }
             }
-            true
+            ImportResult.Restored(encrypted, keepOffer).also { keepOffer = null }
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            ImportResult.Failed
         } finally {
+            keepOffer?.clear()
             deleteDatabaseFiles(temp)
         }
+    }
+
+    /**
+     * Keeps the key from a passphrase restore on this device, so later backups are encrypted
+     * with that passphrase without asking (#66). Clears [offer].
+     */
+    suspend fun keepEncrypting(offer: KeepOffer) = withContext(Dispatchers.IO) {
+        try {
+            backupKey.keep(offer.masterKey, offer.kdfSalt, offer.kdf)
+        } finally {
+            offer.clear()
+        }
+    }
+
+    private sealed interface Decryption {
+        class Done(val keepOffer: KeepOffer?) : Decryption
+        class Refused(val result: ImportResult) : Decryption
+    }
+
+    /** Decrypts the encrypted backup in [input] into [temp], with the stored key or [passphrase]. */
+    private fun decryptInto(input: InputStream, temp: File, passphrase: CharArray?): Decryption {
+        val header = try {
+            BackupHeader.read(input)
+        } catch (e: BackupDecryptException) {
+            return Decryption.Refused(e.toImportResult())
+        }
+
+        backupKey.matching(header)?.let { storedKey ->
+            return try {
+                EncryptedBackup.decrypt(input, header, storedKey, temp)
+                Decryption.Done(keepOffer = null)
+            } catch (e: BackupDecryptException) {
+                Decryption.Refused(e.toImportResult())
+            } finally {
+                storedKey.fill(0)
+            }
+        }
+
+        if (passphrase == null) return Decryption.Refused(ImportResult.NeedsPassphrase)
+        val normalised = BackupPassphrase.normalise(passphrase) as? BackupPassphrase.Normalised
+            ?: return Decryption.Refused(ImportResult.WrongPassphraseOrDamaged)
+        val masterKey = try {
+            BackupKeys.deriveMasterKey(normalised.bytes, header.kdfSalt, header.kdf)
+        } catch (e: OutOfMemoryError) {
+            // Settings within the format's limits can still be more than this device's heap
+            return Decryption.Refused(ImportResult.WrongPassphraseOrDamaged)
+        } finally {
+            normalised.bytes.fill(0)
+        }
+        try {
+            EncryptedBackup.decrypt(input, header, masterKey, temp)
+        } catch (e: BackupDecryptException) {
+            masterKey.fill(0)
+            return Decryption.Refused(e.toImportResult())
+        }
+        // Offer to keep encrypting only where this device has no usable key of its own
+        if (backupKey.state() is StoredBackupKey.On) {
+            masterKey.fill(0)
+            return Decryption.Done(keepOffer = null)
+        }
+        return Decryption.Done(KeepOffer(masterKey, header.kdfSalt, header.kdf))
+    }
+
+    private fun BackupDecryptException.toImportResult(): ImportResult = when (this) {
+        is BackupDecryptException.NewerFormat -> ImportResult.NewerFormat
+        is BackupDecryptException.NotEncrypted -> ImportResult.NotABackup
+        else -> ImportResult.WrongPassphraseOrDamaged
     }
 
     /**
@@ -251,5 +384,6 @@ class DatabaseRepository (
         const val SETTINGS_TABLE = "Settings"
         const val EXPORT_TEMP_PREFIX = "gnoseis_export"
         const val IMPORT_TEMP_PREFIX = "gnoseis_import"
+        const val MAGIC_SIZE = 8
     }
 }

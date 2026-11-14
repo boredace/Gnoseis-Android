@@ -32,6 +32,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.gnoseis.data.backup.StoredBackupKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -73,6 +74,17 @@ class BackupPolicyTest {
         assertTrue("Unexpected <include>: $included", included.isEmpty())
         assertEquals(ALL_DOMAINS, excluded["cloud-backup"])
         assertEquals(ALL_DOMAINS, excluded["device-transfer"])
+    }
+
+    /**
+     * #66: the stored backup key is kept in the no-backup folder, which Android never copies,
+     * on top of the rules above.
+     */
+    @Test
+    fun storedBackupKey_isInTheNoBackupFolder() {
+        val location = StoredBackupKey.forDevice(context).location
+
+        assertEquals(context.noBackupFilesDir.canonicalFile, location.parentFile!!.canonicalFile)
     }
 
     private companion object {

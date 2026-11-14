@@ -104,17 +104,17 @@ class DatabaseRepositoryTest {
     fun export_writesACompleteCopyOfTheDatabase() = runTest {
         db().noteDao().addNote(Note(title = "A"))
 
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), titlesInFile(backup))
     }
 
     @Test
-    fun export_toUnwritablePath_returnsFalse() = runTest {
+    fun export_toUnwritablePath_returnsFailed() = runTest {
         db().noteDao().addNote(Note(title = "A"))
         val path = File(context.cacheDir, "missing-dir/x.backup")
 
-        assertFalse(repository.exportDatabase(Uri.fromFile(path)))
+        assertEquals(ExportResult.Failed, repository.exportDatabase(Uri.fromFile(path)))
     }
 
     /** #14: export closes the singleton database that the repositories keep using. */
@@ -151,7 +151,7 @@ class DatabaseRepositoryTest {
         backup.writeBytes(ByteArray(10_000_000) { 1 })
         db().noteDao().addNote(Note(title = "A"))
 
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
 
         assertTrue(backup.length() < 10_000_000)
         assertEquals(setOf("A"), titlesInFile(backup))
@@ -171,7 +171,7 @@ class DatabaseRepositoryTest {
     fun export_savesLastBackupAt_inTheCopyAndTheLiveDatabase() = runTest {
         db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(500))
 
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
 
         assertEquals(
             mapOf(SettingKey.LAST_BACKUP_AT.id to EXPORT_TIME, SettingKey.LAST_DELETION_AT.id to 500L),
@@ -186,7 +186,7 @@ class DatabaseRepositoryTest {
         db().settingsDao().upsert(SettingKey.LAST_BACKUP_AT.row(5))
         val path = File(context.cacheDir, "missing-dir/x.backup")
 
-        assertFalse(repository.exportDatabase(Uri.fromFile(path)))
+        assertEquals(ExportResult.Failed, repository.exportDatabase(Uri.fromFile(path)))
 
         assertEquals(5L, liveSetting(SettingKey.LAST_BACKUP_AT))
     }
@@ -209,7 +209,7 @@ class DatabaseRepositoryTest {
     /** Backup contains note A; the live database then gets note B. */
     private suspend fun backupWithAThenAddB() {
         db().noteDao().addNote(Note(title = "A"))
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
         db().noteDao().addNote(Note(title = "B"))
         assertEquals(setOf("A", "B"), db().userTitles())
     }
@@ -218,7 +218,7 @@ class DatabaseRepositoryTest {
     fun import_restoresBackup_afterAppRestart() = runTest {
         backupWithAThenAddB()
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
         GnoseisDatabase.resetInstanceForTesting() // simulate process restart
 
         assertEquals(setOf("A"), db().userTitles())
@@ -229,7 +229,7 @@ class DatabaseRepositoryTest {
     fun import_restoresBackup_withoutRestart() = runTest {
         backupWithAThenAddB()
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
     }
@@ -267,7 +267,7 @@ class DatabaseRepositoryTest {
     fun afterImport_savedDataSurvivesRestart() = runTest {
         backupWithAThenAddB()
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
         db().noteDao().addNote(Note(title = "C"))
         GnoseisDatabase.resetInstanceForTesting() // simulate process restart
 
@@ -280,7 +280,7 @@ class DatabaseRepositoryTest {
         backupWithAThenAddB()
         SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 99 }
 
-        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.NewerFormat, repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A", "B"), db().userTitles())
     }
@@ -326,7 +326,7 @@ class DatabaseRepositoryTest {
             link("reversed", "note", "contact")
         }
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
         assertEquals(listOf("first"), liveLinkIds())
@@ -340,7 +340,7 @@ class DatabaseRepositoryTest {
         downgradeBackup { link("first", "contact", "note"); link("same", "contact", "note") }
         val before = backup.readBytes()
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertTrue(before.contentEquals(backup.readBytes()))
     }
@@ -357,7 +357,7 @@ class DatabaseRepositoryTest {
         backupWithAThenAddB()
         downgradeBackup(version = 2) { link("l", "contact", "note") }
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
         assertEquals(
@@ -372,10 +372,10 @@ class DatabaseRepositoryTest {
     fun exportThenImport_keepsTimestamps() = runTest {
         db().noteDao().addNote(Note(title = "A", createdAt = 111, updatedAt = 222))
         db().linkedRecordDao().addLinkedRecord(link("contact", RecordType.Contact, "note", RecordType.Note).copy(id = "l", createdAt = 333))
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
         db().noteDao().addNote(Note(title = "B", createdAt = 999, updatedAt = 999))
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
         assertEquals(listOf(111L, 222L), timestamps("SELECT createdAt, updatedAt FROM Note WHERE title = 'A'"))
@@ -386,11 +386,11 @@ class DatabaseRepositoryTest {
     @Test
     fun import_v3Backup_bringsItsOwnSettings() = runTest {
         db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(500))
-        assertTrue(repository.exportDatabase(Uri.fromFile(backup)))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
         db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(600))
         db().settingsDao().upsert(SettingKey.LAST_BACKUP_AT.row(700))
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(EXPORT_TIME, liveSetting(SettingKey.LAST_BACKUP_AT))
         assertEquals(500L, liveSetting(SettingKey.LAST_DELETION_AT))
@@ -403,7 +403,7 @@ class DatabaseRepositoryTest {
         downgradeBackup(version = 2)
         db().settingsDao().upsert(SettingKey.LAST_DELETION_AT.row(600))
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertNull(liveSetting(SettingKey.LAST_BACKUP_AT))
         assertNull(liveSetting(SettingKey.LAST_DELETION_AT))
@@ -416,7 +416,7 @@ class DatabaseRepositoryTest {
         val newer = db().openHelper.writableDatabase.version + 1
         SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = newer }
 
-        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.NewerFormat, repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A", "B"), db().userTitles())
     }
@@ -447,7 +447,7 @@ class DatabaseRepositoryTest {
         db().noteDao().addNote(Note(title = "B"))
         writeOldStyleBackup("A")
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
     }
@@ -461,7 +461,7 @@ class DatabaseRepositoryTest {
             it.execSQL("CREATE INDEX idx_LinkedRecord ON LinkedRecord (id, record1Id, record2Id)")
         }
 
-        assertTrue(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.Restored(encrypted = false), repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
     }
@@ -475,7 +475,7 @@ class DatabaseRepositoryTest {
             it.version = 1
         }
 
-        assertFalse(repository.importDatabase(Uri.fromFile(backup)))
+        assertEquals(ImportResult.NotABackup, repository.importDatabase(Uri.fromFile(backup)))
 
         assertEquals(setOf("A"), db().userTitles())
     }
@@ -489,18 +489,18 @@ class DatabaseRepositoryTest {
         GnoseisDatabase.resetInstanceForTesting()
         val titles = runCatching { db().userTitles() }
 
-        assertEquals(false, result.getOrNull())
+        assertEquals(ImportResult.NotABackup, result.getOrNull())
         assertEquals(setOf("A"), titles.getOrNull())
     }
 
     @Test
-    fun import_missingFile_returnsFalse_insteadOfThrowing() = runTest {
+    fun import_missingFile_returnsFailed_insteadOfThrowing() = runTest {
         db().noteDao().addNote(Note(title = "A"))
         val missing = Uri.fromFile(File(context.cacheDir, "does-not-exist.backup"))
 
         val result = runCatching { repository.importDatabase(missing) }
 
-        assertEquals(Result.success(false), result)
+        assertEquals(Result.success(ImportResult.Failed), result)
     }
 
     private companion object {
