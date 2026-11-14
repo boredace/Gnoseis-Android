@@ -34,7 +34,7 @@ import java.io.InputStream
 import java.security.SecureRandom
 
 /**
- * The EFF large word list (CC BY 3.0 US, https://www.eff.org/dice): 7,776 words, about 12.9
+ * The EFF large word list (CC BY 4.0, https://www.eff.org/dice): 7,776 words, about 12.9
  * bits each. The raw resource is EFF's file unchanged, a dice number and a word on each line.
  */
 object EffWordList {

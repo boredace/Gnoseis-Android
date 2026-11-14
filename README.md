@@ -61,7 +61,7 @@ By contributing to this project, you agree to license your contributions under b
 ### Third-party components
 
 - [Bouncy Castle](https://www.bouncycastle.org), for Argon2id: MIT License, see [third_party/bouncycastle/LICENSE.md](third_party/bouncycastle/LICENSE.md).
-- The [EFF large word list](https://www.eff.org/dice), for generated backup passphrases: © Electronic Frontier Foundation, CC BY 3.0 US, see [third_party/eff-wordlist/NOTICE.txt](third_party/eff-wordlist/NOTICE.txt).
+- The [EFF large word list](https://www.eff.org/dice), for generated backup passphrases: © Electronic Frontier Foundation, CC BY 4.0, see [third_party/eff-wordlist/NOTICE.txt](third_party/eff-wordlist/NOTICE.txt).
 - The [Fraunces](https://github.com/undercasetype/Fraunces) font, on the splash screen: SIL Open Font License 1.1, see [third_party/fonts/Fraunces-OFL.txt](third_party/fonts/Fraunces-OFL.txt).
 
 The screenshots show fictional sample data.
