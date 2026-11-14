@@ -49,6 +49,7 @@ import org.gnoseis.ui.contact.ContactListViewModel
 import org.gnoseis.ui.home.HomeViewModel
 import org.gnoseis.ui.item.ItemEditViewModel
 import org.gnoseis.ui.item.ItemListViewModel
+import org.gnoseis.ui.mostlinked.MostLinkedViewModel
 import org.gnoseis.ui.note.NoteEditViewModel
 import org.gnoseis.ui.note.NoteListViewModel
 import org.gnoseis.ui.organization.OrganizationEditViewModel
@@ -94,17 +95,25 @@ class AppViewModelProviderTest {
         }
     }
 
+    private fun <T : ViewModel> createWithRoute(clazz: Class<T>, vararg args: Pair<String, Any?>): T {
+        val owner = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
+        return AppViewModelProvider.Factory.create(clazz, MutableCreationExtras().apply {
+            set(APPLICATION_KEY, app)
+            set(SAVED_STATE_REGISTRY_OWNER_KEY, owner)
+            set(VIEW_MODEL_STORE_OWNER_KEY, owner)
+            set(VIEW_MODEL_KEY, clazz.name)
+            set(DEFAULT_ARGS_KEY, bundleOf(*args))
+        })
+    }
+
+    @Test
+    fun createsMostLinkedViewModelWithItsRoute() {
+        val vm = createWithRoute(MostLinkedViewModel::class.java, "recordTypeId" to RecordType.Contact.recordTypeId)
+        assertEquals(RecordType.Contact.recordTypeId, vm.pageState.value.typeId)
+    }
+
     @Test
     fun createsEditViewModelsWithTheirRouteAndLinkSourceUseCase() {
-        val owner = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
-        fun <T : ViewModel> createWithRoute(clazz: Class<T>, vararg args: Pair<String, Any?>): T =
-            AppViewModelProvider.Factory.create(clazz, MutableCreationExtras().apply {
-                set(APPLICATION_KEY, app)
-                set(SAVED_STATE_REGISTRY_OWNER_KEY, owner)
-                set(VIEW_MODEL_STORE_OWNER_KEY, owner)
-                set(VIEW_MODEL_KEY, clazz.name)
-                set(DEFAULT_ARGS_KEY, bundleOf(*args))
-            })
         val link = arrayOf("linkFromType" to RecordType.Note, "linkFromId" to "note-id")
 
         val vms = listOf(

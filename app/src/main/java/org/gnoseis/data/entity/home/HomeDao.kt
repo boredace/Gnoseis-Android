@@ -48,7 +48,7 @@ interface HomeDao {
     /**
      * Contacts, organizations, categories and items with the most links, counting links in
      * either direction (links from notes too). Notes are never included. Ties go by name.
-     * With a [recordTypeId], only records of that type.
+     * With a [recordTypeId], only records of that type. A negative [limit] means no limit.
      */
     @Query(
         "SELECT r.id, r.name, r.recordTypeId, COUNT(*) AS linkCount FROM (" +

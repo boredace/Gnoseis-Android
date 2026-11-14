@@ -47,6 +47,7 @@ import org.gnoseis.ui.item.ItemDetailsViewModel
 import org.gnoseis.ui.item.ItemEditViewModel
 import org.gnoseis.ui.item.ItemListViewModel
 import org.gnoseis.ui.link.LinkRecordsViewModel
+import org.gnoseis.ui.mostlinked.MostLinkedViewModel
 import org.gnoseis.ui.note.NoteDetailsViewModel
 import org.gnoseis.ui.note.NoteEditViewModel
 import org.gnoseis.ui.note.NoteListViewModel
@@ -197,6 +198,12 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 gnoseisApplication().container.searchRepository,
                 gnoseisApplication().container.linkedRecordRepository,
+            )
+        }
+        initializer {
+            MostLinkedViewModel(
+                this.createSavedStateHandle(),
+                gnoseisApplication().container.homeRepository,
             )
         }
     }
