@@ -35,7 +35,6 @@ import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,7 +47,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.CalendarLocale
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DatePickerState
@@ -77,8 +75,12 @@ import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.ZoneOffset
 import java.util.Date
 
@@ -122,6 +124,7 @@ fun NoteEditPage(
             NoteEditBody(
                 editState = editState,
                 onDateChanged = { pageViewModel.updateDate(it) },
+                onTimeChanged = { pageViewModel.updateTime(it) },
                 onTextContentChange = { pageViewModel.updateTextContent(it) },
                 onTitleChange = { pageViewModel.updateTitle(it) },
                 titlePrefilled = pageState.namePrefilled,
@@ -135,6 +138,7 @@ fun NoteEditPage(
 fun NoteEditBody(
     editState: NoteEditViewModel.EditState,
     onDateChanged: (LocalDate) -> Unit,
+    onTimeChanged: (LocalTime) -> Unit,
     onTextContentChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     titlePrefilled: Boolean = false,
@@ -142,6 +146,7 @@ fun NoteEditBody(
     val title = editState.editTitle
     val textContent = editState.editTextContent
     val showDatePicker = rememberSaveable { mutableStateOf(false) }
+    val showTimePicker = rememberSaveable { mutableStateOf(false) }
 
     Column(
        modifier = Modifier.padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
@@ -175,11 +180,10 @@ fun NoteEditBody(
 //        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${LocalDateTime.now().atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()}")
 //        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${pageState.dateTimeHolder.dateMillis*1000}")
 
-//        val timePickerState = rememberTimePickerState(
-//            initialHour = pageState.dateTimeHolder?.localHour?:0,
-//            initialMinute = pageState.dateTimeHolder?.localMinute?:0
-//        )
-//        var showTimePicker = rememberSaveable { mutableStateOf(false) }
+val timePickerState = rememberTimePickerState(
+        initialHour = editState.editTime.hour,
+        initialMinute = editState.editTime.minute,
+    )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -187,14 +191,14 @@ fun NoteEditBody(
             OutlinedButton(
                 onClick = { showDatePicker.value = true },
             ) {
-                Text(text = editState.editDay.toString())
+                Text(text = editState.editDay.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
             }
             Spacer(modifier = Modifier.width(10.dp))
-//            OutlinedButton(
-//                onClick = { showTimePicker.value = true }
-//            ){
-//                Text(text="${timePickerState.hour}:${timePickerState.minute}")
-//            }
+            OutlinedButton(
+                onClick = { showTimePicker.value = true }
+            ){
+                Text(text = noteTimeText(editState.editTime, is24HourClock()))
+            }
         }
 
 
@@ -211,9 +215,16 @@ fun NoteEditBody(
             )
         }
 
-//        if(showTimePicker.value){
-//            MyTimePickerDialog(timePickerState = timePickerState)
-//        }
+        if(showTimePicker.value){
+            MyTimePickerDialog(
+                timePickerState = timePickerState,
+                onConfirm = {
+                    onTimeChanged(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                    showTimePicker.value = false
+                },
+                onDismiss = { showTimePicker.value = false },
+            )
+        }
         Spacer(modifier = Modifier.height(2.dp))
         OutlinedTextField(
             modifier = Modifier
@@ -292,11 +303,26 @@ fun MyDatePickerDialog(
 @Composable
 fun MyTimePickerDialog(
     timePickerState: TimePickerState,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    TimePicker(
-        state = timePickerState
-
-    )
+    DatePickerDialog(
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(text = "OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text(text = "Cancel")
+            }
+        }
+    ) {
+        TimePicker(
+            state = timePickerState
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -317,6 +343,7 @@ fun NoteEditPagePreview() {
                 NoteEditBody(
                     editState = NoteEditViewModel.EditState(isValid = true),
                     onDateChanged = {},
+                    onTimeChanged = {},
                     onTextContentChange = {},
                     onTitleChange = {},
                 )
