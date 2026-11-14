@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -64,6 +64,7 @@ import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
+import org.gnoseis.ui.record.displayText
 
 @Composable
 fun NoteDetailsPage(
@@ -97,9 +98,10 @@ fun NoteDetailsPage(
 /** A note's Details tab: its text, or a line saying it has none. */
 @Composable
 fun NoteDetailsTab(note: Note) {
-    if (!note.textContents.isNullOrEmpty()) {
+    val text = note.displayText
+    if (!text.isNullOrEmpty()) {
         Box(modifier = Modifier.detailsTabPadding().verticalScroll(rememberScrollState())) {
-            Text(text = note.textContents)
+            Text(text = text)
         }
     } else {
         RecordDetailsEmpty(text = "This Note has no content", modifier = Modifier.detailsTabPadding())
