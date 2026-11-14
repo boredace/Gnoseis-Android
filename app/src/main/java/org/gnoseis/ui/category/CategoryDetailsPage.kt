@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@ import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
+import org.gnoseis.ui.record.displayComments
 
 @Composable
 fun CategoryDetailsPage(
@@ -86,9 +87,10 @@ fun CategoryDetailsPage(
 /** A category's Details tab: its description, or a line saying it has none. */
 @Composable
 fun CategoryDetailsTab(category: Category) {
-    if (!category.comments.isNullOrEmpty()) {
+    val comments = category.displayComments
+    if (!comments.isNullOrEmpty()) {
         Box(modifier = Modifier.detailsTabPadding().verticalScroll(rememberScrollState())) {
-            Text(text = category.comments)
+            Text(text = comments)
         }
     } else {
         RecordDetailsEmpty(text = "This Category has no details", modifier = Modifier.detailsTabPadding())

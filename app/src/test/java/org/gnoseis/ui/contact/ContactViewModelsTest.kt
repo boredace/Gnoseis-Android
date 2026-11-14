@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.gnoseis.testutil.TEST_NOW
 
 @RunWith(AndroidJUnit4::class)
 class ContactViewModelsTest {
@@ -255,6 +256,56 @@ class ContactViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(contact.copy(nameFirst = "John"), c.contactRepository.getContact(contact.id))
+    }
+
+    // ---------- Edit: line breaks (#67) ----------
+
+    @Test
+    fun edit_textWithCarriageReturns_loadsWithLineFeeds() = runTest {
+        val stored = Contact(nameLast = "Doe", comments = "one\rtwo\r\nthree")
+        c.database.contactDao().addContact(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+
+        waitFor { !vm.pageState.value.isNew }
+        assertEquals("one\ntwo\nthree", vm.editState.value.comments)
+    }
+
+    @Test
+    fun edit_savingUneditedText_keepsStoredLineBreaksAndUpdatedAt() = runTest {
+        val stored = Contact(nameLast = "Doe", comments = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.contactDao().addContact(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        assertNull(vm.onSave())
+
+        assertEquals(stored, c.contactRepository.getContact(stored.id))
+    }
+
+    @Test
+    fun edit_savingEditedText_writesLineFeedsOnly() = runTest {
+        val stored = Contact(nameLast = "Doe", comments = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.contactDao().addContact(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        vm.onEvent(ContactEditPageEvent.CommentsChanged(vm.editState.value.comments + "\r\nfour"))
+        assertNull(vm.onSave())
+
+        val saved = c.contactRepository.getContact(stored.id)
+        assertEquals("one\ntwo\nthree\nfour", saved.comments)
+        assertEquals(TEST_NOW, saved.updatedAt)
+    }
+
+    @Test
+    fun edit_newRecord_textWithCarriageReturns_isStoredWithLineFeeds() = runTest {
+        val vm = editVm(null, RecordEditPageMode.NEW)
+        vm.onEvent(ContactEditPageEvent.NameLastChanged("Name"))
+        vm.onEvent(ContactEditPageEvent.CommentsChanged("one\r\ntwo\rthree"))
+
+        val saved = c.contactRepository.getContact(vm.onSave()!!)
+
+        assertEquals("one\ntwo\nthree", saved.comments)
     }
 
     // ---------- Edit: link source (#7) ----------

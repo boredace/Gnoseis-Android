@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -51,6 +51,8 @@ import org.gnoseis.domain.usecase.GetLinkSourceUseCase
 import org.gnoseis.domain.usecase.LinkSource
 import org.gnoseis.ui.record.RecordEditRoute
 import org.gnoseis.ui.record.alsoLinkRecords
+import org.gnoseis.data.text.lineBreaksToSave
+import org.gnoseis.data.text.normalizeLineBreaks
 
 class CategoryEditViewModel(
     savedStateHandle: SavedStateHandle,
@@ -113,7 +115,7 @@ class CategoryEditViewModel(
                     _editState.value = _editState.value.copy(
                         isValid = true,
                         editCategoryName = it.categoryName,
-                        editCategoryDescription = it.comments,
+                        editCategoryDescription = it.comments?.let(::normalizeLineBreaks),
                     )
                 }
             }
@@ -130,7 +132,7 @@ class CategoryEditViewModel(
                 Category(
                     ownerDbId = "db1",
                     categoryName = _editState.value.editCategoryName!!, // assuming cannot be valid if null
-                    comments =_editState.value.editCategoryDescription,
+                    comments = lineBreaksToSave(_editState.value.editCategoryDescription, null),
                 )
             )
             val addedRecordId = categoryRepository.getCategoryByRowId(addedRecordRowId).id
@@ -164,7 +166,7 @@ class CategoryEditViewModel(
         ) {
             categoryRepository.updateCategory(_pageState.value.category!!.copy(
                 categoryName = _editState.value.editCategoryName!!,  // assuming cannot be valid if null
-                comments = _editState.value.editCategoryDescription,
+                comments = lineBreaksToSave(_editState.value.editCategoryDescription, _pageState.value.category!!.comments),
             ))
             return null
         } else {

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -64,6 +64,7 @@ import org.gnoseis.ui.record.RecordDetailsNavigation
 import org.gnoseis.ui.record.RecordDetailsScaffold
 import org.gnoseis.ui.record.detailsTabPadding
 import org.gnoseis.ui.theme.GnoseisTheme
+import org.gnoseis.ui.record.displayComments
 
 @Composable
 fun ContactDetailsPage(
@@ -175,14 +176,15 @@ fun ContactDetailsTab(
             }
         }
 
-        if (contact.comments != null) {
+        val comments = contact.displayComments
+        if (comments != null) {
             displayedSections.value++
             if(displayedSections.value > 1) {
                 HorizontalDivider(Modifier.padding(top =10.dp, bottom = 10.dp))
 //                Spacer(modifier = Modifier.height(10.dp))
             }
             Text(
-                text = contact.comments,
+                text = comments,
 //                style = MaterialTheme.typography.bodyLarge,
 //                color = MaterialTheme.colorScheme.outlineVariant,
             )

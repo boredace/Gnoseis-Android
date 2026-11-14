@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ data class LinkedRecords(
 
     /** The name of the linked record [id], as its list row shows it; null if it isn't linked. */
     fun nameOf(id: String): String? =
-        linkedNotes.find { it.id == id }?.let { note -> note.title?.ifEmpty { null } ?: note.textContents.orEmpty() }
+        linkedNotes.find { it.id == id }?.let { note -> note.title?.ifEmpty { null } ?: note.displayText.orEmpty() }
             ?: linkedContacts.find { it.id == id }?.let { "${it.nameLast}, ${it.nameFirst ?: ""}" }
             ?: linkedOrganizations.find { it.id == id }?.organizationName
             ?: linkedCategories.find { it.id == id }?.categoryName

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import org.gnoseis.ui.record.displayText
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -78,7 +79,7 @@ fun NoteList(
                     NoteListItem(
                         id = note.id,
                         title = note.title ?: "",
-                        textContent = note.textContents ?: "",
+                        textContent = note.displayText ?: "",
                         onClick = { navigateToNoteDetailsPage(note.id) },
                         rowAction = rowAction,
 
@@ -90,7 +91,7 @@ fun NoteList(
                 NoteListItem(
                     id = note.id,
                     title = note.title ?: "",
-                    textContent = note.textContents ?: "",
+                    textContent = note.displayText ?: "",
                     onClick = { navigateToNoteDetailsPage(note.id) },
                     rowAction = rowAction,
 

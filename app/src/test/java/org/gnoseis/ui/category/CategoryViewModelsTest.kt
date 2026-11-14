@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.gnoseis.testutil.TEST_NOW
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -253,6 +254,58 @@ class CategoryViewModelsTest {
         assertNull(vm.onSave())
 
         assertEquals(listOf(cat.copy(categoryName = "New")), c.categoryRepository.getCategoriesStream().first())
+    }
+
+    // ---------- Edit: line breaks (#67) ----------
+
+    @Test
+    fun edit_textWithCarriageReturns_loadsWithLineFeeds() = runTest {
+        val stored = Category(categoryName = "Clients", comments = "one\rtwo\r\nthree")
+        c.database.categoryDao().addCategory(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+
+        waitFor { !vm.pageState.value.isNew }
+        assertEquals("one\ntwo\nthree", vm.editState.value.editCategoryDescription)
+    }
+
+    @Test
+    fun edit_savingUneditedText_keepsStoredLineBreaksAndUpdatedAt() = runTest {
+        val stored = Category(categoryName = "Clients", comments = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.categoryDao().addCategory(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        assertNull(vm.onSave())
+
+        assertEquals(stored, c.categoryRepository.getCategory(stored.id))
+    }
+
+    @Test
+    fun edit_savingEditedText_writesLineFeedsOnly() = runTest {
+        val stored = Category(categoryName = "Clients", comments = "one\rtwo\r\nthree").copy(createdAt = 1, updatedAt = 1)
+        c.database.categoryDao().addCategory(stored)
+        val vm = editVm(stored.id, RecordEditPageMode.EDIT)
+        waitFor { !vm.pageState.value.isNew }
+
+        vm.updateCategoryDescription(vm.editState.value.editCategoryDescription + "\r\nfour")
+        advanceTimeBy(501); runCurrent()
+        assertNull(vm.onSave())
+
+        val saved = c.categoryRepository.getCategory(stored.id)
+        assertEquals("one\ntwo\nthree\nfour", saved.comments)
+        assertEquals(TEST_NOW, saved.updatedAt)
+    }
+
+    @Test
+    fun edit_newRecord_textWithCarriageReturns_isStoredWithLineFeeds() = runTest {
+        val vm = editVm(null, RecordEditPageMode.NEW)
+        vm.updateCategoryName("Name")
+        vm.updateCategoryDescription("one\r\ntwo\rthree")
+        advanceTimeBy(501); runCurrent()
+
+        val saved = c.categoryRepository.getCategory(vm.onSave()!!)
+
+        assertEquals("one\ntwo\nthree", saved.comments)
     }
 
     // ---------- Edit: link source (#7) ----------
