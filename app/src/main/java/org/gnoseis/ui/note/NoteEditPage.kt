@@ -63,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -76,13 +77,11 @@ import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.ZoneOffset
-import java.util.Date
 
 /**
  * Material's DatePicker works in UTC: a picked date is UTC midnight of that date, in epoch ms.
@@ -170,21 +169,8 @@ fun NoteEditBody(
         )
         Spacer(modifier = Modifier.height(10.dp))
 
-
-//        val datePickerState = rememberDatePickerState(
-////            initialSelectedDateMillis = LocalDateTime.now().atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
-//            initialSelectedDateMillis = pageState.dateTimeHolder.dateMillis*1000
-//        )
-
-
-//        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${LocalDateTime.now().atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()}")
-//        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${pageState.dateTimeHolder.dateMillis*1000}")
-
-val timePickerState = rememberTimePickerState(
-        initialHour = editState.editTime.hour,
-        initialMinute = editState.editTime.minute,
-    )
-
+        // #68: the note's local day and time, the time in the device's 12- or 24-hour setting
+        val is24Hour = is24HourClock()
         Row(
             modifier = Modifier.fillMaxWidth(),
         ){
@@ -197,7 +183,7 @@ val timePickerState = rememberTimePickerState(
             OutlinedButton(
                 onClick = { showTimePicker.value = true }
             ){
-                Text(text = noteTimeText(editState.editTime, is24HourClock()))
+                Text(text = noteTimeText(editState.editTime, is24Hour))
             }
         }
 
@@ -216,6 +202,13 @@ val timePickerState = rememberTimePickerState(
         }
 
         if(showTimePicker.value){
+            // Made each time the dialog opens, so it starts at the time on the button
+            // (Cancel leaves nothing behind)
+            val timePickerState = rememberTimePickerState(
+                initialHour = editState.editTime.hour,
+                initialMinute = editState.editTime.minute,
+                is24Hour = is24Hour,
+            )
             MyTimePickerDialog(
                 timePickerState = timePickerState,
                 onConfirm = {
@@ -245,11 +238,6 @@ val timePickerState = rememberTimePickerState(
         )
     }
 }
-private fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("dd/MM/yyyy")
-    return formatter.format(Date(millis))
-}
-
 @Composable
 fun KeyboardAware(
     content: @Composable () -> Unit
@@ -319,9 +307,14 @@ fun MyTimePickerDialog(
             }
         }
     ) {
-        TimePicker(
-            state = timePickerState
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            TimePicker(
+                state = timePickerState
+            )
+        }
     }
 }
 
