@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@ import org.gnoseis.ui.record.saveRecord
 import org.gnoseis.ui.record.RecordEditScaffold
 import org.gnoseis.ui.record.RecordEditNavigation
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,7 +47,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.CalendarLocale
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DatePickerState
@@ -65,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -76,9 +75,24 @@ import org.gnoseis.data.constants.TITLE_LENGTH_NOTE
 import org.gnoseis.data.enums.RecordEditPageMode
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.ui.theme.GnoseisTheme
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.Date
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.time.ZoneOffset
+
+/**
+ * Material's DatePicker works in UTC: a picked date is UTC midnight of that date, in epoch ms.
+ * The note's local day goes in and comes out through UTC, never through the device's zone,
+ * or the day would be off by one west or east of UTC (#68).
+ */
+internal fun datePickerMillis(day: LocalDate): Long = day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+/** The day picked in Material's DatePicker, from its UTC [millis]. */
+internal fun datePickerDay(millis: Long): LocalDate =
+    java.time.Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +103,6 @@ fun NoteEditPage(
 ) {
     val pageState = pageViewModel.pageState.value
     val editState = pageViewModel.editState.value
-    val datePickerState by pageViewModel.datePickerState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     RecordEditScaffold(
@@ -109,8 +122,8 @@ fun NoteEditPage(
         KeyboardAware {
             NoteEditBody(
                 editState = editState,
-                datePickerState = datePickerState,
                 onDateChanged = { pageViewModel.updateDate(it) },
+                onTimeChanged = { pageViewModel.updateTime(it) },
                 onTextContentChange = { pageViewModel.updateTextContent(it) },
                 onTitleChange = { pageViewModel.updateTitle(it) },
                 titlePrefilled = pageState.namePrefilled,
@@ -123,8 +136,8 @@ fun NoteEditPage(
 @Composable
 fun NoteEditBody(
     editState: NoteEditViewModel.EditState,
-    datePickerState: DatePickerState,
-    onDateChanged: (Long) -> Unit,
+    onDateChanged: (LocalDate) -> Unit,
+    onTimeChanged: (LocalTime) -> Unit,
     onTextContentChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     titlePrefilled: Boolean = false,
@@ -132,6 +145,7 @@ fun NoteEditBody(
     val title = editState.editTitle
     val textContent = editState.editTextContent
     val showDatePicker = rememberSaveable { mutableStateOf(false) }
+    val showTimePicker = rememberSaveable { mutableStateOf(false) }
 
     Column(
        modifier = Modifier.padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
@@ -155,48 +169,30 @@ fun NoteEditBody(
         )
         Spacer(modifier = Modifier.height(10.dp))
 
-
-//        val datePickerState = rememberDatePickerState(
-////            initialSelectedDateMillis = LocalDateTime.now().atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
-//            initialSelectedDateMillis = pageState.dateTimeHolder.dateMillis*1000
-//        )
-
-
-//        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${LocalDateTime.now().atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()}")
-//        Log.i("XXX2" , "Edit page  = initialSelectedDateMillis = ${pageState.dateTimeHolder.dateMillis*1000}")
-
-//        val timePickerState = rememberTimePickerState(
-//            initialHour = pageState.dateTimeHolder?.localHour?:0,
-//            initialMinute = pageState.dateTimeHolder?.localMinute?:0
-//        )
-//        var showTimePicker = rememberSaveable { mutableStateOf(false) }
-
+        // #68: the note's local day and time, the time in the device's 12- or 24-hour setting
+        val is24Hour = is24HourClock()
         Row(
             modifier = Modifier.fillMaxWidth(),
         ){
             OutlinedButton(
                 onClick = { showDatePicker.value = true },
             ) {
-                Text(text="${Instant.ofEpochMilli(editState.editDate).toString().substring(0,10)}")
+                Text(text = editState.editDay.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
             }
             Spacer(modifier = Modifier.width(10.dp))
-//            OutlinedButton(
-//                onClick = { showTimePicker.value = true }
-//            ){
-//                Text(text="${timePickerState.hour}:${timePickerState.minute}")
-//            }
+            OutlinedButton(
+                onClick = { showTimePicker.value = true }
+            ){
+                Text(text = noteTimeText(editState.editTime, is24Hour))
+            }
         }
 
 
         if(showDatePicker.value){
             MyDatePickerDialog(
-                datePickerState = datePickerState,
-                onDateSelected = {
-                    Log.i("XXX2", "onDateSelected | it = $it")
-                    val selectedDateTime = Instant.ofEpochMilli(it?:0)
-                    Log.i("xxx2", "onDateSelected | Instant.ofEpochMillis =  $selectedDateTime")
-                    Log.i("xxx2", "onDateSelected | Instant.toEpochMillis =  ${selectedDateTime.toEpochMilli()}")
-                    onDateChanged(selectedDateTime.toEpochMilli())
+                datePickerState = rememberDatePickerState(initialSelectedDateMillis = datePickerMillis(editState.editDay)),
+                onDateSelected = { millis ->
+                    millis?.let { onDateChanged(datePickerDay(it)) }
                     showDatePicker.value = false
                 },
                 onDismiss = {
@@ -205,9 +201,23 @@ fun NoteEditBody(
             )
         }
 
-//        if(showTimePicker.value){
-//            MyTimePickerDialog(timePickerState = timePickerState)
-//        }
+        if(showTimePicker.value){
+            // Made each time the dialog opens, so it starts at the time on the button
+            // (Cancel leaves nothing behind)
+            val timePickerState = rememberTimePickerState(
+                initialHour = editState.editTime.hour,
+                initialMinute = editState.editTime.minute,
+                is24Hour = is24Hour,
+            )
+            MyTimePickerDialog(
+                timePickerState = timePickerState,
+                onConfirm = {
+                    onTimeChanged(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                    showTimePicker.value = false
+                },
+                onDismiss = { showTimePicker.value = false },
+            )
+        }
         Spacer(modifier = Modifier.height(2.dp))
         OutlinedTextField(
             modifier = Modifier
@@ -228,11 +238,6 @@ fun NoteEditBody(
         )
     }
 }
-private fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("dd/MM/yyyy")
-    return formatter.format(Date(millis))
-}
-
 @Composable
 fun KeyboardAware(
     content: @Composable () -> Unit
@@ -286,11 +291,31 @@ fun MyDatePickerDialog(
 @Composable
 fun MyTimePickerDialog(
     timePickerState: TimePickerState,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    TimePicker(
-        state = timePickerState
-
-    )
+    DatePickerDialog(
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(text = "OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text(text = "Cancel")
+            }
+        }
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            TimePicker(
+                state = timePickerState
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -310,8 +335,8 @@ fun NoteEditPagePreview() {
             ) {
                 NoteEditBody(
                     editState = NoteEditViewModel.EditState(isValid = true),
-                    datePickerState = DatePickerState(locale = CalendarLocale.getDefault()),
                     onDateChanged = {},
+                    onTimeChanged = {},
                     onTextContentChange = {},
                     onTitleChange = {},
                 )

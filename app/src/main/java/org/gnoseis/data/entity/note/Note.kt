@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -30,10 +30,9 @@ package org.gnoseis.data.entity.note
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import org.gnoseis.data.time.NoteTimes
+import java.time.Instant
 import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Entity
@@ -43,20 +42,11 @@ data class Note (
     val ownerDbId: String = "db1",
     val title : String? = null,
     val textContents: String? = null,
-    val createDateTime: Long =
-        ZonedDateTime
-            .now(ZoneId.systemDefault())
-            .withZoneSameInstant(
-                ZoneOffset.UTC)
-            .toInstant()
-            .toEpochMilli(),
+    /** The note's moment, UTC epoch ms (#68). By default now, as for a new note nobody changed. */
+    val createDateTime: Long = System.currentTimeMillis(),
+    /** The start of the note's local day in the zone it was saved in, UTC epoch ms (#68). */
     val createDate: Long =
-        ZonedDateTime
-            .now(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS)
-            .withZoneSameInstant(
-                ZoneOffset.UTC)
-            .toInstant()
-            .toEpochMilli(),
+        NoteTimes.forNow(Instant.ofEpochMilli(createDateTime), ZoneId.systemDefault()).createDate,
     /** System times (UTC epoch ms), set by the repository. Not the note date above. */
     val createdAt: Long? = null,
     val updatedAt: Long? = null,

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -45,6 +45,7 @@ import org.gnoseis.data.entity.settings.SettingKey
 import org.gnoseis.data.enums.RecordType
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.testutil.withDefaultZone
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -330,7 +331,7 @@ class DatabaseRepositoryTest {
 
         assertEquals(setOf("A"), db().userTitles())
         assertEquals(listOf("first"), liveLinkIds())
-        assertEquals(3, db().openHelper.writableDatabase.version)
+        assertEquals(4, db().openHelper.writableDatabase.version)
     }
 
     /** #31: only the temporary copy is migrated, never the file the user picked. */
@@ -365,6 +366,51 @@ class DatabaseRepositoryTest {
             timestamps("SELECT createdAt, updatedAt FROM Note WHERE title = 'A'"),
         )
         assertEquals(listOf(null), timestamps("SELECT createdAt FROM LinkedRecord WHERE id = 'l'"))
+    }
+
+    private fun noteTimes(title: String): List<Long?> =
+        timestamps("SELECT createDateTime, createDate FROM Note WHERE title = '$title'")
+
+    /**
+     * #68: a v3 backup's note times are converted in the restoring device's zone, here
+     * America/Toronto (a shared example: 2026-07-15 14:30). updatedAt stays as it is.
+     */
+    @Test
+    fun import_v3Backup_convertsNoteTimes() = runTest {
+        db().noteDao().addNote(Note(title = "A", createDateTime = 1784125800000, createDate = 1784073600000, createdAt = 111, updatedAt = 222))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
+        SQLiteDatabase.openDatabase(backup.path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 3 }
+
+        val result = withDefaultZone("America/Toronto") { repository.importDatabase(Uri.fromFile(backup)) }
+
+        assertEquals(ImportResult.Restored(encrypted = false), result)
+        assertEquals(listOf(1784140200000L, 1784088000000L), noteTimes("A"))
+        assertEquals(listOf(111L, 222L), timestamps("SELECT createdAt, updatedAt FROM Note WHERE title = 'A'"))
+    }
+
+    /** #68: a v1 backup reaches v4 with its note times converted the same way. */
+    @Test
+    fun import_v1Backup_convertsNoteTimes() = runTest {
+        db().noteDao().addNote(Note(title = "A", createDateTime = 1794644100000, createDate = 1794614400000))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
+        downgradeBackup(version = 1)
+
+        val result = withDefaultZone("Asia/Tokyo") { repository.importDatabase(Uri.fromFile(backup)) }
+
+        assertEquals(ImportResult.Restored(encrypted = false), result)
+        assertEquals(listOf(1794611700000L, 1794582000000L), noteTimes("A"))
+    }
+
+    /** #68: a v4 backup restores its note times unchanged, in any zone. */
+    @Test
+    fun import_v4Backup_keepsNoteTimes() = runTest {
+        db().noteDao().addNote(Note(title = "A", createDateTime = 1794611700000, createDate = 1794582000000))
+        assertEquals(ExportResult.Plain, repository.exportDatabase(Uri.fromFile(backup)))
+
+        val result = withDefaultZone("America/Toronto") { repository.importDatabase(Uri.fromFile(backup)) }
+
+        assertEquals(ImportResult.Restored(encrypted = false), result)
+        assertEquals(listOf(1794611700000L, 1794582000000L), noteTimes("A"))
     }
 
     /** #50: export then import keeps every stored timestamp exactly. */

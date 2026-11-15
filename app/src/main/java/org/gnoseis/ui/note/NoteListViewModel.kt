@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -42,22 +42,7 @@ class NoteListViewModel(
 ) : ViewModel(){
     val notePageState : StateFlow<NotePageState> =
         noteRepository.getNotesStream()
-            .map{
-                NotePageState(it
-                    /*it.map {
-
-                        Note(
-                            id = it.id,
-                            ownerDbId = it.ownerDbId,
-                            title = it.title,
-                            textContents = it.textContents,
-                            createDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.createDateTime), ZoneId.of("Europe/London")).toInstant().toEpochMilli(),
-                            createDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.createDate), ZoneId.of("GMT+9")).toInstant().toEpochMilli()
-
-                        )
-                    }*/
-                )
-            }
+            .map { NotePageState(it) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ import org.gnoseis.data.repository.ContactRepository
 import org.gnoseis.data.repository.ItemRepository
 import org.gnoseis.data.repository.NoteRepository
 import org.gnoseis.data.repository.OrganizationRepository
-import java.time.Instant
+import org.gnoseis.data.time.NoteTimes
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -64,15 +64,15 @@ class GetLinkSourceUseCase(
                 RecordType.Category -> categoryRepository.getCategory(id)?.categoryName
                 RecordType.Item -> itemRepository.getItem(id)?.itemName
                 RecordType.Note -> noteRepository.getNote(id)
-                    ?.let { note -> note.title?.takeIf { it.isNotBlank() } ?: noteDateText(note.createDate) }
+                    ?.let { note -> note.title?.takeIf { it.isNotBlank() } ?: noteDateText(note.createDateTime) }
                 RecordType.LinkedRecord -> null
             }
         }.getOrNull()
         return name?.let { LinkSource(type, it.ifBlank { singularName(type) }) }
     }
 
-    /** A note date as the note list shows it: the stored day, read in UTC. */
-    private fun noteDateText(createDate: Long): String =
-        Instant.ofEpochMilli(createDate).atZone(ZoneId.of("GMT"))
+    /** A note's day as the note list shows it, in the device's time zone (#68). */
+    private fun noteDateText(createDateTime: Long): String =
+        NoteTimes.shownDay(createDateTime, ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 }

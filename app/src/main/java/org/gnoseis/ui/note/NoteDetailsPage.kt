@@ -49,9 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import java.time.Instant
+import org.gnoseis.data.time.NoteTimes
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import org.gnoseis.AppViewModelProvider
@@ -113,7 +112,9 @@ fun NoteHeader(
     title: String,
     createdDateTime: Long
 ){
-    val zonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(createdDateTime), ZoneId.of("GMT"))
+    // #68: the note's day and time in the device's time zone
+    val shown = NoteTimes.shown(createdDateTime, ZoneId.systemDefault())
+    val is24Hour = is24HourClock()
 
     if(!title.isNullOrEmpty()) {
         Text(
@@ -130,10 +131,10 @@ fun NoteHeader(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = zonedDateTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
+            text = shown.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
         )
         Text(
-            text = zonedDateTime.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+            text = noteTimeText(shown.toLocalTime(), is24Hour)
         )
     }
 }

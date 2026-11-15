@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -43,7 +43,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.gnoseis.data.time.NoteTimes
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
 
 @RunWith(AndroidJUnit4::class)
 class GnoseisDatabaseTest {
@@ -76,6 +79,13 @@ class GnoseisDatabaseTest {
         assertEquals("This is a default note", seed.single().title)
         assertNotNull(seed.single().createdAt)
         assertEquals(seed.single().createdAt, seed.single().updatedAt)
+        // #68: a new note nobody changed: the moment it was saved, and the start of its local day
+        val note = seed.single()
+        assertEquals(note.createdAt, note.createDateTime)
+        assertEquals(
+            NoteTimes.forNow(Instant.ofEpochMilli(note.createDateTime), ZoneId.systemDefault()).createDate,
+            note.createDate,
+        )
     }
 
     /**

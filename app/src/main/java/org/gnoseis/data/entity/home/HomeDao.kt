@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -83,22 +83,22 @@ interface HomeDao {
     fun getLinksAmong(recordIds: List<String>): Flow<List<LinkEnds>>
 
     @Query(
-        "SELECT n.id, n.title, n.textContents, n.createDate, " +
+        "SELECT n.id, n.title, n.textContents, n.createDateTime, " +
                 "(SELECT COUNT(*) FROM LinkedRecord AS l WHERE l.record1Id = n.id OR l.record2Id = n.id) AS linkCount " +
                 "FROM Note AS n ORDER BY n.createDateTime DESC LIMIT :limit"
     )
     fun getRecentNotes(limit: Int): Flow<List<NoteSummary>>
 
-    /** Notes per note date (UTC day number, as the note list shows them) from [fromDay] to [toDay]. */
-    @Query(
-        "SELECT createDate / 86400000 AS day, COUNT(*) AS count FROM Note " +
-                "WHERE createDate >= :fromDay * 86400000 AND createDate < (:toDay + 1) * 86400000 " +
-                "GROUP BY day"
-    )
-    fun getNotesPerDay(fromDay: Long, toDay: Long): Flow<List<DayCount>>
+    /**
+     * The times (createDateTime, UTC epoch ms) of the notes from [from] up to but not including
+     * [until]. Notes per day are counted by local day from these (#68): a fixed offset in SQL
+     * would be wrong across a daylight-saving change.
+     */
+    @Query("SELECT createDateTime FROM Note WHERE createDateTime >= :from AND createDateTime < :until")
+    fun getNoteTimesBetween(from: Long, until: Long): Flow<List<Long>>
 
     @Query(
-        "SELECT n.id, n.title, n.textContents, n.createDate, 0 AS linkCount FROM Note AS n " +
+        "SELECT n.id, n.title, n.textContents, n.createDateTime, 0 AS linkCount FROM Note AS n " +
                 "WHERE NOT EXISTS (SELECT 1 FROM LinkedRecord AS l WHERE l.record1Id = n.id OR l.record2Id = n.id) " +
                 "ORDER BY n.createDateTime DESC LIMIT :limit"
     )
@@ -155,10 +155,12 @@ data class NoteSummary(
     val id: String,
     val title: String?,
     val textContents: String?,
-    val createDate: Long,
+    /** The note's moment (UTC epoch ms), shown in the device's time zone (#68). */
+    val createDateTime: Long,
     val linkCount: Int,
 )
 
+/** [count] notes on local [day] (an epoch day). */
 data class DayCount(
     val day: Long,
     val count: Int,

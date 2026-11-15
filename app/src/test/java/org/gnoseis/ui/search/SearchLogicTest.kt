@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ import org.gnoseis.data.enums.RecordType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.gnoseis.testutil.withDefaultZone
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -212,7 +213,9 @@ class SearchLogicTest {
     @Test
     fun contextLine_perType() {
         val day = LocalDateTime.of(2026, 11, 2, 0, 0).toInstant(ZoneOffset.UTC).toEpochMilli()
-        assertEquals("2026-11-02 · 1 link", searchContextLine(r("n", "N", RecordType.Note, links = 1, noteDate = day)))
+        withDefaultZone("UTC") {
+            assertEquals("2026-11-02 · 1 link", searchContextLine(r("n", "N", RecordType.Note, links = 1, noteDate = day)))
+        }
         assertEquals("Buyer, Acme · 4 links", searchContextLine(r("c", "C", RecordType.Contact, links = 4, jobTitle = "Buyer", company = "Acme")))
         assertEquals("Buyer · No links", searchContextLine(r("c", "C", RecordType.Contact, jobTitle = "Buyer")))
         assertEquals("Acme · No links", searchContextLine(r("c", "C", RecordType.Contact, jobTitle = " ", company = "Acme")))

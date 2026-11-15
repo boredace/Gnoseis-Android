@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -50,6 +50,9 @@ import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.inMemoryDatabase
 import org.gnoseis.testutil.link
 import org.gnoseis.testutil.waitFor
+import org.gnoseis.data.time.NoteTimes
+import java.time.LocalTime
+import java.time.ZoneId
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -81,7 +84,8 @@ class HomeViewModelTest {
         context.deleteDatabase(DB_NAME)
     }
 
-    private fun vm() = mainDispatcherRule.viewModel { HomeViewModel(c.homeRepository, c.settingsRepository) { today } }
+    private fun vm(zone: ZoneId = ZoneOffset.UTC) =
+        mainDispatcherRule.viewModel { HomeViewModel(c.homeRepository, c.settingsRepository, zone = { zone }, today = { today }) }
 
     /** Waits until the page state matches [condition] and returns it. */
     private suspend fun HomeViewModel.awaitState(condition: (HomePageState) -> Boolean): HomePageState {
@@ -226,13 +230,36 @@ class HomeViewModelTest {
         assertEquals(1, state.unlinkedNoteCount)
     }
 
+    /**
+     * #68: notes count on their local day: either side of local midnight in UTC+9 and UTC-5,
+     * and across a daylight-saving change (2026-10-25 is the day Europe/London falls back).
+     */
+    @Test
+    fun notesPerDay_countsByLocalDay_inTheDevicesZone() = runTest {
+        for (zoneId in listOf("Asia/Tokyo", "America/Bogota", "Europe/London")) {
+            val zone = ZoneId.of(zoneId)
+            database.clearAllTables()
+            fun at(day: LocalDate, time: String) = NoteTimes.toStored(day, LocalTime.parse(time), zone).createDateTime
+            c.noteRepository.addNote(Note(title = "y late", createDateTime = at(today.minusDays(1), "23:59")))
+            c.noteRepository.addNote(Note(title = "t early", createDateTime = at(today, "00:00")))
+            c.noteRepository.addNote(Note(title = "t late", createDateTime = at(today, "23:59")))
+            c.noteRepository.addNote(Note(title = "tomorrow", createDateTime = at(today.plusDays(1), "00:00")))
+
+            val perDay = vm(zone).awaitState { it.notesPerDay.sumOf { day -> day.count } == 3 }.notesPerDay
+            mainDispatcherRule.clearViewModels()
+
+            assertEquals(zoneId, DayCount(today.toEpochDay(), 2), perDay.last())
+            assertEquals(zoneId, DayCount(today.minusDays(1).toEpochDay(), 1), perDay[perDay.size - 2])
+        }
+    }
+
     @Test
     fun notesPerDay_hasFourteenDaysEndingToday_withZeroForEmptyDays() = runTest {
         fun day(date: LocalDate) = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        c.noteRepository.addNote(Note(title = "today", createDate = day(today)))
-        c.noteRepository.addNote(Note(title = "today too", createDate = day(today)))
-        c.noteRepository.addNote(Note(title = "first day", createDate = day(today.minusDays(13))))
-        c.noteRepository.addNote(Note(title = "too old", createDate = day(today.minusDays(14))))
+        c.noteRepository.addNote(Note(title = "today", createDateTime = day(today)))
+        c.noteRepository.addNote(Note(title = "today too", createDateTime = day(today) + 1))
+        c.noteRepository.addNote(Note(title = "first day", createDateTime = day(today.minusDays(13))))
+        c.noteRepository.addNote(Note(title = "too old", createDateTime = day(today.minusDays(14))))
 
         val perDay = vm().awaitState { it.notesPerDay.sumOf { day -> day.count } == 3 }.notesPerDay
 

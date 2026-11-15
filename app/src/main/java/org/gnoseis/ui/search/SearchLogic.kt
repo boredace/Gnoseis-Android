@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ import org.gnoseis.ui.components.creatableRecordTypes
 import org.gnoseis.ui.components.firstLastTitle
 import org.gnoseis.ui.components.matchesSearchExactly
 import org.gnoseis.ui.components.normalized
+import org.gnoseis.data.time.NoteTimes
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -210,9 +211,9 @@ fun linksText(count: Int): String = when (count) {
 
 private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-/** A note's date as the Notes list shows it. */
-fun noteDateText(noteDate: Long): String =
-    Instant.ofEpochMilli(noteDate).atZone(ZoneId.of("GMT")).format(dateFormat)
+/** A note's day as the Notes list shows it, from its createDateTime, in [zone] (#68). */
+fun noteDateText(noteDate: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+    NoteTimes.shownDay(noteDate, zone).format(dateFormat)
 
 /**
  * The second line of a result: a note's date, or a contact's job title and company (whichever
@@ -220,7 +221,7 @@ fun noteDateText(noteDate: Long): String =
  */
 fun searchContextLine(result: SearchResult): String {
     val details = when (result.recordType) {
-        RecordType.Note -> result.noteDate?.let(::noteDateText)
+        RecordType.Note -> result.noteDate?.let { noteDateText(it) }
         RecordType.Contact -> listOfNotNull(result.jobTitle, result.company)
             .map { it.trim() }
             .filter { it.isNotEmpty() }

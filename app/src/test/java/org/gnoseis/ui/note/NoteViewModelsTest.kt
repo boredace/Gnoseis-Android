@@ -58,7 +58,9 @@ import org.junit.runner.RunWith
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.ZoneId
+import org.gnoseis.data.time.NoteTimes
+import org.gnoseis.data.time.StoredNoteTimes
 import org.gnoseis.testutil.TEST_NOW
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -75,18 +77,29 @@ class NoteViewModelsTest {
         c.close()
     }
 
-    private fun editVm(noteId: String?, mode: RecordEditPageMode, linkFromType: RecordType? = null, linkFromId: String? = null) =
+    /** The editor's clock is [TEST_NOW] (2023-11-14 22:13:20 UTC) and its zone [zone] (#68). */
+    private fun editVm(
+        noteId: String?,
+        mode: RecordEditPageMode,
+        linkFromType: RecordType? = null,
+        linkFromId: String? = null,
+        zone: ZoneId = TOKYO,
+    ) =
         mainDispatcherRule.viewModel {
             NoteEditViewModel(
                 SavedStateHandle(mapOf("recordType" to RecordType.Note, "recordId" to noteId, "pageMode" to mode, "linkFromType" to linkFromType, "linkFromId" to linkFromId)),
                 c.noteRepository,
                 c.linkedRecordRepository,
                 c.getLinkSourceUseCase(),
+                now = { TEST_NOW },
+                zone = { zone },
             )
         }
 
-    private fun todayUtcMidnightMillis() =
-        LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).toEpochSecond(ZoneOffset.UTC) * 1000
+    private companion object {
+        val TOKYO: ZoneId = ZoneId.of("Asia/Tokyo")
+        val TORONTO: ZoneId = ZoneId.of("America/Toronto")
+    }
 
     @Test
     fun list_reflectsRepository_newestFirst() = runTest {
@@ -132,12 +145,16 @@ class NoteViewModelsTest {
         assertTrue(c.linkedRecordRepository.getRecordIdsLinkedToRecordId(contact.id).first().isEmpty())
     }
 
+    /** #68: a new note starts at the current local day and time, to the minute. */
     @Test
-    fun edit_newMode_initialState_defaultsDateToTodayUtcMidnight() {
+    fun edit_newMode_initialState_isTheCurrentLocalDayAndTime() {
         val vm = editVm(null, RecordEditPageMode.NEW)
         assertTrue(vm.pageState.value.isNew)
         assertFalse(vm.editState.value.isValid)
-        assertEquals(todayUtcMidnightMillis(), vm.editState.value.editDate)
+        // TEST_NOW is 2023-11-15 07:13:20 in Tokyo
+        assertEquals(LocalDate.parse("2023-11-15"), vm.editState.value.editDay)
+        assertEquals(LocalTime.parse("07:13"), vm.editState.value.editTime)
+        assertFalse(vm.editState.value.isDayChanged || vm.editState.value.isTimeChanged)
     }
 
     @Test
@@ -164,20 +181,56 @@ class NoteViewModelsTest {
         assertTrue(c.noteRepository.getNotesStream().first().isEmpty())
     }
 
-    @Test
-    fun edit_newMode_saveUsesSelectedDate() = runTest {
-        val vm = editVm(null, RecordEditPageMode.NEW)
+    private suspend fun saveNew(zone: ZoneId = TOKYO, pick: NoteEditViewModel.() -> Unit = {}): Note {
+        val vm = editVm(null, RecordEditPageMode.NEW, zone = zone)
         vm.updateTitle("t")
         vm.updateTextContent("body")
-        vm.updateDate(86_400_000L)
-        advanceTimeBy(501); runCurrent()
+        mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(501)
+        mainDispatcherRule.testDispatcher.scheduler.runCurrent()
+        vm.pick()
+        return c.noteRepository.getNote(vm.onSave()!!)
+    }
 
-        val saved = c.noteRepository.getNote(vm.onSave()!!)
+    /** #68: nothing picked, so the note is the clock's moment, not a rounded time. */
+    @Test
+    fun edit_newMode_unchangedDayAndTime_savesTheMomentOfSaving() = runTest {
+        val saved = saveNew()
 
         assertEquals("t", saved.title)
         assertEquals("body", saved.textContents)
-        assertEquals(86_400_000L, saved.createDate)
-        assertEquals(86_400_000L, saved.createDateTime)
+        assertEquals(NoteTimes.forNow(java.time.Instant.ofEpochMilli(TEST_NOW), TOKYO), StoredNoteTimes(saved.createDateTime, saved.createDate))
+        assertEquals(TEST_NOW, saved.createDateTime)
+    }
+
+    /** #68: OK on the time already shown isn't a change. */
+    @Test
+    fun edit_newMode_sameTimePicked_savesTheMomentOfSaving() = runTest {
+        val saved = saveNew { updateTime(LocalTime.parse("07:13")); updateDate(LocalDate.parse("2023-11-15")) }
+
+        assertEquals(TEST_NOW, saved.createDateTime)
+    }
+
+    @Test
+    fun edit_newMode_pickedTime_savesThatLocalTimeOnTheDayShown() = runTest {
+        val saved = saveNew { updateTime(LocalTime.parse("21:40")) }
+
+        assertEquals(NoteTimes.toStored(LocalDate.parse("2023-11-15"), LocalTime.parse("21:40"), TOKYO), StoredNoteTimes(saved.createDateTime, saved.createDate))
+    }
+
+    @Test
+    fun edit_newMode_pickedDay_savesTheShownTimeOnThatDay_toTheMinute() = runTest {
+        val saved = saveNew(TORONTO) { updateDate(LocalDate.parse("2023-11-01")) }
+
+        // TEST_NOW is 17:13:20 in Toronto; seconds aren't kept for a picked day
+        assertEquals(NoteTimes.toStored(LocalDate.parse("2023-11-01"), LocalTime.parse("17:13"), TORONTO), StoredNoteTimes(saved.createDateTime, saved.createDate))
+    }
+
+    /** #68: the shared example 2026-07-15 14:30 in America/Toronto. */
+    @Test
+    fun edit_newMode_pickedDayAndTime_followsTheExample() = runTest {
+        val saved = saveNew(TORONTO) { updateDate(LocalDate.parse("2026-07-15")); updateTime(LocalTime.parse("14:30")) }
+
+        assertEquals(StoredNoteTimes(1784140200000, 1784088000000), StoredNoteTimes(saved.createDateTime, saved.createDate))
     }
 
     @Test
@@ -195,14 +248,16 @@ class NoteViewModelsTest {
 
     @Test
     fun edit_editMode_loadsAndUpdates() = runTest {
-        val note = Note(title = "Old", textContents = "body", createDateTime = 5_000, createDate = 0).stamped()
+        // The Tokyo example: 2026-11-14 08:15 in Tokyo
+        val note = Note(title = "Old", textContents = "body", createDateTime = 1794611700000, createDate = 1794582000000).stamped()
         c.noteRepository.addNote(note)
         val vm = editVm(note.id, RecordEditPageMode.EDIT)
 
         waitFor { !vm.pageState.value.isNew }
         assertEquals("Old", vm.editState.value.editTitle)
         assertEquals("body", vm.editState.value.editTextContent)
-        assertEquals(5_000L, vm.editState.value.editDate)
+        assertEquals(LocalDate.parse("2026-11-14"), vm.editState.value.editDay)
+        assertEquals(LocalTime.parse("08:15"), vm.editState.value.editTime)
 
         vm.updateTitle("New")
         advanceTimeBy(501); runCurrent()
@@ -233,20 +288,68 @@ class NoteViewModelsTest {
         assertEquals(createDate, saved.createDate)
     }
 
-    @Test
-    fun edit_editMode_savingAfterPickingDate_updatesCreateDate() = runTest {
-        val note = Note(title = "Old", createDateTime = 1_700_000_123_456L, createDate = 1_699_920_000_000L).stamped()
+    /** Opens [note] in the editor in [zone], applies [edit] and saves; returns the saved columns. */
+    private suspend fun saveEdited(note: Note, zone: ZoneId, edit: NoteEditViewModel.() -> Unit): StoredNoteTimes {
         c.noteRepository.addNote(note)
-        val vm = editVm(note.id, RecordEditPageMode.EDIT)
+        val vm = editVm(note.id, RecordEditPageMode.EDIT, zone = zone)
         waitFor { !vm.pageState.value.isNew }
-
-        val picked = 1_710_000_000_000L
-        vm.updateDate(picked)
+        vm.edit()
         vm.onSave()
+        return c.noteRepository.getNote(note.id).let { StoredNoteTimes(it.createDateTime, it.createDate) }
+    }
 
-        val saved = c.noteRepository.getNote(note.id)
-        assertEquals(picked, saved.createDateTime)
-        assertEquals(picked, saved.createDate)
+    /** #68: a note saved in Tokyo, opened and saved in Toronto, keeps both columns exactly. */
+    @Test
+    fun edit_editMode_tokyoNote_savedInTorontoUnchanged_keepsBothColumns() = runTest {
+        val note = Note(title = "Old", createDateTime = 1794611700000, createDate = 1794582000000).stamped()
+
+        val saved = saveEdited(note, TORONTO) { updateTitle("New") }
+
+        assertEquals(StoredNoteTimes(1794611700000, 1794582000000), saved)
+    }
+
+    /** #68: OK on the day and time already shown isn't a change, even with seconds stored. */
+    @Test
+    fun edit_editMode_sameDayAndTimePicked_keepsBothColumns() = runTest {
+        val note = Note(title = "Old", createDateTime = 1794611712345, createDate = 1794582000000).stamped()
+
+        val saved = saveEdited(note, TOKYO) { updateDate(LocalDate.parse("2026-11-14")); updateTime(LocalTime.parse("08:15")) }
+
+        assertEquals(StoredNoteTimes(1794611712345, 1794582000000), saved)
+    }
+
+    @Test
+    fun edit_editMode_pickedDay_keepsTheShownTime() = runTest {
+        // 2026-11-13 18:15 in Toronto
+        val note = Note(title = "Old", createDateTime = 1794611700000, createDate = 1794582000000).stamped()
+
+        val saved = saveEdited(note, TORONTO) { updateDate(LocalDate.parse("2026-07-15")) }
+
+        assertEquals(NoteTimes.toStored(LocalDate.parse("2026-07-15"), LocalTime.parse("18:15"), TORONTO), saved)
+    }
+
+    @Test
+    fun edit_editMode_pickedTime_keepsTheShownDay() = runTest {
+        // 2026-11-13 18:15 in Toronto
+        val note = Note(title = "Old", createDateTime = 1794611700000, createDate = 1794582000000).stamped()
+
+        val saved = saveEdited(note, TORONTO) { updateTime(LocalTime.parse("07:05")) }
+
+        assertEquals(NoteTimes.toStored(LocalDate.parse("2026-11-13"), LocalTime.parse("07:05"), TORONTO), saved)
+    }
+
+    /** #68: a time in the spring-forward gap moves later by the gap (the shared example). */
+    @Test
+    fun edit_editMode_pickedTimeInAGap_followsTheRule() = runTest {
+        val note = Note(
+            title = "Old",
+            createDateTime = NoteTimes.toStored(LocalDate.parse("2026-03-08"), LocalTime.parse("10:00"), TORONTO).createDateTime,
+            createDate = 1772946000000,
+        ).stamped()
+
+        val saved = saveEdited(note, TORONTO) { updateTime(LocalTime.parse("02:30")) }
+
+        assertEquals(StoredNoteTimes(1772955000000, 1772946000000), saved)
     }
 
     // ---------- Edit: line breaks (#67) ----------

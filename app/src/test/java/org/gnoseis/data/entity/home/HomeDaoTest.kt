@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -175,18 +175,13 @@ class HomeDaoTest {
     }
 
     @Test
-    fun notesPerDay_countsByNoteDate_withinTheRange() = runTest {
-        val day = 86_400_000L
-        note("before", createDate = 9 * day)
-        note("a", createDate = 10 * day)
-        note("b", createDate = 10 * day)
-        note("c", createDate = 12 * day)
-        note("after", createDate = 13 * day)
+    fun noteTimesBetween_isFromIncluded_untilExcluded() = runTest {
+        note("before", createDateTime = 9)
+        note("a", createDateTime = 10)
+        note("b", createDateTime = 15)
+        note("until", createDateTime = 20)
 
-        assertEquals(
-            listOf(DayCount(10, 2), DayCount(12, 1)),
-            dao.getNotesPerDay(fromDay = 10, toDay = 12).first().sortedBy { it.day },
-        )
+        assertEquals(listOf(10L, 15L), dao.getNoteTimesBetween(from = 10, until = 20).first().sorted())
     }
 
     @Test

@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -48,19 +48,24 @@ import org.gnoseis.data.entity.home.RecordCounts
 import org.gnoseis.data.entity.home.TypeLinkCount
 import org.gnoseis.data.repository.HomeRepository
 import org.gnoseis.data.repository.SettingsRepository
+import org.gnoseis.data.time.NoteTimes
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * The Home page (#45). Every part is a Flow, so the page updates when the user comes back from
- * adding, editing, linking or deleting a record. [today] is the user's local date.
+ * adding, editing, linking or deleting a record. [zone] is the device's time zone and [today]
+ * the local date in it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     homeRepository: HomeRepository,
     settingsRepository: SettingsRepository,
-    today: () -> LocalDate = LocalDate::now,
+    zone: () -> ZoneId = { ZoneId.systemDefault() },
+    today: () -> LocalDate = { LocalDate.now(zone()) },
 ) : ViewModel() {
     private val todayDate = today()
+    private val zoneId = zone()
 
     /**
      * The record type picked in the Most linked type picker, or null for all types. Kept here so
@@ -82,12 +87,15 @@ class HomeViewModel(
         mostLinkedTypeId.value = typeId
     }
 
+    /** Notes per local day (#68): from the start of the first day to the start of tomorrow. */
     private val notesPerDay: Flow<List<DayCount>> = run {
-        val toDay = todayDate.toEpochDay()
-        val fromDay = toDay - CHART_DAYS + 1
-        homeRepository.getNotesPerDayStream(fromDay, toDay).map { counts ->
-            val byDay = counts.associate { it.day to it.count }
-            (fromDay..toDay).map { DayCount(it, byDay[it] ?: 0) }
+        val firstDay = todayDate.minusDays(CHART_DAYS - 1L)
+        homeRepository.getNoteTimesStream(
+            from = NoteTimes.startOfDay(firstDay, zoneId),
+            until = NoteTimes.startOfDay(todayDate.plusDays(1), zoneId),
+        ).map { times ->
+            val byDay = times.groupingBy { NoteTimes.shownDay(it, zoneId).toEpochDay() }.eachCount()
+            (firstDay.toEpochDay()..todayDate.toEpochDay()).map { DayCount(it, byDay[it] ?: 0) }
         }
     }
 
@@ -171,7 +179,7 @@ data class HomePageState(
     /** Links between two of [mostLinked]. */
     val mostLinkedLinks: List<LinkEnds> = emptyList(),
     val recentNotes: List<NoteSummary> = emptyList(),
-    /** One entry per day, oldest first, ending today. Days are UTC day numbers, like note dates. */
+    /** One entry per local day, oldest first, ending today. */
     val notesPerDay: List<DayCount> = emptyList(),
     val unlinkedNotes: List<NoteSummary> = emptyList(),
     val unlinkedNoteCount: Int = 0,

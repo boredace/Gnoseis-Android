@@ -1,7 +1,7 @@
 /*
 *   Gnoseis is an Android native CRM application and general knowledge manager.
 *
-*   Copyright (C) 2024 Gnoseis.org
+*   Copyright (C) 2024-2026 Gnoseis.org
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -105,6 +105,7 @@ import org.gnoseis.ui.components.RecordTypePicker
 import org.gnoseis.ui.components.linkCountText
 import org.gnoseis.ui.components.recordTypeColors
 import org.gnoseis.ui.theme.GnoseisTheme
+import org.gnoseis.data.time.NoteTimes
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -548,7 +549,7 @@ private fun RecentNotes(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = noteDateText(note.createDate),
+                        text = noteDateText(note.createDateTime),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -819,9 +820,9 @@ internal fun mostLinkedSubtitle(filterTypeId: Int?) =
     if (filterTypeId == null) "Bigger bubble, more records link to it"
     else "${pluralName(RecordType.from(filterTypeId))} with the most links"
 
-/** A note date as the note list shows it: the stored day, read in UTC. */
-private fun noteDateText(createDate: Long): String =
-    Instant.ofEpochMilli(createDate).atZone(ZoneId.of("GMT"))
+/** A note's day as the note list shows it, in the device's time zone (#68). */
+private fun noteDateText(createDateTime: Long): String =
+    NoteTimes.shownDay(createDateTime, ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd · E"))
 
 private fun firstLine(text: String?): String? =
