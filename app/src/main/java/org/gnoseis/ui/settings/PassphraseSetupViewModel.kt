@@ -182,6 +182,11 @@ class PassphraseSetupViewModel(
                 e.printStackTrace()
                 _saveFailed.value = true
                 _step.value = SetupStep.CONFIRM
+            } catch (e: OutOfMemoryError) {
+                // Argon2 needs its full memory setting at once; on a device without it, say so
+                // rather than leave the spinner up
+                _saveFailed.value = true
+                _step.value = SetupStep.CONFIRM
             } finally {
                 expected.bytes.fill(0)
             }

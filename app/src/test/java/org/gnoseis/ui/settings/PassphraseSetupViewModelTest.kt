@@ -36,6 +36,7 @@ import org.gnoseis.data.backup.BackupKeys
 import org.gnoseis.data.backup.BackupPassphrase.OwnCheck
 import org.gnoseis.data.backup.EffWordList
 import org.gnoseis.data.backup.FakeKeyWrapper
+import org.gnoseis.data.backup.KeyWrapper
 import org.gnoseis.data.backup.StoredBackupKey
 import org.gnoseis.testutil.MainDispatcherRule
 import org.gnoseis.testutil.waitFor
@@ -203,6 +204,30 @@ class PassphraseSetupViewModelTest {
         waitFor { vm.step.value == SetupStep.DONE }
         assertTrue(storedKeyIsFor("the new passphrase"))
         assertFalse(storedKeyIsFor("the old passphrase"))
+    }
+
+    // ---------- Failure ----------
+
+    @Test
+    fun outOfMemory_whileSaving_showsTheFailureInsteadOfSpinning() = runTest {
+        val noMemory = object : KeyWrapper {
+            override fun wrap(plain: ByteArray, associatedData: ByteArray): ByteArray = throw OutOfMemoryError()
+            override fun unwrap(wrapped: ByteArray, associatedData: ByteArray): ByteArray = throw IllegalStateException()
+            override fun delete() = Unit
+        }
+        val failing = mainDispatcherRule.viewModel {
+            PassphraseSetupViewModel(StoredBackupKey(keyFile, noMemory)) { words }
+        }
+        failing.useOwn()
+        failing.onOwnChange("a long and sensible passphrase")
+        failing.ownNext()
+        failing.useAnyway()
+        failing.onConfirmChange("a long and sensible passphrase")
+        failing.turnOn()
+
+        waitFor { failing.saveFailed.value }
+        assertEquals(SetupStep.CONFIRM, failing.step.value)
+        assertEquals(StoredBackupKey.Off, backupKey.state())
     }
 
     @Test
