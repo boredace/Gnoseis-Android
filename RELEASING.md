@@ -62,25 +62,26 @@ Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis D
 
 ## Making a release
 
-1. On a `release/<version>` branch from `main`, set `versionName` and `versionCode` in `app/build.gradle.kts` to the release, for example `0.3.0-beta.1` and `30_001`.
-2. Run the unit tests:
+1. Before the release branch, check that the README describes this version: its features, the screenshots, the schema versions and the oldest Windows version that opens its files. Check too that `docs/windows-android-differences.md` lists this version and what differs, and that it is identical to the copy in Gnoseis-Windows. Any change goes in on its own branch, merged into `main` and pushed before the release branch starts.
+2. On a `release/<version>` branch from `main`, set `versionName` and `versionCode` in `app/build.gradle.kts` to the release, for example `0.3.0-beta.1` and `30_001`.
+3. Run the unit tests:
    ```bash
    ./gradlew :app:testDebugUnitTest
    ```
-3. Merge the branch into `main`, with the merge commit named `Release <version>`.
-4. Tag the merge commit `v<version>` and push the tag.
-5. Build the signed APK from the tag:
+4. Merge the branch into `main`, with the merge commit named `Release <version>`.
+5. Tag the merge commit `v<version>` and push the tag.
+6. Build the signed APK from the tag:
    ```bash
    ./gradlew assembleRelease
    ```
    The APK is written to `app/build/outputs/apk/release/app-release.apk`.
-6. Verify the signature. The SHA-256 digest must match the fingerprint in the README:
+7. Verify the signature. The SHA-256 digest must match the fingerprint in the README:
    ```bash
    apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
    ```
-7. Create the GitHub release for the tag and attach the APK as `Gnoseis-v<version>.apk`. Mark betas as pre-releases.
-8. After a final release, on a `start/<next version>` branch from `main`, set the next version with NN = 00, for example `0.4.0` and `40_000`, then merge it into `main` with the merge commit named `Start <next version>`. After a beta, `main` keeps the beta's version until the next release.
-9. Close the milestone.
+8. Create the GitHub release for the tag and attach the APK as `Gnoseis-v<version>.apk`. Mark betas as pre-releases.
+9. After a final release, on a `start/<next version>` branch from `main`, set the next version with NN = 00, for example `0.4.0` and `40_000`, then merge it into `main` with the merge commit named `Start <next version>`. After a beta, `main` keeps the beta's version until the next release.
+10. Close the milestone.
 
 ### Fixing an older release
 
