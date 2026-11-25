@@ -1,6 +1,8 @@
 # Gnoseis
 Gnoseis is a high performance Android native CRM application that can be also used as an all-purpose knowledge manager. It stores all data securely on device and in future will allow secure cloud-free synchronization.
 
+Gnoseis is also available [for Windows](https://github.com/boredace/Gnoseis-Windows). Both apps use the same database and backup format, so a database or backup can move between them: Android 0.4.0 and Windows 0.2.0 open each other's files, encrypted backups included. See [Database and compatibility](#database-and-compatibility) for which versions work together, and [docs/windows-android-differences.md](docs/windows-android-differences.md) for what differs between the two apps.
+
 <p align="center">
   <img src="docs/readme-screens.png" alt="Gnoseis in dark mode: the Home page with the most linked records, a contact with linked-record tabs, and search results with a best match" width="880">
 </p>
@@ -21,6 +23,23 @@ More screenshots of the current release are in [screenshots](screenshots/).
 - **Private by design**: all data stays on your device. The app has no internet permission, and Android cloud backup and device-to-device transfer are turned off for its data.
 
 What changed in each version is in the [release notes](https://github.com/boredace/Gnoseis-Android/releases).
+
+## Database and compatibility
+
+Gnoseis keeps all data in one SQLite database. Its schema version is stored in the file as `PRAGMA user_version`, and a backup has the version of the database it was made from.
+
+| Schema version | Written by |
+|---|---|
+| 1 | Android before 0.2.4 |
+| 2 | Android 0.2.4 and 0.2.5 |
+| 3 | Android 0.3.0, and Windows 0.1.0 |
+| 4 | Android 0.4.0, and Windows 0.2.0 |
+
+Android 0.4.0 opens versions 1 to 4, and upgrades older databases and backups to version 4. A backup from a newer version is refused with "Made by a newer version of Gnoseis", and nothing is changed. Android before 0.4.0 can't open a version 4 file or restore an encrypted backup, so update to 0.4.0 before copying a file from Windows 0.2.0 to Android.
+
+**3 to 4:** the tables don't change; only note times do. Until version 4, a note's time (`createDateTime`) held the local date and time it was written. It becomes that moment in UTC, converted once in the time zone of the device that upgrades the database or restores the older backup. The note's day (`createDate`) becomes the UTC moment of 00:00 of its local day, and a note with no time of day gets 00:00 of its day. Every other column is unchanged.
+
+Before upgrading its database to version 4, the app keeps a copy of it as it was, `gnoseis_data.before-v4-<date>_<time>`, next to it in the app's private storage. The app never deletes it, but other apps and file managers can't reach it. To keep a copy you can open, export a backup before updating.
 
 ## Roadmap
 The next couple releases are planned using Milestones. To track progress see [here](https://github.com/boredace/Gnoseis-Android/milestones?direction=asc&sort=title&state=open).
