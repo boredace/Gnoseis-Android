@@ -14,12 +14,12 @@
 *
 *   You should have received a copy of the GNU General Public License
 *   along with this program. If not, see
-*   https://github.com/gnoseis.org/Gnoseis-Android/blob/main/LICENSE.
+*   https://github.com/boredace/Gnoseis-Android/blob/main/LICENSE.
 *
 *   Dual Licensing Notice:
 *
 *   Gnoseis can also be licensed under commercial terms. See
-*   https://github.com/gnoseis.org/Gnoseis-Android/blob/main/COMMERCIAL_LICENSE
+*   https://github.com/boredace/Gnoseis-Android/blob/main/COMMERCIAL_LICENSE
 *
 *   By contributing to Gnoseis, you agree that your contributions will be
 *   licensed under both the open-source license in the LICENSE file and the
