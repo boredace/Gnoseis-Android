@@ -42,7 +42,7 @@ android {
         applicationId = "org.gnoseis"
         minSdk = 29
         targetSdk = 35
-        versionCode = 40_000
+        versionCode = 40_099
         versionName = "0.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
