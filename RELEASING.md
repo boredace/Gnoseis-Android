@@ -79,9 +79,14 @@ Debug builds use the application ID `org.gnoseis.debug` and are named "Gnoseis D
    ```bash
    apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
    ```
-8. Create the GitHub release for the tag and attach the APK as `Gnoseis-v<version>.apk`. Mark betas as pre-releases.
-9. After a final release, on a `start/<next version>` branch from `main`, set the next version with NN = 00, for example `0.4.0` and `40_000`, then merge it into `main` with the merge commit named `Start <next version>`. After a beta, `main` keeps the beta's version until the next release.
-10. Close the milestone.
+8. Compute the APK's SHA-256 and put it in the release notes' "APK file SHA-256" line:
+   ```powershell
+   Get-FileHash app/build/outputs/apk/release/app-release.apk -Algorithm SHA256
+   ```
+   or `sha256sum app/build/outputs/apk/release/app-release.apk`.
+9. Create the GitHub release for the tag and attach the APK as `Gnoseis-v<version>.apk`. Mark betas as pre-releases.
+10. After a final release, on a `start/<next version>` branch from `main`, set the next version with NN = 00, for example `0.4.0` and `40_000`, then merge it into `main` with the merge commit named `Start <next version>`. After a beta, `main` keeps the beta's version until the next release.
+11. Close the milestone.
 
 ### Fixing an older release
 
